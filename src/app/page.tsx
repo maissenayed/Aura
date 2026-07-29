@@ -1,65 +1,185 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { EXERCISES } from '../data/exercisesData';
+import { Exercise, Swimlane, UserProgress, ViewMode } from '../types/exercise';
+import { Header } from '../components/Header';
+import { FilterBar } from '../components/FilterBar';
+import { SkillTreeCanvas } from '../components/SkillTreeCanvas';
+import { ExerciseDetailModal } from '../components/ExerciseDetailModal';
+import { StatsDashboard } from '../components/StatsDashboard';
 
 export default function Home() {
+  // Local storage key for user progress
+  const STORAGE_KEY = 'aura_calisthenics_skill_tree_progress_v1';
+
+  // State
+  const [progress, setProgress] = useState<UserProgress>({
+    masteredIds: ['ex_0', 'ex_4', 'ex_7', 'ex_11'], // Default beginner mastered set
+    currentLevel: 3,
+    totalXp: 900,
+  });
+
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [selectedSwimlane, setSelectedSwimlane] = useState<Swimlane | 'All'>('All');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [levelFilter, setLevelFilter] = useState<number>(20);
+  const [viewMode, setViewMode] = useState<ViewMode>('tree');
+
+  // Load progress from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed.masteredIds)) {
+          setProgress(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load progress from localStorage', e);
+    }
+  }, []);
+
+  // Save progress to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    } catch (e) {
+      console.error('Failed to save progress to localStorage', e);
+    }
+  }, [progress]);
+
+  // Open exercise detail modal
+  const handleSelectExercise = (exercise: Exercise) => {
+    setSelectedExercise(exercise);
+    setIsModalOpen(true);
+  };
+
+  // Toggle exercise mastered status
+  const handleToggleMastered = (exerciseId: string) => {
+    setProgress(prev => {
+      const isAlreadyMastered = prev.masteredIds.includes(exerciseId);
+      let updatedMasteredIds: string[];
+
+      if (isAlreadyMastered) {
+        updatedMasteredIds = prev.masteredIds.filter(id => id !== exerciseId);
+      } else {
+        updatedMasteredIds = [...prev.masteredIds, exerciseId];
+      }
+
+      // Calculate total XP & level
+      const totalXp = updatedMasteredIds.reduce((sum, id) => {
+        const ex = EXERCISES.find(e => e.id === id);
+        return sum + (ex ? ex.xpReward : 100);
+      }, 0);
+
+      const maxLevelMastered = updatedMasteredIds.reduce((max, id) => {
+        const ex = EXERCISES.find(e => e.id === id);
+        return Math.max(max, ex ? ex.level : 1);
+      }, 1);
+
+      return {
+        masteredIds: updatedMasteredIds,
+        currentLevel: Math.max(1, maxLevelMastered),
+        totalXp,
+      };
+    });
+  };
+
+  // Switch modal data when clicking prerequisite badge
+  const handleSelectPrerequisite = (exercise: Exercise) => {
+    setSelectedExercise(exercise);
+  };
+
+  // Reset user progress
+  const handleResetProgress = () => {
+    if (window.confirm('Reset all mastered exercises and XP progress?')) {
+      const initial = { masteredIds: [], currentLevel: 1, totalXp: 0 };
+      setProgress(initial);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  };
+
+  // Demo unlock set (Level 1-3 foundation exercises)
+  const handleUnlockAllDemo = () => {
+    const demoIds = EXERCISES.filter(ex => ex.level <= 3).map(ex => ex.id);
+    const uniqueIds = Array.from(new Set([...progress.masteredIds, ...demoIds]));
+    
+    const totalXp = uniqueIds.reduce((sum, id) => {
+      const ex = EXERCISES.find(e => e.id === id);
+      return sum + (ex ? ex.xpReward : 100);
+    }, 0);
+
+    setProgress({
+      masteredIds: uniqueIds,
+      currentLevel: 4,
+      totalXp,
+    });
+  };
+
+  const isCurrentMastered = selectedExercise ? progress.masteredIds.includes(selectedExercise.id) : false;
+  
+  const isCurrentUnlocked = selectedExercise ? (
+    selectedExercise.prerequisites.length === 0 ||
+    selectedExercise.prerequisites.every(id => progress.masteredIds.includes(id))
+  ) : false;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <main className="min-h-screen bg-dark-950 text-slate-100 flex flex-col selection:bg-neon-cyan selection:text-dark-950">
+      
+      {/* Gamified Header */}
+      <Header
+        progress={progress}
+        onResetProgress={handleResetProgress}
+        onUnlockAllDemo={handleUnlockAllDemo}
+        activeView={viewMode}
+        onViewChange={setViewMode}
+      />
+
+      {/* Main View Area */}
+      {viewMode === 'tree' ? (
+        <div className="flex-1 flex flex-col">
+          {/* Filtering Bar */}
+          <FilterBar
+            selectedSwimlane={selectedSwimlane}
+            onSelectSwimlane={setSelectedSwimlane}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            levelFilter={levelFilter}
+            onLevelFilterChange={setLevelFilter}
+          />
+
+          {/* Interactive RPG Pan & Zoom Skill Tree Canvas */}
+          <div className="flex-1">
+            <SkillTreeCanvas
+              exercises={EXERCISES}
+              progress={progress}
+              onSelectExercise={handleSelectExercise}
+              selectedSwimlane={selectedSwimlane}
+              searchQuery={searchQuery}
+              levelFilter={levelFilter}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </div>
         </div>
-      </main>
-    </div>
+      ) : (
+        <div className="flex-1 py-8">
+          <StatsDashboard progress={progress} />
+        </div>
+      )}
+
+      {/* Exercise Detail Modal (shadcn Dialog replacement) */}
+      <ExerciseDetailModal
+        exercise={selectedExercise}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSelectPrerequisite={handleSelectPrerequisite}
+        isMastered={isCurrentMastered}
+        isUnlocked={isCurrentUnlocked}
+        onToggleMastered={handleToggleMastered}
+      />
+
+    </main>
   );
 }
