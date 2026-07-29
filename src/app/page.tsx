@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { EXERCISES } from '../data/exercisesData';
+import { EXERCISES as DEFAULT_EXERCISES } from '../data/exercisesData';
+import { getStoredExercises } from '../utils/exerciseStorage';
 import { Exercise, Swimlane, UserProgress, ViewMode } from '../types/exercise';
 import { Header } from '../components/Header';
 import { FilterBar } from '../components/FilterBar';
@@ -12,6 +13,14 @@ import { StatsDashboard } from '../components/StatsDashboard';
 export default function Home() {
   // Local storage key for user progress
   const STORAGE_KEY = 'aura_calisthenics_skill_tree_progress_v1';
+
+  // Exercises State
+  const [exercises, setExercises] = useState<Exercise[]>(DEFAULT_EXERCISES);
+
+  // Load exercises from local storage on mount
+  useEffect(() => {
+    setExercises(getStoredExercises());
+  }, []);
 
   // State
   const [progress, setProgress] = useState<UserProgress>({
@@ -24,7 +33,11 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedSwimlane, setSelectedSwimlane] = useState<Swimlane | 'All'>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [levelFilter, setLevelFilter] = useState<number>(20);
+  
+  // Level Range State (Default Level 1 to 3)
+  const [minLevel, setMinLevel] = useState<number>(1);
+  const [maxLevel, setMaxLevel] = useState<number>(3);
+  
   const [viewMode, setViewMode] = useState<ViewMode>('tree');
 
   // Load progress from localStorage on mount
@@ -71,12 +84,12 @@ export default function Home() {
 
       // Calculate total XP & level
       const totalXp = updatedMasteredIds.reduce((sum, id) => {
-        const ex = EXERCISES.find(e => e.id === id);
+        const ex = exercises.find(e => e.id === id);
         return sum + (ex ? ex.xpReward : 100);
       }, 0);
 
       const maxLevelMastered = updatedMasteredIds.reduce((max, id) => {
-        const ex = EXERCISES.find(e => e.id === id);
+        const ex = exercises.find(e => e.id === id);
         return Math.max(max, ex ? ex.level : 1);
       }, 1);
 
@@ -104,11 +117,11 @@ export default function Home() {
 
   // Demo unlock set (Level 1-3 foundation exercises)
   const handleUnlockAllDemo = () => {
-    const demoIds = EXERCISES.filter(ex => ex.level <= 3).map(ex => ex.id);
+    const demoIds = exercises.filter(ex => ex.level <= 3).map(ex => ex.id);
     const uniqueIds = Array.from(new Set([...progress.masteredIds, ...demoIds]));
     
     const totalXp = uniqueIds.reduce((sum, id) => {
-      const ex = EXERCISES.find(e => e.id === id);
+      const ex = exercises.find(e => e.id === id);
       return sum + (ex ? ex.xpReward : 100);
     }, 0);
 
@@ -117,6 +130,11 @@ export default function Home() {
       currentLevel: 4,
       totalXp,
     });
+  };
+
+  const handleLevelRangeChange = (min: number, max: number) => {
+    setMinLevel(min);
+    setMaxLevel(max);
   };
 
   const isCurrentMastered = selectedExercise ? progress.masteredIds.includes(selectedExercise.id) : false;
@@ -147,19 +165,21 @@ export default function Home() {
             onSelectSwimlane={setSelectedSwimlane}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            levelFilter={levelFilter}
-            onLevelFilterChange={setLevelFilter}
+            minLevel={minLevel}
+            maxLevel={maxLevel}
+            onLevelRangeChange={handleLevelRangeChange}
           />
 
           {/* Interactive RPG Pan & Zoom Skill Tree Canvas */}
           <div className="flex-1">
             <SkillTreeCanvas
-              exercises={EXERCISES}
+              exercises={exercises}
               progress={progress}
               onSelectExercise={handleSelectExercise}
               selectedSwimlane={selectedSwimlane}
               searchQuery={searchQuery}
-              levelFilter={levelFilter}
+              minLevel={minLevel}
+              maxLevel={maxLevel}
             />
           </div>
         </div>

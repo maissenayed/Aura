@@ -1,5 +1,18 @@
 export type Swimlane = 'Push' | 'Pull' | 'Core' | 'Legs';
 
+export interface RawExercise {
+  id: string;
+  name: string;
+  level: number;
+  category: string;
+  subCategory: string;
+  prerequisites?: string[];
+  steps?: string[];
+  expertTip?: string;
+  youtubeQuery?: string;
+  videoSearchUrl?: string;
+}
+
 export interface Exercise {
   id: string;
   name: string;

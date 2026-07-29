@@ -1,29 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Exercise } from '../types/exercise';
 import { EXERCISES } from '../data/exercisesData';
 import { Dialog } from './ui/Dialog';
 import { Progress } from './ui/Progress';
 import { Badge } from './ui/Badge';
 import { 
-  Play, 
-  Pause, 
   CheckCircle2, 
   Lock, 
-  ShieldAlert, 
   Award, 
   ChevronRight, 
-  ArrowLeft,
   X,
-  Target,
   Sparkles,
-  Flame,
   Info,
   Lightbulb,
   ExternalLink,
-  VideoOff,
-  Tv
+  VideoOff
 } from 'lucide-react';
 
 interface ExerciseDetailModalProps {
@@ -34,6 +27,29 @@ interface ExerciseDetailModalProps {
   isMastered: boolean;
   isUnlocked: boolean;
   onToggleMastered: (exerciseId: string) => void;
+}
+
+// Helper to resolve YouTube embed URL from direct video links or search queries
+function getYouTubeEmbedUrl(exercise: Exercise): string | null {
+  const url = exercise.videoSearchUrl || '';
+  
+  // Extract 11-character video ID from watch?v=ID, embed/ID, or youtu.be/ID
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  if (match && match[1]) {
+    return `https://www.youtube.com/embed/${match[1]}`;
+  }
+
+  // Use explicit youtubeQuery if available
+  if (exercise.youtubeQuery) {
+    return `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(exercise.youtubeQuery)}`;
+  }
+
+  // Fallback search query from exercise name
+  if (exercise.name) {
+    return `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(exercise.name + ' calisthenics form tutorial')}`;
+  }
+
+  return null;
 }
 
 export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
@@ -56,8 +72,11 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
   const nextUnlocks = EXERCISES.filter(ex => ex.prerequisites.includes(exercise.id));
 
   const isPro = exercise.level >= 15;
-  const youtubeQuery = exercise.youtubeQuery;
-  const videoSearchUrl = exercise.videoSearchUrl || (youtubeQuery ? `https://www.youtube.com/results?search_query=${encodeURIComponent(youtubeQuery)}` : '#');
+  const embedUrl = getYouTubeEmbedUrl(exercise);
+  const externalWatchUrl = exercise.videoSearchUrl || (exercise.youtubeQuery 
+    ? `https://www.youtube.com/results?search_query=${encodeURIComponent(exercise.youtubeQuery)}`
+    : `https://www.youtube.com/results?search_query=${encodeURIComponent(exercise.name + ' calisthenics tutorial')}`
+  );
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose} maxWidth="max-w-3xl">
@@ -95,9 +114,9 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
         {/* Dynamic Video Embed & UI */}
         <div className="space-y-2">
           <div className="relative w-full aspect-video rounded-2xl bg-dark-950 border border-slate-800/90 overflow-hidden flex items-center justify-center shadow-xl group">
-            {youtubeQuery ? (
+            {embedUrl ? (
               <iframe
-                src={`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(youtubeQuery)}`}
+                src={embedUrl}
                 title={`${exercise.name} Tutorial`}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
@@ -108,28 +127,26 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
               <div className="flex flex-col items-center justify-center p-8 text-center space-y-2 text-slate-500">
                 <VideoOff className="w-10 h-10 text-slate-600 mb-1" />
                 <span className="text-sm font-semibold text-slate-400">Video Tutorial Unavailable</span>
-                <span className="text-xs text-slate-500">No search query available for this exercise</span>
+                <span className="text-xs text-slate-500">No video link or search query available</span>
               </div>
             )}
           </div>
 
           {/* External Fallback Link */}
-          {youtubeQuery && (
-            <div className="flex items-center justify-between px-1">
-              <span className="text-[11px] text-slate-500 font-mono">
-                Embedded Tutorial for "{youtubeQuery}"
-              </span>
-              <a
-                href={videoSearchUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white bg-dark-900 border border-slate-800 hover:border-slate-700 transition"
-              >
-                <span>Watch on YouTube</span>
-                <ExternalLink className="w-3.5 h-3.5 text-neon-cyan" />
-              </a>
-            </div>
-          )}
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[11px] text-slate-500 font-mono">
+              Video Tutorial for "{exercise.name}"
+            </span>
+            <a
+              href={externalWatchUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white bg-dark-900 border border-slate-800 hover:border-slate-700 transition"
+            >
+              <span>Watch on YouTube</span>
+              <ExternalLink className="w-3.5 h-3.5 text-neon-cyan" />
+            </a>
+          </div>
         </div>
 
         {/* Strength Level Meter (Progress bar 1-20 color-coded) */}

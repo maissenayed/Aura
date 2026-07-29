@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
 
 @theme {
   --color-dark-950: #06070a;
@@ -40,6 +41,48 @@ body {
   background-image: 
     linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+/* React Flow Dark Theme Overrides */
+.react-flow {
+  background: transparent !important;
+}
+
+.react-flow__controls {
+  background: #0a0c12 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8) !important;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: #0a0c12 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  fill: #94a3b8 !important;
+  color: #94a3b8 !important;
+}
+
+.react-flow__controls-button:hover {
+  background: #1c2336 !important;
+  fill: #00f0ff !important;
+  color: #00f0ff !important;
+}
+
+.react-flow__minimap {
+  background: #0a0c12 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8) !important;
+  overflow: hidden;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2.5;
+}
+
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke-dasharray: 6 4;
 }
 
 /* Glowing Border for Pro Nodes (Level 15+) */
