@@ -4,10 +4,10 @@ import { RawExercise } from '../types/exercise';
 export const rawExercises: RawExercise[] = [
   {
     "id": "ex_0",
-    "name": "Wall Handstand",
+    "name": "Wall Handstand push ups",
     "level": 1,
     "category": "Handstands",
-    "subCategory": "Handstands",
+    "subCategory": "Handstand Pushups",
     "steps": [
       "Place your hands flat on the floor shoulder-width apart with fingers spread wide.",
       "Walk your feet up a wall (or kick up gently) until your legs are straight above you.",

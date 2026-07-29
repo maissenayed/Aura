@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { 
-  ReactFlow, 
-  Controls, 
-  Background, 
+import {
+  ReactFlow,
+  Controls,
+  Background,
   MiniMap,
-  Node, 
+  Node,
   Edge,
   NodeTypes,
   useNodesState,
@@ -15,11 +15,11 @@ import {
 } from '@xyflow/react';
 import { Exercise, Swimlane, UserProgress } from '../types/exercise';
 import { ExerciseNode } from './ExerciseNode';
-import { 
-  Flame, 
-  Dumbbell, 
-  ShieldAlert, 
-  Target, 
+import {
+  Flame,
+  Dumbbell,
+  ShieldAlert,
+  Target,
   RotateCcw,
   Sparkles,
   GitBranch,
@@ -57,8 +57,8 @@ export const SkillTreeCanvas: React.FC<SkillTreeCanvasProps> = ({
   const filteredExercises = useMemo(() => {
     return exercises.filter(ex => {
       const matchesSwimlane = selectedSwimlane === 'All' || ex.swimlane === selectedSwimlane;
-      const matchesQuery = searchQuery === '' || 
-        ex.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      const matchesQuery = searchQuery === '' ||
+        ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         ex.subCategory.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesLevelRange = ex.level >= minLevel && ex.level <= maxLevel;
       return matchesSwimlane && matchesQuery && matchesLevelRange;
@@ -88,7 +88,7 @@ export const SkillTreeCanvas: React.FC<SkillTreeCanvasProps> = ({
       });
 
       const maxNodesAtSingleLevel = Math.max(1, ...Object.values(countsByLevel));
-      
+
       // Node height + vertical stagger gap = 175px per slot + 180px row gap
       const rowHeight = (maxNodesAtSingleLevel * 175) + 180;
       currentY += rowHeight;
@@ -165,7 +165,7 @@ export const SkillTreeCanvas: React.FC<SkillTreeCanvasProps> = ({
       // Generous Horizontal Spacing: Level 1 starts at 140px, spacing 480px per level
       const x = 140 + (ex.level - minLevel) * 480;
       const baseY = swimlaneYOffsets[ex.swimlane];
-      
+
       // Generous Vertical Staggering Offset: 175px per node at same level
       const y = baseY + (slotIndex * 175);
 
@@ -213,12 +213,12 @@ export const SkillTreeCanvas: React.FC<SkillTreeCanvasProps> = ({
         const isTargetMastered = progress.masteredIds.includes(targetEx.id);
 
         const isPathPrereq = focusedNodeId !== null && (
-          (activeAncestors.has(prereqId) || prereqId === focusedNodeId) && 
+          (activeAncestors.has(prereqId) || prereqId === focusedNodeId) &&
           (activeAncestors.has(targetEx.id) || targetEx.id === focusedNodeId)
         );
 
         const isPathUnlock = focusedNodeId !== null && (
-          (activeDescendants.has(prereqId) || prereqId === focusedNodeId) && 
+          (activeDescendants.has(prereqId) || prereqId === focusedNodeId) &&
           (activeDescendants.has(targetEx.id) || targetEx.id === focusedNodeId)
         );
 
@@ -301,21 +301,8 @@ export const SkillTreeCanvas: React.FC<SkillTreeCanvasProps> = ({
 
   return (
     <div className="relative w-full h-[calc(100vh-180px)] min-h-[580px] bg-dark-950 bg-grid-pattern select-none overflow-hidden z-0">
-      
-      {/* Top Level Tier Axis Banner */}
-      <div className="absolute top-0 left-0 right-0 z-10 h-10 bg-dark-900/90 border-b border-slate-800/80 backdrop-blur-md flex items-center px-6 overflow-x-auto gap-8 pointer-events-none">
-        <div className="flex items-center gap-2 text-xs font-bold text-neon-cyan shrink-0">
-          <Layers className="w-4 h-4" />
-          <span>PROGRESSION TIMELINE</span>
-        </div>
-        <div className="flex items-center gap-12 font-mono text-[11px] font-bold text-slate-400">
-          {Array.from({ length: maxLevel - minLevel + 1 }, (_, i) => minLevel + i).map(lvl => (
-            <span key={lvl} className="shrink-0 px-3 py-0.5 rounded bg-dark-950 border border-slate-800 text-slate-200">
-              Lvl {lvl} {lvl >= 15 ? '★ PRO' : ''}
-            </span>
-          ))}
-        </div>
-      </div>
+
+
 
       {/* Path Focus Mode Status Indicator */}
       {focusedNodeId && (
@@ -343,12 +330,12 @@ export const SkillTreeCanvas: React.FC<SkillTreeCanvasProps> = ({
         className="pt-10 z-0"
       >
         <Background color="#1e293b" gap={36} size={1} />
-        
+
         {/* Navigation Controls */}
         <Controls className="!bg-dark-900/90 !border-slate-800 !text-slate-300 !z-10" />
-        
+
         {/* MiniMap Overview */}
-        <MiniMap 
+        <MiniMap
           nodeColor={(node) => {
             const data = node.data as any;
             if (data?.status === 'mastered') return '#00ff9d';
