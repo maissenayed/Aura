@@ -12,7 +12,8 @@ import {
   Dumbbell, 
   LayoutGrid,
   Zap,
-  BarChart2
+  BarChart2,
+  Activity
 } from 'lucide-react';
 import { UserProgress, ViewMode } from '../types/exercise';
 import { EXERCISES } from '../data/exercisesData';
@@ -90,6 +91,18 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <LayoutGrid className="w-3.5 h-3.5" />
               <span>Skill Tree</span>
+            </Link>
+
+            <Link
+              href="/anatomy"
+              className={`flex items-center gap-2 px-3.5 py-1.5 text-xs font-extrabold rounded-xl transition-all duration-200 ${
+                pathname === '/anatomy' 
+                  ? 'bg-neon-emerald/20 text-neon-emerald border border-neon-emerald/40 shadow-neon-emerald' 
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5 text-neon-emerald" />
+              <span>Muscle Anatomy</span>
             </Link>
 
             <Link

@@ -1,6 +1,6 @@
 import { RawExercise } from '../types/exercise';
 
-// Full list of Calisthenics Exercises (With Explicit Legs Category)
+// Full list of Calisthenics Exercises (Synced via Admin Manager)
 export const rawExercises: RawExercise[] = [
   {
     "id": "ex_0",
@@ -24,16 +24,21 @@ export const rawExercises: RawExercise[] = [
   {
     "id": "ex_1",
     "name": "Pike Headstand Pushup",
-    "level": 1,
+    "level": 3,
     "category": "Handstands",
     "subCategory": "Handstand Pushups",
+    "prerequisites": [
+      "ex_427",
+      "ex_428"
+    ],
     "steps": [
       "Place your hands on the floor or a sturdy surface slightly wider than shoulder-width.",
       "Step your feet back so your body forms a piked V shape.",
       "Bend your elbows to slowly lower your head forward toward the floor.",
       "Push strongly through your palms to straighten your arms."
     ],
-    "expertTip": "Keep your elbows pointing diagonally backward (like an arrow), not flared out."
+    "expertTip": "Keep your elbows pointing diagonally backward (like an arrow), not flared out.",
+    "videoSearchUrl": "https://www.youtube.com/watch?v=lfkdSEg5tZQ"
   },
   {
     "id": "ex_2",
@@ -92,11 +97,13 @@ export const rawExercises: RawExercise[] = [
     "level": 1,
     "category": "Pulling",
     "subCategory": "Pull-ups",
+    "prerequisites": [],
     "steps": [
       "Stand under a bar, jump up to get your chin over the bar.",
       "Lower yourself down slowly under control."
     ],
-    "expertTip": "Focus on controlled 3-second descent."
+    "expertTip": "Focus on controlled 3-second descent.",
+    "videoSearchUrl": "https://www.youtube.com/shorts/KLcBb0OUSZA"
   },
   {
     "id": "ex_7",
@@ -104,12 +111,14 @@ export const rawExercises: RawExercise[] = [
     "level": 1,
     "category": "Pushing",
     "subCategory": "Pushups",
+    "prerequisites": [],
     "steps": [
       "Place hands shoulder-width apart, body in a rigid plank.",
       "Lower chest until it hovers above the floor.",
       "Press back up to full arm extension."
     ],
-    "expertTip": "Tuck elbows at 45-degree angle."
+    "expertTip": "Tuck elbows at 45-degree angle.",
+    "videoSearchUrl": "https://www.youtube.com/watch?v=mECzqUIDWfU"
   },
   {
     "id": "ex_8",

@@ -146,3 +146,40 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #00f0ff;
 }
+
+/* Body Muscles Interactive Styling Overrides */
+.body-chart-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  width: 100%;
+}
+
+.body-chart-wrapper svg {
+  max-height: 520px;
+  width: auto;
+  filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.15));
+  transition: all 0.3s ease;
+}
+
+.body-chart-wrapper path {
+  cursor: pointer;
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-width: 0.5px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.body-chart-wrapper path:hover {
+  filter: drop-shadow(0 0 10px #00f0ff);
+  stroke: #00f0ff !important;
+  stroke-width: 1.2px !important;
+  opacity: 0.95 !important;
+}
+
+.body-chart-wrapper path[data-selected="true"] {
+  stroke: #00ff9d !important;
+  stroke-width: 1.5px !important;
+  filter: drop-shadow(0 0 14px rgba(0, 255, 157, 0.8));
+}
+

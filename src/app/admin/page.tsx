@@ -31,7 +31,10 @@ import {
   FileJson,
   Upload,
   Video,
-  ExternalLink
+  ExternalLink,
+  Save,
+  Download,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -40,6 +43,10 @@ export default function AdminPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedSwimlane, setSelectedSwimlane] = useState<string>('All');
   const [selectedLevel, setSelectedLevel] = useState<number>(20);
+
+  // Sync state
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -83,6 +90,7 @@ export default function AdminPage() {
     if (window.confirm('Reset all exercise dataset changes and restore original exercises? This cannot be undone.')) {
       const defaults = resetExercisesToDefault();
       setExercises(defaults);
+      setSyncMessage(null);
     }
   };
 
@@ -94,6 +102,40 @@ export default function AdminPage() {
   const handleImportModalSave = (importedExercises: RawExercise[], mode: 'merge' | 'replace') => {
     const updated = importExercises(importedExercises, mode);
     setExercises(updated);
+  };
+
+  // Sync current exercises state directly to rawExercisesData.ts source code file on disk
+  const handleSyncToSourceCode = async () => {
+    setIsSyncing(true);
+    setSyncMessage(null);
+    try {
+      const res = await fetch('/api/admin/save-dataset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exercises }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSyncMessage(`✓ Synced ${data.count} exercises directly to rawExercisesData.ts!`);
+      } else {
+        setSyncMessage(`Sync failed: ${data.error}`);
+      }
+    } catch (e: any) {
+      setSyncMessage(`Error syncing: ${e.message}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Export dataset as JSON file
+  const handleExportJson = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exercises, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `rawExercisesData_${Date.now()}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
   };
 
   // Categories list
@@ -146,36 +188,70 @@ export default function AdminPage() {
                 Exercise Database & Prerequisite Manager
               </h1>
               <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
-                Add, update, or delete exercises, configure custom video URLs (<span className="font-mono text-neon-cyan text-xs">videoSearchUrl</span>), and build prerequisite graph links (<span className="font-mono text-neon-cyan text-xs">prerequisites: ["ex_ID"]</span>).
+                Add, update, or delete exercises, configure custom video URLs (<span className="font-mono text-neon-cyan text-xs">videoSearchUrl</span>), and sync changes directly to <span className="font-mono text-neon-cyan text-xs">rawExercisesData.ts</span> source code!
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
               <button
-                onClick={handleResetToDefault}
-                className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-slate-300 hover:text-rose-400 bg-dark-950/80 border border-slate-800 hover:border-rose-900/60 rounded-2xl transition shadow-lg"
+                onClick={handleSyncToSourceCode}
+                disabled={isSyncing}
+                title="Persist all changes directly into src/data/rawExercisesData.ts code file"
+                className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-dark-950 bg-gradient-to-r from-neon-emerald via-emerald-300 to-neon-cyan rounded-2xl hover:brightness-110 shadow-neon-emerald transition disabled:opacity-50"
               >
-                <RotateCcw className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400" />
-                <span>Reset Default</span>
+                <Save className="w-4 h-4" />
+                <span>{isSyncing ? 'Syncing...' : 'Sync to Code (rawExercisesData.ts)'}</span>
+              </button>
+
+              <button
+                onClick={handleExportJson}
+                className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-slate-300 hover:text-white bg-dark-950/80 border border-slate-800 hover:border-slate-700 rounded-2xl transition shadow-lg"
+              >
+                <Download className="w-3.5 h-3.5 text-neon-cyan" />
+                <span>Export JSON</span>
               </button>
 
               <button
                 onClick={() => setIsImportModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-purple-300 bg-purple-950/60 border border-purple-800/60 hover:bg-purple-900/60 rounded-2xl transition shadow-lg"
+                className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-purple-300 bg-purple-950/60 border border-purple-800/60 hover:bg-purple-900/60 rounded-2xl transition shadow-lg"
               >
                 <FileJson className="w-4 h-4 text-neon-purple" />
                 <span>Import JSON</span>
               </button>
 
               <button
+                onClick={handleResetToDefault}
+                className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-slate-400 hover:text-rose-400 bg-dark-950/80 border border-slate-800 hover:border-rose-900/60 rounded-2xl transition shadow-lg"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+                <span>Reset</span>
+              </button>
+
+              <button
                 onClick={handleCreateNew}
-                className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-dark-950 bg-gradient-to-r from-neon-cyan via-cyan-300 to-neon-emerald rounded-2xl hover:brightness-110 shadow-neon-cyan transition"
+                className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-dark-950 bg-gradient-to-r from-neon-cyan via-cyan-300 to-neon-emerald rounded-2xl hover:brightness-110 shadow-neon-cyan transition"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Exercise</span>
               </button>
             </div>
           </div>
+
+          {/* Sync Success Feedback Notification */}
+          {syncMessage && (
+            <div className="mt-4 p-3 rounded-2xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-between shadow-neon-emerald animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-neon-emerald" />
+                <span>{syncMessage}</span>
+              </div>
+              <button
+                onClick={() => setSyncMessage(null)}
+                className="text-emerald-400 hover:text-white text-xs font-mono"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
 
           {/* Stats Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-6 pt-6 border-t border-slate-800/80">
