@@ -1,0 +1,104 @@
+{
+  "blocks": [
+    {
+      "id": "block_14kg_hypertrophy",
+      "name": "14kg Hypertrophy Block",
+      "description": "Specialized 14kg weight vest & ring progression block for upper body volume.",
+      "category": "Push",
+      "focusGoal": "Dip & Push-up Progressive Overload",
+      "equipmentRequired": [
+        "14kg Weight Vest",
+        "Gymnastic Rings",
+        "Dip Belt & Weights",
+        "Parallettes"
+      ],
+      "createdAt": "2026-08-01T00:00:00.000Z",
+      "days": [
+        {
+          "dayName": "Monday",
+          "isRestDay": false,
+          "routineTitle": "Weighted Push & Dip Overload",
+          "exerciseIds": ["ex_2", "ex_3", "ex_67"],
+          "sets": [
+            { "setNumber": 1, "reps": 8, "weightKg": 14, "rpe": 8, "restSeconds": 120, "completed": true },
+            { "setNumber": 2, "reps": 8, "weightKg": 14, "rpe": 8, "restSeconds": 120, "completed": true },
+            { "setNumber": 3, "reps": 6, "weightKg": 14, "rpe": 9, "restSeconds": 150, "completed": false }
+          ],
+          "equipmentRequired": ["14kg Weight Vest", "Dip Belt & Weights"],
+          "warmupNotes": "10 min shoulder dislocates & scapular push-ups",
+          "cooldownNotes": "Chest doorway stretch & tricep extension stretch"
+        },
+        {
+          "dayName": "Tuesday",
+          "isRestDay": false,
+          "routineTitle": "Ring Pull & Lats Focus",
+          "exerciseIds": ["ex_101", "ex_105", "ex_112"],
+          "sets": [
+            { "setNumber": 1, "reps": 10, "weightKg": 0, "rpe": 7, "restSeconds": 90, "completed": true },
+            { "setNumber": 2, "reps": 8, "weightKg": 14, "rpe": 9, "restSeconds": 120, "completed": true }
+          ],
+          "equipmentRequired": ["Gymnastic Rings", "14kg Weight Vest"],
+          "warmupNotes": "Dead hangs & scapular pull-ups",
+          "cooldownNotes": "Lat stretch on rings"
+        },
+        {
+          "dayName": "Wednesday",
+          "isRestDay": true,
+          "routineTitle": "Active Recovery & Mobility",
+          "exerciseIds": [],
+          "sets": [],
+          "equipmentRequired": [],
+          "warmupNotes": "20 min foam rolling & wrist mobility"
+        },
+        {
+          "dayName": "Thursday",
+          "isRestDay": false,
+          "routineTitle": "Legs & Core Compression",
+          "exerciseIds": ["ex_301", "ex_310", "ex_151"],
+          "sets": [
+            { "setNumber": 1, "reps": 12, "weightKg": 14, "rpe": 8, "restSeconds": 90, "completed": false }
+          ],
+          "equipmentRequired": ["14kg Weight Vest"],
+          "warmupNotes": "Cossack squats & leg swings"
+        },
+        {
+          "dayName": "Friday",
+          "isRestDay": false,
+          "routineTitle": "Skill Holds (Handstand & Planche)",
+          "exerciseIds": ["ex_0", "ex_45", "ex_50"],
+          "sets": [
+            { "setNumber": 1, "reps": 15, "weightKg": 0, "rpe": 8, "restSeconds": 120, "completed": false }
+          ],
+          "equipmentRequired": ["Parallettes"],
+          "warmupNotes": "Wrist flexor warmups & wall handstands"
+        },
+        {
+          "dayName": "Saturday",
+          "isRestDay": true,
+          "routineTitle": "Rest & Regeneration",
+          "exerciseIds": [],
+          "sets": [],
+          "equipmentRequired": []
+        },
+        {
+          "dayName": "Sunday",
+          "isRestDay": true,
+          "routineTitle": "Rest & Regeneration",
+          "exerciseIds": [],
+          "sets": [],
+          "equipmentRequired": []
+        }
+      ]
+    }
+  ],
+  "calendar": {
+    "year": 2026,
+    "month": 8,
+    "weeks": [
+      { "weekIndex": 1, "assignedBlockId": "block_14kg_hypertrophy", "assignedBlockName": "14kg Hypertrophy Block", "isCompleted": true },
+      { "weekIndex": 2, "assignedBlockId": "block_14kg_hypertrophy", "assignedBlockName": "14kg Hypertrophy Block", "isCompleted": false },
+      { "weekIndex": 3, "assignedBlockId": null, "isCompleted": false },
+      { "weekIndex": 4, "assignedBlockId": null, "isCompleted": false }
+    ]
+  }
+}

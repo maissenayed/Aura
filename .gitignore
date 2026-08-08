@@ -1,8 +1,7 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
+# Monorepo Dependencies
+node_modules/
+**/node_modules/
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -10,32 +9,54 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
+# Turborepo Build Cache
+.turbo/
+**/.turbo/
 
-# next.js
-/.next/
-/out/
+# Next.js & Framework Build Artifacts
+.next/
+**/.next/
+out/
+**/out/
+build/
+**/build/
+dist/
+**/dist/
 
-# production
-/build
+# TypeScript Build Cache
+*.tsbuildinfo
+**/*.tsbuildinfo
+next-env.d.ts
+**/next-env.d.ts
 
-# misc
+# Testing & Coverage
+coverage/
+**/coverage/
+
+# Environment Variable Files (local overrides)
+.env
+.env*.local
+**/.env
+**/.env*.local
+
+# System & OS Files
 .DS_Store
+**/.DS_Store
+Thumbs.db
 *.pem
 
-# debug
+# IDE & Editor Directories
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+
+# Logs & Debug Output
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+logs/
+*.log

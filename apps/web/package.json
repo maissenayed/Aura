@@ -1,21 +1,16 @@
 {
-  "name": "aura-calisthenics-monorepo",
-  "version": "1.0.0",
+  "name": "@aura/web",
+  "version": "0.1.0",
   "private": true,
-  "packageManager": "npm@10.8.2",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "lint": "turbo lint",
-    "dev:web": "turbo dev --filter=@aura/web",
-    "dev:admin": "turbo dev --filter=@aura/admin",
-    "dev:backend": "turbo dev --filter=@aura/backend"
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "lint": "eslint"
   },
   "dependencies": {
+    "@aura/types": "*",
+    "@tanstack/react-query": "^5.28.0",
     "@xyflow/react": "^12.11.2",
     "body-muscles": "^1.0.0",
     "clsx": "^2.1.1",
@@ -34,7 +29,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "tailwindcss": "^4",
-    "turbo": "^2.10.8",
     "typescript": "^5"
   }
 }
