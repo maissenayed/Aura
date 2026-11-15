@@ -26,6 +26,7 @@ export interface KeyValueStore {
    * another writer got there first.
    */
   put<T>(key: string, value: T, expectedRev: number): Promise<StoredDoc<T> | null>;
+  delete(key: string): Promise<void>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -63,6 +64,18 @@ export class FileKeyValueStore implements KeyValueStore {
       await fs.writeFile(tempPath, JSON.stringify(all, null, 2), 'utf-8');
       await fs.rename(tempPath, this.filePath);
       return doc;
+    });
+  }
+
+  delete(key: string): Promise<void> {
+    return this.enqueue(async () => {
+      const all = await this.readAll();
+      if (!(key in all)) return;
+      delete all[key];
+      await fs.mkdir(path.dirname(this.filePath), { recursive: true });
+      const tempPath = `${this.filePath}.${process.pid}.tmp`;
+      await fs.writeFile(tempPath, JSON.stringify(all, null, 2), 'utf-8');
+      await fs.rename(tempPath, this.filePath);
     });
   }
 
@@ -131,6 +144,11 @@ export class PostgresKeyValueStore implements KeyValueStore {
     ) as KvRow[];
 
     return rows.length ? toDoc<T>(rows[0]) : null;
+  }
+
+  async delete(key: string): Promise<void> {
+    await this.ensureTable();
+    await this.sql.query('DELETE FROM campaign_kv WHERE key = $1', [key]);
   }
 
   /** Creates the table on first use, so a fresh database needs no migration step. */

@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useMemo, useRef, useState } from 'react';
-import { BarChart3, Cloud, CloudOff, CloudUpload, GitBranch, Map, Skull, Swords } from 'lucide-react';
+import { BarChart3, Cloud, CloudOff, CloudUpload, GitBranch, Hexagon, Map, Skull, Swords } from 'lucide-react';
 import { Header } from '../../components/Header';
 import { BossGallery } from '../../components/protocol/BossGallery';
-import { CampaignGate } from '../../components/protocol/CampaignGate';
+import { AuthGate } from '../../components/account/AuthGate';
+import { CharacterSheet } from '../../components/protocol/CharacterSheet';
 import { CampaignMap } from '../../components/protocol/CampaignMap';
 import { Hud } from '../../components/protocol/Hud';
 import { SkillTrees } from '../../components/protocol/SkillTrees';
@@ -33,10 +34,11 @@ import {
   useTodayIso,
 } from '../../utils/protocolStore';
 
-type TabId = 'today' | 'campaign' | 'bosses' | 'trees' | 'stats';
+type TabId = 'today' | 'character' | 'campaign' | 'bosses' | 'trees' | 'stats';
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'today', label: 'Missions', icon: <Swords className="w-4 h-4" /> },
+  { id: 'character', label: 'Character', icon: <Hexagon className="w-4 h-4" /> },
   { id: 'campaign', label: 'Campaign', icon: <Map className="w-4 h-4" /> },
   { id: 'bosses', label: 'Bosses', icon: <Skull className="w-4 h-4" /> },
   { id: 'trees', label: 'Skill Trees', icon: <GitBranch className="w-4 h-4" /> },
@@ -192,8 +194,8 @@ export default function TrackerPage() {
             aria-busy="true"
             aria-label="Loading your campaign"
           />
-        ) : gate === 'claim' || gate === 'locked' ? (
-          <CampaignGate mode={gate} />
+        ) : gate === 'signin' || gate === 'setup' ? (
+          <AuthGate mode={gate} />
         ) : (
           <>
             <Hud derived={derived} currentWeek={currentWeek} />
@@ -209,7 +211,11 @@ export default function TrackerPage() {
                     ? `${derived.week.done}/${derived.week.total}`
                     : entry.id === 'bosses'
                       ? `${derived.bosses.filter((b) => b.defeated).length}/${derived.bosses.length}`
-                      : null;
+                      : entry.id === 'character'
+                        ? `${derived.attributes.filter((a) => a.unlocked).length}/${
+                            derived.attributes.filter((a) => !a.def.secret || a.unlocked).length
+                          }`
+                        : null;
 
                 return (
                   <button
@@ -265,6 +271,10 @@ export default function TrackerPage() {
                 onLogStat={logStat}
                 onLogLoad={logLoad}
               />
+            )}
+
+            {tab === 'character' && (
+              <CharacterSheet attributes={derived.attributes} level={derived.level.level} rank={derived.level.rank} />
             )}
 
             {tab === 'campaign' && <CampaignMap derived={derived} currentWeek={currentWeek} onWeighIn={weighIn} />}

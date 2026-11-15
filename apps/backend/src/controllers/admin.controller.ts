@@ -14,6 +14,6 @@ export class AdminController {
   @Post('save-dataset')
   async saveDataset(@Body() body: { rawExercises: any[] }) {
     const result = await this.exercisesService.saveFullDataset(body.rawExercises || rawExercises);
-    return { success: true, ...result };
+    return result;
   }
 }

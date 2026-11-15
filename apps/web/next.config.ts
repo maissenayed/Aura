@@ -15,7 +15,11 @@ const backendOrigin = process.env.BACKEND_ORIGIN ?? (process.env.VERCEL ? null :
 const nextConfig: NextConfig = {
   async rewrites() {
     if (!backendOrigin) return [];
-    return [{ source: '/api/v1/:path*', destination: `${backendOrigin}/api/v1/:path*` }];
+    return [
+      { source: '/api/v1/:path*', destination: `${backendOrigin}/api/v1/:path*` },
+      // Better Auth's own endpoints (sign-in, sign-out, password reset) live on the backend too.
+      { source: '/api/auth/:path*', destination: `${backendOrigin}/api/auth/:path*` },
+    ];
   },
 };
 

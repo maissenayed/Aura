@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { KEY_VALUE_STORE } from '../repositories/key-value.store.js';
 import type { KeyValueStore, StoredDoc } from '../repositories/key-value.store.js';
 
-const SAVE_KEY = 'save';
 const MAX_SAVE_BYTES = 512 * 1024;
 
 /**
@@ -41,6 +40,10 @@ export type WriteResult =
   | { ok: true; doc: StoredDoc<CampaignSave> }
   | { ok: false; current: StoredDoc<CampaignSave> | null };
 
+/** The single save from before accounts existed; also the save of the one local athlete. */
+const LEGACY_KEY = 'save';
+const keyFor = (userId: string) => (userId === 'local' ? LEGACY_KEY : `save:${userId}`);
+
 @Injectable()
 export class CampaignService {
   constructor(@Inject(KEY_VALUE_STORE) private readonly store: KeyValueStore) {}
@@ -49,8 +52,8 @@ export class CampaignService {
     return this.store.kind;
   }
 
-  load(): Promise<StoredDoc<CampaignSave> | null> {
-    return this.store.get<CampaignSave>(SAVE_KEY);
+  load(userId: string): Promise<StoredDoc<CampaignSave> | null> {
+    return this.store.get<CampaignSave>(keyFor(userId));
   }
 
   /**
@@ -58,9 +61,9 @@ export class CampaignService {
    * hands back what is stored now, so the client can merge and try again
    * instead of silently overwriting another device.
    */
-  async write(save: CampaignSave, baseRev: number): Promise<WriteResult> {
-    const doc = await this.store.put(SAVE_KEY, save, baseRev);
+  async write(userId: string, save: CampaignSave, baseRev: number): Promise<WriteResult> {
+    const doc = await this.store.put(keyFor(userId), save, baseRev);
     if (doc) return { ok: true, doc };
-    return { ok: false, current: await this.load() };
+    return { ok: false, current: await this.load(userId) };
   }
 }

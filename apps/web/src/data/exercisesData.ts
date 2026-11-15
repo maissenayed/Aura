@@ -3,60 +3,32 @@ import { rawExercises } from './rawExercisesData';
 
 export { rawExercises };
 
-// Helper to determine Swimlane from category and subCategory
+/**
+ * Which branch a progression belongs to.
+ *
+ * The movement named in the progression decides first, because the dataset's
+ * categories are loose ("Miscellaneous", "Other", bicep curls filed under
+ * Legs). The category is only the fallback. Order matters: the specific rules
+ * come before the broad ones.
+ */
 export function getSwimlane(category: string, subCategory: string): Swimlane {
   const cat = category.toLowerCase();
   const sub = subCategory.toLowerCase();
+  const has = (...words: string[]) => words.some((word) => sub.includes(word));
 
-  // 1. Check Legs FIRST
-  if (
-    cat.includes('leg') || 
-    cat.includes('lower') || 
-    cat.includes('squat') ||
-    sub.includes('leg') ||
-    sub.includes('squat') || 
-    sub.includes('glute') || 
-    sub.includes('ham') || 
-    sub.includes('shrimp') || 
-    sub.includes('quad') ||
-    sub.includes('curl') ||
-    sub.includes('nordic') ||
-    sub.includes('pistol') ||
-    sub.includes('lunge') ||
-    sub.includes('calf') ||
-    sub.includes('calves')
-  ) {
-    return 'Legs';
-  }
-
-  // 2. Check Push
-  if (
-    cat.includes('pushing') || 
-    sub.includes('pushups') || 
-    sub.includes('pushup') || 
-    sub.includes('dips') || 
-    sub.includes('dip') || 
-    sub.includes('planche') || 
-    sub.includes('handstand')
-  ) {
-    return 'Push';
-  }
-
-  // 3. Check Pull
-  if (
-    cat.includes('pulling') || 
-    sub.includes('pull-up') || 
-    sub.includes('pullup') || 
-    sub.includes('rows') || 
-    sub.includes('row') || 
-    sub.includes('lever') || 
-    sub.includes('cross') || 
-    sub.includes('chin-up')
-  ) {
+  if (has('leg raise')) return 'Core';
+  if (has('elbow lever')) return 'Push';
+  if (has('dip', 'pushup', 'push up', 'push-up', 'planche')) return 'Push';
+  if (has('bicep curl')) return 'Pull';
+  if (has('muscle-up', 'muscle up', 'kip', 'felge', 'pull', 'row', 'chin', 'lever', 'cross', 'hang', 'skin the cat')) {
     return 'Pull';
   }
-
-  // 4. Default to Core
+  if (cat.includes('leg')) return 'Legs';
+  if (has('l-sit', 'straddle-l', 'manna', 'plank', 'ab wheel', 'flag', 'statics', 'hyperextension', 'head bridge')) {
+    return 'Core';
+  }
+  if (cat.includes('push') || cat.includes('handstand') || has('handstand', 'press', 'hold')) return 'Push';
+  if (cat.includes('pull')) return 'Pull';
   return 'Core';
 }
 

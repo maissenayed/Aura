@@ -5,13 +5,15 @@ import { RpgController } from './controllers/rpg.controller.js';
 import { TrackerController } from './controllers/tracker.controller.js';
 import { AdminController } from './controllers/admin.controller.js';
 import { CampaignController } from './controllers/campaign.controller.js';
+import { AccountsController } from './controllers/accounts.controller.js';
 import { ExercisesService } from './services/exercises.service.js';
 import { AnatomyService } from './services/anatomy.service.js';
 import { RpgService } from './services/rpg.service.js';
 import { TrackerService } from './services/tracker.service.js';
 import { CampaignService } from './services/campaign.service.js';
-import { CampaignAuthService } from './services/campaign-auth.service.js';
-import { CampaignPasscodeGuard } from './guards/campaign-passcode.guard.js';
+import { InvitationService } from './services/invitation.service.js';
+import { LegacyPasscodeService } from './services/legacy-passcode.service.js';
+import { AdminGuard, SignedInGuard } from './auth/account.js';
 import { KEY_VALUE_STORE, createKeyValueStore } from './repositories/key-value.store.js';
 
 @Module({
@@ -23,6 +25,7 @@ import { KEY_VALUE_STORE, createKeyValueStore } from './repositories/key-value.s
     TrackerController,
     AdminController,
     CampaignController,
+    AccountsController,
   ],
   providers: [
     ExercisesService,
@@ -30,8 +33,10 @@ import { KEY_VALUE_STORE, createKeyValueStore } from './repositories/key-value.s
     RpgService,
     TrackerService,
     CampaignService,
-    CampaignAuthService,
-    CampaignPasscodeGuard,
+    InvitationService,
+    LegacyPasscodeService,
+    SignedInGuard,
+    AdminGuard,
     { provide: KEY_VALUE_STORE, useFactory: createKeyValueStore },
   ],
 })

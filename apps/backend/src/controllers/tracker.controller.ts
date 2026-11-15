@@ -26,7 +26,7 @@ export class TrackerController {
   @Delete('blocks/:id')
   async deleteBlock(@Param('id') id: string) {
     const result = await this.trackerService.deleteBlock(id);
-    return { success: true, ...result };
+    return result;
   }
 
   @Get('calendar')

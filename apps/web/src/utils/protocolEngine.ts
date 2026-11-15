@@ -26,12 +26,13 @@ import {
   StatUnit,
   YEAR_ONE,
 } from '../data/protocolData';
+import { AttributeStatus, evaluateAttributes } from './attributes';
 
 /* ------------------------------------------------------------------ */
 /* Save                                                                */
 /* ------------------------------------------------------------------ */
 
-export type EventKind = 'pr' | 'tier' | 'boss' | 'level' | 'mass' | 'iron' | 'day' | 'week';
+export type EventKind = 'pr' | 'tier' | 'boss' | 'level' | 'mass' | 'iron' | 'day' | 'week' | 'skill' | 'attribute';
 
 export interface GameEvent {
   kind: EventKind;
@@ -688,6 +689,7 @@ export interface Derived {
   level: LevelStatus;
   week: WeekStatus;
   gates: Gate[];
+  attributes: AttributeStatus[];
 }
 
 export interface Clock {
@@ -712,6 +714,7 @@ export function derive(save: ProtocolSave, clock: Clock): Derived {
     level: evaluateLevel(save, bosses, ladders, mass, yearOne),
     week: evaluateWeek(save, clock.viewWeek),
     gates: evaluateGates(save, bosses, ladders, yearOne),
+    attributes: evaluateAttributes(save, bosses, ladders),
   };
 }
 
@@ -786,6 +789,16 @@ export function diffEvents(before: Derived, after: Derived): GameEvent[] {
       });
     }
   }
+
+  after.attributes.forEach((attribute, i) => {
+    if (attribute.unlocked && !before.attributes[i]?.unlocked) {
+      events.push({
+        kind: 'attribute',
+        title: attribute.def.secret ? `Secret attribute — ${attribute.def.name}` : `New attribute — ${attribute.def.name}`,
+        detail: attribute.def.secret ? attribute.def.blurb : 'Now on your character web',
+      });
+    }
+  });
 
   if (after.level.level > before.level.level) {
     events.push({

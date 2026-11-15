@@ -2,26 +2,31 @@
 
 import { useSyncExternalStore } from 'react';
 import { IRON_STATS } from '../data/protocolData';
+import { getAccountState, refreshAccount, signOut, subscribeAccount } from './accountStore';
 import { LogEntry, ProtocolSave, createInitialSave, mondayOf, toIsoDate } from './protocolEngine';
 
 /**
- * The campaign save, kept in step with the backend.
+ * The signed-in athlete's campaign save, kept in step with the backend.
  *
- * Every change lands in localStorage first, so the game never waits on the
- * network and keeps working offline. A copy is then pushed to the backend,
- * which only accepts it if this device was looking at the latest revision. If
- * another device got there first, the two versions are merged field by field
- * and pushed again — nothing ticked on one device is lost to the other.
+ * Every change lands in this device's storage first, so the game never waits
+ * on the network and keeps working offline. A copy is then pushed to the
+ * backend, which only accepts it if this device was looking at the latest
+ * revision. If another device got there first, the two versions are merged
+ * field by field and pushed again — nothing ticked on one device is lost.
  *
- * It is read through `useSyncExternalStore`, so the server render and the
- * first client render agree and the real save swaps in after hydration.
+ * Each account has its own cache on the device, so two people sharing a phone
+ * never see each other's campaign. Signing out removes the cache.
+ *
+ * Read through `useSyncExternalStore`, so the server render and the first
+ * client render agree and the real save swaps in after hydration.
  */
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
-const CACHE_KEY = 'aura_hybrid_engine_v2';
-const LEGACY_KEY = 'aura_hybrid_engine_v1';
-const PASSCODE_KEY = 'aura_hybrid_engine_passcode';
-const PASSCODE_HEADER = 'x-campaign-passcode';
+const CACHE_PREFIX = 'aura_hybrid_engine_v3:';
+/** Caches from before accounts existed. They belong to the owner and are adopted once. */
+const LEGACY_CACHES = ['aura_hybrid_engine_v2', 'aura_hybrid_engine_v1'];
+const LEGACY_PASSCODE = 'aura_hybrid_engine_passcode';
+const LAST_USER = 'aura_hybrid_engine_last_user';
 
 const PUSH_DEBOUNCE_MS = 700;
 const RETRY_MIN_MS = 5_000;
@@ -29,8 +34,8 @@ const RETRY_MAX_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 12_000;
 const LOG_LIMIT = 40;
 
-/** What stands between the player and the board. */
-export type Gate = 'loading' | 'claim' | 'locked' | 'ready';
+/** What stands between the athlete and the board. */
+export type Gate = 'loading' | 'signin' | 'setup' | 'ready';
 export type SyncStatus = 'connecting' | 'saving' | 'synced' | 'offline';
 
 export interface CampaignSnapshot {
@@ -51,6 +56,8 @@ interface RemoteDoc {
 const SERVER_SNAPSHOT: CampaignSnapshot = { save: createInitialSave(), gate: 'loading', sync: 'connecting' };
 
 let snapshot: CampaignSnapshot | null = null;
+/** Whose save is loaded. Null until an account is known. */
+let userId: string | null = null;
 /** The last version this device and the backend agreed on, and its revision. */
 let base: ProtocolSave | null = null;
 let baseRev = 0;
@@ -149,12 +156,35 @@ function mergeSaves(from: ProtocolSave, mine: ProtocolSave, theirs: ProtocolSave
 }
 
 /* ------------------------------------------------------------------ */
-/* Local cache                                                         */
+/* Device storage                                                      */
 /* ------------------------------------------------------------------ */
 
-function readCache(): { save: ProtocolSave; existed: boolean } {
+function storageGet(key: string): string | null {
   try {
-    const raw = window.localStorage.getItem(CACHE_KEY);
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function storageSet(key: string, value: string | null): void {
+  try {
+    if (value === null) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, value);
+  } catch (error) {
+    console.error('Could not update this device’s storage:', error);
+  }
+}
+
+/**
+ * Loads one account's cached save. The owner (or the single local athlete)
+ * also inherits a cache written before accounts existed.
+ */
+function readCache(id: string, adoptLegacy: boolean): { save: ProtocolSave; existed: boolean } {
+  base = null;
+  baseRev = 0;
+  try {
+    const raw = storageGet(CACHE_PREFIX + id);
     if (raw) {
       const parsed = JSON.parse(raw) as { save?: unknown; base?: unknown; baseRev?: unknown };
       base = parsed.base ? normalizeSave(parsed.base) : null;
@@ -162,9 +192,16 @@ function readCache(): { save: ProtocolSave; existed: boolean } {
       return { save: normalizeSave(parsed.save), existed: true };
     }
 
-    // A save from before the backend existed: keep it, and let the first sync upload it.
-    const legacy = window.localStorage.getItem(LEGACY_KEY);
-    if (legacy) return { save: normalizeSave(JSON.parse(legacy)), existed: true };
+    if (adoptLegacy) {
+      for (const key of LEGACY_CACHES) {
+        const legacy = storageGet(key);
+        if (!legacy) continue;
+        const parsed = JSON.parse(legacy) as { save?: unknown };
+        // v2 wrapped the save with sync bookkeeping; v1 stored the bare save. The old revision is
+        // dropped on purpose: the save moved to a new key on the server, so a fresh merge is right.
+        return { save: normalizeSave(key === 'aura_hybrid_engine_v2' ? parsed.save : parsed), existed: true };
+      }
+    }
   } catch (error) {
     console.error('Could not read the campaign save on this device, starting fresh:', error);
   }
@@ -172,29 +209,11 @@ function readCache(): { save: ProtocolSave; existed: boolean } {
 }
 
 function persist(): void {
-  if (!snapshot) return;
-  try {
-    window.localStorage.setItem(CACHE_KEY, JSON.stringify({ save: snapshot.save, base, baseRev }));
-  } catch (error) {
-    console.error('Could not write the campaign save on this device:', error);
-  }
-}
-
-function readPasscode(): string | null {
-  try {
-    return window.localStorage.getItem(PASSCODE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function storePasscode(passcode: string | null): void {
-  try {
-    if (passcode === null) window.localStorage.removeItem(PASSCODE_KEY);
-    else window.localStorage.setItem(PASSCODE_KEY, passcode);
-  } catch (error) {
-    console.error('Could not remember the passcode on this device:', error);
-  }
+  if (!snapshot || !userId) return;
+  storageSet(CACHE_PREFIX + userId, JSON.stringify({ save: snapshot.save, base, baseRev }));
+  // Once the owner's data lives under their account, the pre-account copies have done their job.
+  LEGACY_CACHES.forEach((key) => storageSet(key, null));
+  storageSet(LEGACY_PASSCODE, null);
 }
 
 /* ------------------------------------------------------------------ */
@@ -203,9 +222,16 @@ function storePasscode(passcode: string | null): void {
 
 function getSnapshot(): CampaignSnapshot {
   if (!snapshot) {
-    const cached = readCache();
-    // A device that has played before shows its board straight away and syncs behind it.
-    snapshot = { save: cached.save, gate: cached.existed ? 'ready' : 'loading', sync: 'connecting' };
+    // Whoever was signed in last on this device gets their board straight away; the
+    // session is confirmed behind it and the board is swapped out if it is not theirs.
+    const last = storageGet(LAST_USER);
+    if (last) {
+      userId = last;
+      const cached = readCache(last, false);
+      snapshot = { save: cached.save, gate: cached.existed ? 'ready' : 'loading', sync: 'connecting' };
+    } else {
+      snapshot = { save: pristine(), gate: 'loading', sync: 'connecting' };
+    }
   }
   return snapshot;
 }
@@ -230,9 +256,11 @@ function subscribe(listener: () => void): () => void {
     });
     window.addEventListener('storage', (event) => {
       // Another tab on this device saved: follow it.
-      if (event.key !== CACHE_KEY) return;
-      update({ save: readCache().save });
+      if (!userId || event.key !== CACHE_PREFIX + userId) return;
+      update({ save: readCache(userId, false).save });
     });
+    // Signing in or out anywhere on the page (the header menu, the sign-in form) re-routes the campaign.
+    subscribeAccount(() => void follow());
     void connect();
   }
   return () => {
@@ -250,16 +278,11 @@ interface ApiResult {
 }
 
 /** Resolves to null when the backend could not be reached at all. */
-async function api(method: string, path: string, body?: unknown): Promise<ApiResult | null> {
-  const headers: Record<string, string> = {};
-  if (body !== undefined) headers['content-type'] = 'application/json';
-  const passcode = readPasscode();
-  if (passcode) headers[PASSCODE_HEADER] = encodeURIComponent(passcode);
-
+async function request(method: string, path: string, body?: unknown): Promise<ApiResult | null> {
   try {
     const response = await fetch(`${API_BASE}${path}`, {
       method,
-      headers,
+      headers: body === undefined ? undefined : { 'content-type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
       cache: 'no-store',
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -278,11 +301,6 @@ function goOffline(): void {
   retryDelay = Math.min(RETRY_MAX_MS, retryDelay * 2);
 }
 
-function lock(): void {
-  storePasscode(null);
-  update({ gate: 'locked' });
-}
-
 const isDirty = () => base === null || !sameSave(getSnapshot().save, base);
 
 /** Folds the backend's version into this device's, and remembers it as the new agreed version. */
@@ -297,33 +315,66 @@ function absorb(doc: RemoteDoc): void {
   persist();
 }
 
-/** First contact: find out whether the board is open, locked, or still unclaimed. */
-async function connect(): Promise<void> {
-  const result = await api('GET', '/campaign/status');
-  const status = result?.status === 200 ? (result.body?.data as { protection?: string; claimed?: boolean }) : null;
+/** Points the store at an account: loads its cache and shows its board. */
+function load(id: string, adoptLegacy: boolean): void {
+  if (userId === id && snapshot?.gate === 'ready') return;
+  userId = id;
+  storageSet(LAST_USER, id);
+  const cached = readCache(id, adoptLegacy);
+  update({ save: cached.save, gate: 'ready', sync: 'connecting' });
+}
 
-  if (!status) {
-    // No backend right now. The campaign is still playable from this device; keep trying.
-    update({ gate: 'ready' });
+/** Forgets the loaded account (signed out, or the session ended). */
+function unload(gate: Gate): void {
+  window.clearTimeout(pushTimer);
+  window.clearTimeout(retryTimer);
+  userId = null;
+  base = null;
+  baseRev = 0;
+  connected = false;
+  storageSet(LAST_USER, null);
+  update({ save: pristine(), gate, sync: 'connecting' });
+}
+
+/** Reacts to whatever the account store now says. */
+async function follow(): Promise<void> {
+  const account = getAccountState();
+  if (account.status === 'loading') return;
+
+  if (account.status === 'offline') {
+    // No server: keep playing on whatever this device already has.
+    if (userId) update({ gate: 'ready' });
+    else update({ gate: 'signin' });
     goOffline();
     return;
   }
 
-  connected = true;
-  if (status.protection === 'passcode') {
-    if (!status.claimed) return update({ gate: 'claim' });
-    if (!readPasscode()) return update({ gate: 'locked' });
+  if (account.mode === 'open') {
+    load('local', true);
+  } else if (account.setupRequired) {
+    unload('setup');
+    return;
+  } else if (!account.account) {
+    unload('signin');
+    return;
+  } else {
+    load(account.account.id, account.account.role === 'admin');
   }
 
-  update({ gate: 'ready' });
+  connected = true;
   await pull();
 }
 
+async function connect(): Promise<void> {
+  await refreshAccount();
+  await follow();
+}
+
 async function pull(): Promise<void> {
-  const result = await api('GET', '/campaign');
+  if (!userId) return;
+  const result = await request('GET', '/campaign');
   if (!result || result.status >= 500) return goOffline();
-  if (result.status === 401) return lock();
-  if (result.status === 403) return update({ gate: 'claim' });
+  if (result.status === 401) return void refreshAccount();
 
   const doc = result.body?.data as RemoteDoc | null | undefined;
   if (doc) {
@@ -339,17 +390,16 @@ async function pull(): Promise<void> {
 }
 
 async function push(): Promise<void> {
-  if (pushing || getSnapshot().gate !== 'ready') return;
+  if (pushing || !userId || getSnapshot().gate !== 'ready') return;
   pushing = true;
   update({ sync: 'saving' });
 
   const sent = getSnapshot().save;
-  const result = await api('PUT', '/campaign', { baseRev, save: sent });
+  const result = await request('PUT', '/campaign', { baseRev, save: sent });
   pushing = false;
 
   if (!result || result.status >= 500) return goOffline();
-  if (result.status === 401) return lock();
-  if (result.status === 403) return update({ gate: 'claim' });
+  if (result.status === 401) return void refreshAccount();
 
   if (result.status === 409) {
     // Another device saved first. Merge with what it wrote, then try again from there.
@@ -402,32 +452,35 @@ export function resetSave(): void {
   commitSave(pristine());
 }
 
-/** Sets the campaign's passcode. Resolves to an error message, or null on success. */
-export async function claimCampaign(passcode: string): Promise<string | null> {
-  const result = await api('POST', '/campaign/claim', { passcode });
-  if (!result) return 'Could not reach the server. Check your connection and try again.';
-  if (result.status === 409) {
-    update({ gate: 'locked' });
-    return 'A passcode was already set from another device. Enter it to continue.';
-  }
-  if (result.status !== 201) return result.body?.message ?? 'That passcode was not accepted.';
+/**
+ * Signs out after making sure the latest change reached the server, then
+ * removes this account's copy from the device.
+ */
+export async function signOutOfCampaign(): Promise<void> {
+  window.clearTimeout(pushTimer);
+  if (userId && connected && isDirty()) await push();
 
-  storePasscode(passcode);
-  update({ gate: 'ready' });
-  void pull();
-  return null;
+  // Sign-out can happen on any page, including ones where this store never loaded the account.
+  const id = userId ?? getAccountState().account?.id ?? null;
+  if (id) {
+    const synced = id === userId ? !isDirty() : cacheIsSynced(id);
+    // Unsynced changes are kept, so they reach the server the next time this person signs in here.
+    if (synced) storageSet(CACHE_PREFIX + id, null);
+  }
+  storageSet(LAST_USER, null);
+  await signOut();
 }
 
-/** Unlocks this device. Resolves to an error message, or null on success. */
-export async function unlockCampaign(passcode: string): Promise<string | null> {
-  const result = await api('POST', '/campaign/unlock', { passcode });
-  if (!result) return 'Could not reach the server. Check your connection and try again.';
-  if (result.status !== 200) return result.body?.message ?? 'Wrong passcode.';
-
-  storePasscode(passcode);
-  update({ gate: 'ready' });
-  void pull();
-  return null;
+/** True when an account's cached save matches what the server last confirmed. */
+function cacheIsSynced(id: string): boolean {
+  try {
+    const raw = storageGet(CACHE_PREFIX + id);
+    if (!raw) return true;
+    const parsed = JSON.parse(raw) as { save?: unknown; base?: unknown };
+    return Boolean(parsed.base) && sameSave(normalizeSave(parsed.save), normalizeSave(parsed.base));
+  } catch {
+    return true;
+  }
 }
 
 export function useCampaign(): CampaignSnapshot {

@@ -180,25 +180,46 @@ Cached:    0 cached, 3 total
 
 MIT License. Designed & Developed for Calisthenics Athletes.
 
-## Campaign save, sync & deployment
+## Campaign, accounts & deployment
 
-The Campaign page (`/tracker`) keeps your progress in three places, in this order:
+### Accounts and invitations
 
-1. **This browser** (`localStorage`) — every change lands here first, so the game never waits on the network and works offline.
-2. **The backend** (`/api/v1/campaign`) — each change is then pushed with the revision the device last saw. If another device saved first, the backend answers `409`, the two versions are merged field by field, and the result is pushed again.
-3. **Storage behind the backend** — a JSON file in `apps/backend/.data/` locally, Postgres when `DATABASE_URL` is set (a single `campaign_kv` table, created on first use).
+Each person signs in with their own account (email + password, via [Better Auth](https://www.better-auth.com)) and gets a private campaign. Public sign-up is closed — accounts are only created on the server:
 
-The browser always calls the backend through the web app's own origin. Locally `apps/web/next.config.ts` proxies `/api/v1/*` to `http://localhost:3002`; on Vercel, `vercel.json` routes `/api/*` to the NestJS service and everything else to the Next.js service, so one deployment serves both.
+- **Owner setup (once).** While no account exists, `/tracker` shows *Create the owner account*. It asks for the campaign passcode chosen before accounts existed, or the `OWNER_SETUP_CODE` from the server config. The pre-account campaign save moves into the owner's account.
+- **Invitations.** The owner opens *Team & invitations* (`/team`, from the account menu), enters an email address and gets a personal link (`/join?token=…`) that works once and expires after 14 days. Only a hash of each token is stored, so a lost link is replaced with *New link*, which also stops the old one working.
+- **Emailing invitations** switches on when `RESEND_API_KEY` and `EMAIL_FROM` are set (needs a domain verified with Resend). Until then the owner shares links by hand. Password-reset emails use the same setting; without it, the owner sets a new password for a member from the Team page.
+
+### How a save travels
+
+The Campaign page keeps progress in three places, in this order:
+
+1. **This browser** (`localStorage`, one entry per account) — every change lands here first, so the game never waits on the network and works offline. Signing out removes the account's copy once it is synced.
+2. **The backend** (`/api/v1/campaign`) — each change is pushed with the revision the device last saw. If another device saved first, the backend answers `409`, the two versions are merged field by field, and the result is pushed again.
+3. **Postgres** — the `campaign_kv` table, one row per account (`save:<userId>`). Without a database (a quick local run) the backend falls back to a single open save in `apps/backend/.data/` and accounts switch off.
+
+The browser always calls the backend through the web app's own origin. Locally `apps/web/next.config.ts` proxies `/api/v1/*` and `/api/auth/*` to `http://localhost:3002`; on Vercel, `vercel.json` routes `/api/*` to the NestJS service and everything else to the Next.js service.
+
+### Configuration
 
 | Variable | Where | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | backend | Postgres connection string. Unset → JSON file. |
-| `CAMPAIGN_AUTH` | backend | `passcode` or `none`. Defaults to `passcode` on Vercel, `none` locally. |
-| `CAMPAIGN_DATA_DIR` | backend | Folder for the local JSON file. Defaults to `./.data`. |
-| `BACKEND_ORIGIN` | web | Where to proxy `/api/v1/*` when the backend is not on `localhost:3002`. |
+| `DATABASE_URL` | backend | Postgres connection string. Unset → no accounts, single local save. |
+| `BETTER_AUTH_SECRET` | backend | Secret for signing sessions (32+ random characters). |
+| `BETTER_AUTH_URL` | backend | Public address of the app, e.g. `https://aura-calisthenics.vercel.app`. Invitation links are built from it. |
+| `OWNER_SETUP_CODE` | backend | Optional. Lets the owner account be created without the old passcode. |
+| `RESEND_API_KEY`, `EMAIL_FROM` | backend | Optional. Turn on invitation and password-reset emails. |
+| `CAMPAIGN_DATA_DIR` | backend | Folder for the no-database save. Defaults to `./.data`. |
+| `BACKEND_ORIGIN` | web | Where to proxy API calls when the backend is not on `localhost:3002`. |
 
-**Passcode.** When protection is on, the first person to open the campaign sets a passcode; every other device must enter it. Only a salted scrypt hash is stored. To reset a forgotten passcode, delete that hash and claim the campaign again — your progress is untouched:
+Locally the backend reads `apps/backend/.env` (git-ignored).
 
-```sql
-DELETE FROM campaign_kv WHERE key = 'auth';
+### Database tables
+
+Create or update every table (Better Auth's `user`, `session`, `account`, `verification`, plus `campaign_kv` and `campaign_invite`) against the database in `DATABASE_URL`:
+
+```bash
+npm run db:migrate --workspace=@aura/backend
 ```
+
+It is safe to run repeatedly. Run it again after upgrading Better Auth.

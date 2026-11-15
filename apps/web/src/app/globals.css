@@ -224,3 +224,12 @@ body {
     animation: none;
   }
 }
+
+/* Horizontal strips (nav, branch tabs) scroll by swipe without showing a bar. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
