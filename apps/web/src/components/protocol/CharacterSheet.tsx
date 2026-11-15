@@ -49,8 +49,9 @@ const colourOf = (attribute: AttributeStatus) =>
         ? COLOUR.earned
         : COLOUR.base;
 
-/** The number shown for an attribute: a dash until something it is built from has been logged. */
-const shownValue = (attribute: AttributeStatus) => (attribute.value === null ? '–' : String(attribute.value));
+/** The number shown for an attribute: its real unit where it has one (66 kg), a dash until it can be measured. */
+const shownValue = (attribute: AttributeStatus) =>
+  attribute.display ?? (attribute.value === null ? '–' : String(attribute.value));
 
 /** Point on the web for axis `index` of `count`, at `fraction` of the radius. Axis 0 points straight up. */
 function point(index: number, count: number, fraction: number) {
@@ -88,7 +89,7 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ attributes, leve
       <PanelHead
         icon={<Hexagon className="w-4 h-4" />}
         title="Character"
-        subtitle="Read from the numbers on your account: your current lifts against the end-game targets, your bodyweight and the missions you tick. Hidden attributes join the web as you hit milestones."
+        subtitle="Read from the numbers on your account: your current lifts against their end-game targets, your bodyweight and the missions you tick. Which exercises build what is set in the Plan tab. Hidden attributes join the web as you hit milestones."
         right={<Tally icon={<Sparkles className="w-4 h-4 text-neon-purple" />} value={`${shown.length} / ${total}`} label="attributes" />}
       />
 
@@ -100,7 +101,7 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ attributes, leve
             className="w-full max-w-[540px] mx-auto block"
             role="img"
             aria-label={`Attribute web: ${shown
-              .map((attribute) => `${attribute.def.name} ${attribute.value ?? 'not measured yet'}`)
+              .map((attribute) => `${attribute.def.name} ${attribute.display ?? attribute.value ?? 'not measured yet'}`)
               .join(', ')}`}
           >
             <defs>
@@ -245,9 +246,12 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ attributes, leve
                           : `${attribute.def.name} ${attribute.value} of 100`
                       }
                     />
-                    {attribute.value === null && attribute.def.measure && (
+                    {attribute.explain && (
+                      <span className="block mt-2 text-[11px] font-semibold text-slate-300">{attribute.explain}</span>
+                    )}
+                    {attribute.value === null && attribute.measure && (
                       <span className="block mt-2 text-[11px] font-semibold text-amber-300/90">
-                        Not measured yet — {attribute.def.measure}
+                        Not measured yet — {attribute.measure}
                       </span>
                     )}
                     <span className="block mt-2 text-[11px] text-slate-400 leading-relaxed">{attribute.def.blurb}</span>
@@ -284,7 +288,7 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ attributes, leve
                     </span>
                     <span className="min-w-0">
                       <span className="block text-xs font-bold text-slate-300">{attribute.def.name}</span>
-                      <span className="block text-[11px] text-slate-500">Unlocks: {attribute.def.unlock?.label}</span>
+                      <span className="block text-[11px] text-slate-500">Unlocks: {attribute.unlockLabel}</span>
                     </span>
                   </li>
                 ))}

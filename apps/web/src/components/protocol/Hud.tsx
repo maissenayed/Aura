@@ -2,19 +2,30 @@
 
 import React from 'react';
 import { Crown, Scale, Star, Trophy } from 'lucide-react';
-import { BODYWEIGHT_QUEST } from '../../data/protocolData';
 import { Derived } from '../../utils/protocolEngine';
 import { MeterBar, Panel } from './primitives';
 
 interface HudProps {
   derived: Derived;
   currentWeek: number;
+  /** The plan's name. */
+  title: string;
+}
+
+/** Splits a title so its second half can carry the accent colour. */
+function splitTitle(title: string): [string, string] {
+  const words = title.split(' ');
+  if (words.length < 2) return ['', title];
+  const cut = Math.ceil(words.length / 2);
+  return [`${words.slice(0, cut).join(' ')} `, words.slice(cut).join(' ')];
 }
 
 /** The always-visible status bar: who you are, how far along, what act you are in. */
-export const Hud: React.FC<HudProps> = ({ derived, currentWeek }) => {
+export const Hud: React.FC<HudProps> = ({ derived, currentWeek, title }) => {
   const { level, bosses, ladders, mass, acts } = derived;
   const act = acts.find((entry) => entry.current) ?? acts[acts.length - 1];
+  const [lead, accent] = splitTitle(title);
+  const weightTarget = mass.next?.kg ?? mass.goal;
   const ringPct = (level.xpIntoLevel / level.xpForLevel) * 100;
   const tiersCleared = ladders.reduce((sum, ladder) => sum + ladder.clearedCount, 0);
   const tierTotal = ladders.reduce((sum, ladder) => sum + ladder.tiers.length, 0);
@@ -43,16 +54,19 @@ export const Hud: React.FC<HudProps> = ({ derived, currentWeek }) => {
         <div className="flex-1 min-w-[250px]">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              The Hybrid <span className="text-neon-cyan">Calisthenics Engine</span>
+              {lead}
+              <span className="text-neon-cyan">{accent}</span>
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <span className="text-[10px] px-2.5 py-0.5 rounded-full border font-black uppercase tracking-wider bg-purple-950/50 text-purple-300 border-purple-500/40">
               {level.rank}
             </span>
-            <span className="text-[10px] px-2.5 py-0.5 rounded-full border font-black uppercase tracking-wider bg-cyan-950/40 text-neon-cyan border-cyan-500/40">
-              Act {act.numeral} · {act.name}
-            </span>
+            {act && (
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full border font-black uppercase tracking-wider bg-cyan-950/40 text-neon-cyan border-cyan-500/40">
+                Act {act.numeral} · {act.name}
+              </span>
+            )}
             <span className="text-[10px] px-2.5 py-0.5 rounded-full border font-bold uppercase tracking-wider bg-dark-950 text-slate-400 border-slate-700">
               Week {currentWeek}
             </span>
@@ -71,7 +85,7 @@ export const Hud: React.FC<HudProps> = ({ derived, currentWeek }) => {
           <HudTile
             icon={<Scale className="w-4 h-4 text-neon-amber" />}
             value={`${mass.current.toFixed(1)} kg`}
-            label={mass.phaseBossDown ? `to ${BODYWEIGHT_QUEST.finalBoss} kg` : `to ${BODYWEIGHT_QUEST.phaseBoss} kg`}
+            label={mass.finalBossDown ? 'goal weight' : `to ${weightTarget} kg`}
           />
           <HudTile
             icon={<Crown className="w-4 h-4 text-neon-gold" />}

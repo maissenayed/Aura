@@ -190,13 +190,37 @@ Each person signs in with their own account (email + password, via [Better Auth]
 - **Invitations.** The owner opens *Team & invitations* (`/team`, from the account menu), enters an email address and gets a personal link (`/join?token=…`) that works once and expires after 14 days. Only a hash of each token is stored, so a lost link is replaced with *New link*, which also stops the old one working.
 - **Emailing invitations** switches on when `RESEND_API_KEY` and `EMAIL_FROM` are set (needs a domain verified with Resend). Until then the owner shares links by hand. Password-reset emails use the same setting; without it, the owner sets a new password for a member from the Team page.
 
+### Your plan and the catalog
+
+Every account has its own **plan**, edited on the Campaign page's *Plan* tab. It starts as the Master Workout & Progression Blueprint (`apps/web/src/data/blueprintPlan.ts`).
+
+A plan only holds choices from the catalog in `apps/web/src/data/campaignCatalog.ts` (exercises, lifts, bosses, milestones, skill trees, tendon armor). Players can't invent items. What they set themselves:
+
+- which exercises go on which day, with sets and reps from dropdowns (the reps options follow the exercise: reps, seconds, minutes or "continuous");
+- which lifts they track, with their own starting and end-game numbers;
+- their own targets for bosses and skill-tree gates;
+- which skill-tree tiers they already own;
+- their bodyweight goal;
+- the acts of the campaign map;
+- free-text labels: the plan name, day titles and act names.
+
+Anything a choice depends on comes with it:
+
+- an exercise that logs a lift adds that lift;
+- a boss adds the earlier bosses and the lifts it needs;
+- a skill tree adds the lifts it gates on.
+
+To offer something new, add it to the catalog. Ids there are permanent, because plans and saves refer to them.
+
+The plan is stored as `plan:<userId>` in `campaign_kv` (`GET`/`PUT /api/v1/campaign/plan`) with the same revision check as the save. If two devices save different plans, the editor asks which one to keep.
+
 ### How a save travels
 
 The Campaign page keeps progress in three places, in this order:
 
 1. **This browser** (`localStorage`, one entry per account) — every change lands here first, so the game never waits on the network and works offline. Signing out removes the account's copy once it is synced.
 2. **The backend** (`/api/v1/campaign`) — each change is pushed with the revision the device last saw. If another device saved first, the backend answers `409`, the two versions are merged field by field, and the result is pushed again.
-3. **Postgres** — the `campaign_kv` table, one row per account (`save:<userId>`). Without a database (a quick local run) the backend falls back to a single open save in `apps/backend/.data/` and accounts switch off.
+3. **Postgres** — the `campaign_kv` table, one row per account (`save:<userId>`, plus `plan:<userId>` for the plan). Without a database (a quick local run) the backend falls back to a single open save in `apps/backend/.data/` and accounts switch off.
 
 The browser always calls the backend through the web app's own origin. Locally `apps/web/next.config.ts` proxies `/api/v1/*` and `/api/auth/*` to `http://localhost:3002`; on Vercel, `vercel.json` routes `/api/*` to the NestJS service and everything else to the Next.js service.
 

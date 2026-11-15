@@ -1,8 +1,9 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import { IRON_STATS } from '../data/protocolData';
+import { BLUEPRINT_PLAN, BLUEPRINT_SPEC } from '../data/blueprintPlan';
 import { getAccountState, refreshAccount, signOut, subscribeAccount } from './accountStore';
+import { CampaignPlan, PlanSpec, normalizeSpec, resolvePlan } from './campaignPlan';
 import { LogEntry, ProtocolSave, createInitialSave, mondayOf, toIsoDate } from './protocolEngine';
 
 /**
@@ -17,6 +18,12 @@ import { LogEntry, ProtocolSave, createInitialSave, mondayOf, toIsoDate } from '
  * Each account has its own cache on the device, so two people sharing a phone
  * never see each other's campaign. Signing out removes the cache.
  *
+ * The account's plan — its choices from the catalog: routine, lifts, bosses,
+ * skill trees and map — is kept the same way but changes far less often, and
+ * only when the player presses Save in the plan editor. It is sent whole; if
+ * another device saved a different plan in the meantime, the editor asks
+ * which one to keep. The full plan every tab reads is built from it here.
+ *
  * Read through `useSyncExternalStore`, so the server render and the first
  * client render agree and the real save swaps in after hydration.
  */
@@ -27,6 +34,7 @@ const CACHE_PREFIX = 'aura_hybrid_engine_v3:';
 const LEGACY_CACHES = ['aura_hybrid_engine_v2', 'aura_hybrid_engine_v1'];
 const LEGACY_PASSCODE = 'aura_hybrid_engine_passcode';
 const LAST_USER = 'aura_hybrid_engine_last_user';
+const PLAN_PREFIX = 'aura_plan_v2:';
 
 const PUSH_DEBOUNCE_MS = 700;
 const RETRY_MIN_MS = 5_000;
@@ -40,9 +48,16 @@ export type SyncStatus = 'connecting' | 'saving' | 'synced' | 'offline';
 
 export interface CampaignSnapshot {
   save: ProtocolSave;
+  /** The plan as chosen and stored. */
+  spec: PlanSpec;
+  /** The same plan, built out from the catalog, as the game reads it. */
+  plan: CampaignPlan;
   gate: Gate;
   sync: SyncStatus;
 }
+
+/** How saving the plan went. */
+export type PlanSaveResult = 'saved' | 'offline' | 'conflict' | 'invalid';
 
 interface RemoteDoc {
   rev: number;
@@ -53,7 +68,13 @@ interface RemoteDoc {
 /* Module state                                                        */
 /* ------------------------------------------------------------------ */
 
-const SERVER_SNAPSHOT: CampaignSnapshot = { save: createInitialSave(), gate: 'loading', sync: 'connecting' };
+const SERVER_SNAPSHOT: CampaignSnapshot = {
+  save: createInitialSave(),
+  spec: BLUEPRINT_SPEC,
+  plan: BLUEPRINT_PLAN,
+  gate: 'loading',
+  sync: 'connecting',
+};
 
 let snapshot: CampaignSnapshot | null = null;
 /** Whose save is loaded. Null until an account is known. */
@@ -61,6 +82,10 @@ let userId: string | null = null;
 /** The last version this device and the backend agreed on, and its revision. */
 let base: ProtocolSave | null = null;
 let baseRev = 0;
+/** The plan revision this device last saw, whether the plan has changes not yet on the server, and a rival plan from another device. */
+let planRev = 0;
+let planDirty = false;
+let planConflict: { spec: PlanSpec; rev: number } | null = null;
 
 let started = false;
 let connected = false;
@@ -77,8 +102,13 @@ const listeners = new Set<() => void>();
 
 /** A save as it looks before anything is logged, opening on this week's Monday. */
 function pristine(): ProtocolSave {
-  return { ...createInitialSave(), startedAt: mondayOf(toIsoDate(new Date())) };
+  return { ...createInitialSave(snapshot?.plan ?? BLUEPRINT_PLAN), startedAt: mondayOf(toIsoDate(new Date())) };
 }
+
+const toSpec = (raw: unknown) => normalizeSpec(raw, BLUEPRINT_SPEC);
+
+/** A plan as both halves of the snapshot carry it. */
+const planState = (spec: PlanSpec) => ({ spec, plan: spec === BLUEPRINT_SPEC ? BLUEPRINT_PLAN : resolvePlan(spec) });
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -88,11 +118,11 @@ function normalizeSave(raw: unknown): ProtocolSave {
   const fresh = pristine();
   if (!isRecord(raw)) return fresh;
 
-  const stats = { ...fresh.stats };
+  // Every logged number is kept, including lifts the current plan no longer has.
+  const stats: Record<string, number> = {};
   if (isRecord(raw.stats)) {
-    for (const stat of IRON_STATS) {
-      const saved = raw.stats[stat.id];
-      if (typeof saved === 'number' && Number.isFinite(saved)) stats[stat.id] = saved;
+    for (const [id, saved] of Object.entries(raw.stats)) {
+      if (typeof saved === 'number' && Number.isFinite(saved)) stats[id] = saved;
     }
   }
 
@@ -208,6 +238,30 @@ function readCache(id: string, adoptLegacy: boolean): { save: ProtocolSave; exis
   return { save: pristine(), existed: false };
 }
 
+/** Loads one account's cached plan, or the blueprint when it has none yet. */
+function readPlanCache(id: string): PlanSpec {
+  planRev = 0;
+  planDirty = false;
+  planConflict = null;
+  try {
+    const raw = storageGet(PLAN_PREFIX + id);
+    if (raw) {
+      const parsed = JSON.parse(raw) as { plan?: unknown; rev?: unknown; dirty?: unknown };
+      planRev = typeof parsed.rev === 'number' ? parsed.rev : 0;
+      planDirty = parsed.dirty === true;
+      return toSpec(parsed.plan);
+    }
+  } catch (error) {
+    console.error('Could not read the campaign plan on this device, using the blueprint:', error);
+  }
+  return BLUEPRINT_SPEC;
+}
+
+function persistPlan(): void {
+  if (!snapshot || !userId) return;
+  storageSet(PLAN_PREFIX + userId, JSON.stringify({ plan: snapshot.spec, rev: planRev, dirty: planDirty }));
+}
+
 function persist(): void {
   if (!snapshot || !userId) return;
   storageSet(CACHE_PREFIX + userId, JSON.stringify({ save: snapshot.save, base, baseRev }));
@@ -227,10 +281,11 @@ function getSnapshot(): CampaignSnapshot {
     const last = storageGet(LAST_USER);
     if (last) {
       userId = last;
+      const plan = planState(readPlanCache(last));
       const cached = readCache(last, false);
-      snapshot = { save: cached.save, gate: cached.existed ? 'ready' : 'loading', sync: 'connecting' };
+      snapshot = { save: cached.save, ...plan, gate: cached.existed ? 'ready' : 'loading', sync: 'connecting' };
     } else {
-      snapshot = { save: pristine(), gate: 'loading', sync: 'connecting' };
+      snapshot = { save: pristine(), ...planState(BLUEPRINT_SPEC), gate: 'loading', sync: 'connecting' };
     }
   }
   return snapshot;
@@ -256,8 +311,9 @@ function subscribe(listener: () => void): () => void {
     });
     window.addEventListener('storage', (event) => {
       // Another tab on this device saved: follow it.
-      if (!userId || event.key !== CACHE_PREFIX + userId) return;
-      update({ save: readCache(userId, false).save });
+      if (!userId) return;
+      if (event.key === CACHE_PREFIX + userId) update({ save: readCache(userId, false).save });
+      if (event.key === PLAN_PREFIX + userId) update(planState(readPlanCache(userId)));
     });
     // Signing in or out anywhere on the page (the header menu, the sign-in form) re-routes the campaign.
     subscribeAccount(() => void follow());
@@ -320,8 +376,10 @@ function load(id: string, adoptLegacy: boolean): void {
   if (userId === id && snapshot?.gate === 'ready') return;
   userId = id;
   storageSet(LAST_USER, id);
+  const plan = planState(readPlanCache(id));
+  snapshot = { ...getSnapshot(), ...plan };
   const cached = readCache(id, adoptLegacy);
-  update({ save: cached.save, gate: 'ready', sync: 'connecting' });
+  update({ save: cached.save, ...plan, gate: 'ready', sync: 'connecting' });
 }
 
 /** Forgets the loaded account (signed out, or the session ended). */
@@ -331,9 +389,13 @@ function unload(gate: Gate): void {
   userId = null;
   base = null;
   baseRev = 0;
+  planRev = 0;
+  planDirty = false;
+  planConflict = null;
   connected = false;
   storageSet(LAST_USER, null);
-  update({ save: pristine(), gate, sync: 'connecting' });
+  snapshot = { ...getSnapshot(), ...planState(BLUEPRINT_SPEC) };
+  update({ save: pristine(), ...planState(BLUEPRINT_SPEC), gate, sync: 'connecting' });
 }
 
 /** Reacts to whatever the account store now says. */
@@ -385,8 +447,60 @@ async function pull(): Promise<void> {
   }
 
   retryDelay = RETRY_MIN_MS;
+  await pullPlan();
   if (isDirty()) await push();
   else update({ sync: 'synced' });
+}
+
+/** Follows the plan saved on the server, or sends this device's unsaved one up. */
+async function pullPlan(): Promise<void> {
+  if (!userId) return;
+  const result = await request('GET', '/campaign/plan');
+  // The save sync owns the offline badge; a plan that cannot be fetched just stays as it is.
+  if (!result || result.status !== 200) return;
+
+  const doc = result.body?.data as RemoteDoc | null | undefined;
+  if (planDirty) {
+    // A plan saved here while offline: it was saved on purpose, so it replaces the server's.
+    planRev = doc?.rev ?? 0;
+    await pushPlan(false);
+    return;
+  }
+
+  const spec = doc ? toSpec(doc.value) : BLUEPRINT_SPEC;
+  planRev = doc?.rev ?? 0;
+  if (canonical(spec) !== canonical(getSnapshot().spec)) update(planState(spec));
+  persistPlan();
+}
+
+async function pushPlan(overwrite: boolean): Promise<PlanSaveResult> {
+  if (!userId) return 'offline';
+  const sent = getSnapshot().spec;
+  const result = await request('PUT', '/campaign/plan', { baseRev: planRev, plan: sent });
+
+  if (!result || result.status >= 500) return 'offline';
+  if (result.status === 401) {
+    void refreshAccount();
+    return 'offline';
+  }
+  if (result.status === 409) {
+    const doc = result.body?.data as RemoteDoc | null | undefined;
+    const rev = doc?.rev ?? 0;
+    if (overwrite) {
+      planRev = rev;
+      return pushPlan(false);
+    }
+    planConflict = { spec: doc ? toSpec(doc.value) : BLUEPRINT_SPEC, rev };
+    return 'conflict';
+  }
+  if (result.status !== 200) return 'invalid';
+
+  planRev = (result.body?.data as { rev: number }).rev;
+  planConflict = null;
+  // Only clean if nothing newer was saved while that request was in the air.
+  if (getSnapshot().spec === sent) planDirty = false;
+  persistPlan();
+  return 'saved';
 }
 
 async function push(): Promise<void> {
@@ -447,6 +561,34 @@ export function commitSave(next: ProtocolSave): void {
   pushTimer = window.setTimeout(() => void (connected ? push() : sync()), PUSH_DEBOUNCE_MS);
 }
 
+/**
+ * Saves the account's plan: on this device straight away, then on the server.
+ * With `overwrite`, a plan saved meanwhile on another device is replaced.
+ */
+export async function savePlan(next: PlanSpec, options: { overwrite?: boolean } = {}): Promise<PlanSaveResult> {
+  planDirty = true;
+  planConflict = null;
+  update(planState(toSpec(next)));
+  persistPlan();
+  if (!connected || !userId) return 'offline';
+  return pushPlan(Boolean(options.overwrite));
+}
+
+/** After a conflict: the plan the other device saved. */
+export function conflictingPlan(): PlanSpec | null {
+  return planConflict?.spec ?? null;
+}
+
+/** After a conflict: drop this device's plan and use the other device's. */
+export function takeServerPlan(): void {
+  if (!planConflict) return;
+  planRev = planConflict.rev;
+  planDirty = false;
+  update(planState(planConflict.spec));
+  planConflict = null;
+  persistPlan();
+}
+
 /** Starts a new campaign at week 1, on this device and on the backend. */
 export function resetSave(): void {
   commitSave(pristine());
@@ -459,6 +601,7 @@ export function resetSave(): void {
 export async function signOutOfCampaign(): Promise<void> {
   window.clearTimeout(pushTimer);
   if (userId && connected && isDirty()) await push();
+  if (userId && connected && planDirty) await pushPlan(true);
 
   // Sign-out can happen on any page, including ones where this store never loaded the account.
   const id = userId ?? getAccountState().account?.id ?? null;
@@ -466,9 +609,19 @@ export async function signOutOfCampaign(): Promise<void> {
     const synced = id === userId ? !isDirty() : cacheIsSynced(id);
     // Unsynced changes are kept, so they reach the server the next time this person signs in here.
     if (synced) storageSet(CACHE_PREFIX + id, null);
+    if (!(id === userId ? planDirty : planCacheDirty(id))) storageSet(PLAN_PREFIX + id, null);
   }
   storageSet(LAST_USER, null);
   await signOut();
+}
+
+function planCacheDirty(id: string): boolean {
+  try {
+    const raw = storageGet(PLAN_PREFIX + id);
+    return raw ? (JSON.parse(raw) as { dirty?: unknown }).dirty === true : false;
+  } catch {
+    return false;
+  }
 }
 
 /** True when an account's cached save matches what the server last confirmed. */

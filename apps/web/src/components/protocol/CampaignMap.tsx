@@ -2,51 +2,63 @@
 
 import React from 'react';
 import { Beef, CalendarDays, Check, ChevronRight, Flag, Map, Scale, Trophy, Utensils } from 'lucide-react';
-import { BODYWEIGHT_QUEST, YEAR_ONE } from '../../data/protocolData';
+import { BodyweightPlan } from '../../utils/campaignPlan';
 import { ActStatus, Derived, formatStatValue } from '../../utils/protocolEngine';
 import { MeterBar, Panel, PanelHead, Stepper, Tally } from './primitives';
 
 interface CampaignMapProps {
   derived: Derived;
+  bodyweight: BodyweightPlan;
   currentWeek: number;
   onWeighIn: (kg: number) => void;
 }
 
-export const CampaignMap: React.FC<CampaignMapProps> = ({ derived, currentWeek, onWeighIn }) => {
-  const { acts, mass, yearOne } = derived;
+export const CampaignMap: React.FC<CampaignMapProps> = ({ derived, bodyweight, currentWeek, onWeighIn }) => {
+  const { acts, mass, checkpoints } = derived;
+  const signed = (kg: number) => `${kg >= 0 ? '+' : ''}${kg.toFixed(1)}`;
+  const direction = mass.gaining ? 'gain' : 'loss';
 
   return (
     <div className="space-y-5">
-      {/* The three acts */}
+      {/* The acts */}
       <Panel className="p-4 sm:p-6">
         <PanelHead
           icon={<Map className="w-4 h-4" />}
           title="Campaign Map"
-          subtitle="Three acts, played in order of what unlocks first — but every lift you log moves all of them."
+          subtitle={
+            acts.length
+              ? `${acts.length === 1 ? 'One act' : `${acts.length} acts`}, played in order of what unlocks first — but every lift you log moves all of them.`
+              : 'Your plan has no acts yet. Build the map in the Plan tab, under Map.'
+          }
         />
 
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div
+          className={`grid gap-3 ${
+            acts.length === 4 ? 'md:grid-cols-2 xl:grid-cols-4' : acts.length >= 3 ? 'lg:grid-cols-3' : acts.length === 2 ? 'lg:grid-cols-2' : ''
+          }`}
+        >
           {acts.map((act, index) => (
-            <ActCard key={act.id} act={act} isLast={index === acts.length - 1} />
+            // The arrow between cards only reads right when every act sits on one row.
+            <ActCard key={act.id} act={act} isLast={index === acts.length - 1 || acts.length > 3} />
           ))}
         </div>
       </Panel>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        {/* Mass quest */}
+        {/* Bodyweight */}
         <Panel className="p-4 sm:p-6">
           <PanelHead
             icon={<Scale className="w-4 h-4" />}
             title="The Mass Quest"
-            subtitle="Weigh in whenever you step on the scale. Planche gates re-scale to this number."
+            subtitle="Weigh in whenever you step on the scale. Gates that grow with bodyweight re-scale to this number."
           />
 
           <div className="flex flex-wrap items-center gap-4 mb-4">
             <Stepper
               value={mass.current}
               step={0.1}
-              min={40}
-              max={130}
+              min={30}
+              max={250}
               unit="kg"
               accent="text-neon-amber"
               ariaLabel="Bodyweight"
@@ -54,74 +66,91 @@ export const CampaignMap: React.FC<CampaignMapProps> = ({ derived, currentWeek, 
             />
             <div className="text-xs">
               <div className="font-bold text-white">
-                {mass.gained >= 0 ? '+' : ''}
-                {mass.gained.toFixed(1)} kg since {BODYWEIGHT_QUEST.start} kg
+                {signed(mass.gained)} kg since {mass.start} kg
               </div>
               <div className={mass.onPace ? 'text-emerald-400 font-semibold' : 'text-neon-amber font-semibold'}>
                 {mass.finalBossDown
-                  ? 'Final boss weight reached.'
+                  ? 'Goal weight reached.'
                   : mass.shortKg === 0
                     ? `Ahead of week ${currentWeek}'s target (${mass.weekTargetKg.toFixed(1)} kg).`
                     : mass.onPace
                       ? `On pace — ${mass.shortKg.toFixed(1)} kg to this week's ${mass.weekTargetKg.toFixed(1)} kg.`
-                      : `Behind pace — ${mass.shortKg.toFixed(1)} kg short of week ${currentWeek}'s ${mass.weekTargetKg.toFixed(1)} kg. Eat.`}
+                      : `Behind pace — ${mass.shortKg.toFixed(1)} kg off week ${currentWeek}'s ${mass.weekTargetKg.toFixed(1)} kg.`}
               </div>
             </div>
           </div>
 
           <div className="space-y-3 mb-4">
-            <LabeledBar label={`Phase 1 boss · ${BODYWEIGHT_QUEST.phaseBoss} kg`} value={mass.phaseProgress} />
-            <LabeledBar label={`Final boss · ${BODYWEIGHT_QUEST.finalBoss} kg lean`} value={mass.finalProgress} />
+            {mass.next && mass.next.kg !== mass.goal && (
+              <LabeledBar label={`Next · ${mass.next.label} · ${mass.next.kg} kg`} value={mass.nextProgress} />
+            )}
+            <LabeledBar label={`Goal · ${mass.goal} kg`} value={mass.finalProgress} />
           </div>
 
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {mass.checkpoints.map((checkpoint) => (
-              <div
-                key={checkpoint.id}
-                className={`px-3 py-2 rounded-xl border ${
-                  checkpoint.cleared ? 'bg-emerald-950/25 border-emerald-700/50' : 'bg-dark-950/60 border-slate-800'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1">
-                  <span className={`text-[10px] font-black uppercase tracking-wider ${checkpoint.cleared ? 'text-emerald-300' : 'text-slate-400'}`}>
-                    {checkpoint.label}
-                  </span>
-                  {checkpoint.cleared && <Check className="w-3 h-3 text-emerald-400" strokeWidth={4} />}
+          {mass.checkpoints.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+              {mass.checkpoints.map((checkpoint) => (
+                <div
+                  key={checkpoint.id}
+                  className={`px-3 py-2 rounded-xl border ${
+                    checkpoint.cleared ? 'bg-emerald-950/25 border-emerald-700/50' : 'bg-dark-950/60 border-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className={`text-[10px] font-black uppercase tracking-wider truncate ${checkpoint.cleared ? 'text-emerald-300' : 'text-slate-400'}`}>
+                      {checkpoint.label}
+                    </span>
+                    {checkpoint.cleared && <Check className="w-3 h-3 text-emerald-400 shrink-0" strokeWidth={4} />}
+                  </div>
+                  <div className="font-mono font-black text-white text-sm">{checkpoint.kg.toFixed(1)} kg</div>
+                  <div className="text-[9px] text-slate-500 font-semibold">
+                    {checkpoint.week ? `by week ${checkpoint.week}` : checkpoint.act}
+                  </div>
                 </div>
-                <div className="font-mono font-black text-white text-sm">{checkpoint.targetKg.toFixed(1)} kg</div>
-                <div className="text-[9px] text-slate-500 font-semibold">by week {checkpoint.week}</div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="grid grid-cols-3 gap-2">
-            <FuelTile icon={<Beef className="w-4 h-4" />} value={`${BODYWEIGHT_QUEST.proteinGrams} g`} label="protein, daily" />
-            <FuelTile icon={<Utensils className="w-4 h-4" />} value={BODYWEIGHT_QUEST.surplusCalories} label="daily surplus" />
-            <FuelTile
-              icon={<CalendarDays className="w-4 h-4" />}
-              value={`${mass.weeksToFinal} wk`}
-              label={`to 75 kg at ${BODYWEIGHT_QUEST.weeklyGainKg} kg/wk`}
-            />
+            {bodyweight.proteinGrams !== null && (
+              <FuelTile icon={<Beef className="w-4 h-4" />} value={`${bodyweight.proteinGrams} g`} label="protein, daily" />
+            )}
+            {bodyweight.calories && (
+              <FuelTile icon={<Utensils className="w-4 h-4" />} value={bodyweight.calories} label="daily calories" />
+            )}
+            {mass.goal !== mass.start && (
+              <FuelTile
+                icon={<CalendarDays className="w-4 h-4" />}
+                value={`${mass.weeksToFinal} wk`}
+                label={`to ${mass.goal} kg at ${bodyweight.weeklyChangeKg} kg/wk ${direction}`}
+              />
+            )}
           </div>
         </Panel>
 
-        {/* Year one iron */}
+        {/* Lift checkpoints */}
         <Panel className="p-4 sm:p-6">
           <PanelHead
             icon={<Flag className="w-4 h-4" />}
-            title="Year 1 Iron Checkpoints"
-            subtitle={`${YEAR_ONE.deadline} — every lift for at least ${YEAR_ONE.repTarget} reps.`}
+            title="Lift Checkpoints"
+            subtitle="The lift targets on your campaign map."
             right={
-              <Tally
-                icon={<Trophy className="w-4 h-4 text-neon-gold" />}
-                value={`${yearOne.filter((c) => c.met).length} / ${yearOne.length}`}
-                label="cleared"
-              />
+              checkpoints.length > 0 && (
+                <Tally
+                  icon={<Trophy className="w-4 h-4 text-neon-gold" />}
+                  value={`${checkpoints.filter((c) => c.met).length} / ${checkpoints.length}`}
+                  label="cleared"
+                />
+              )
             }
           />
 
+          {checkpoints.length === 0 && (
+            <p className="text-xs text-slate-400">No lift goals on the map yet. Add them to an act in the Plan tab, under Map.</p>
+          )}
+
           <ul className="space-y-2.5">
-            {yearOne.map((checkpoint) => (
+            {checkpoints.map((checkpoint) => (
               <li
                 key={checkpoint.id}
                 className={`p-3 rounded-xl border ${
@@ -129,7 +158,10 @@ export const CampaignMap: React.FC<CampaignMapProps> = ({ derived, currentWeek, 
                 }`}
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-xs font-bold text-white truncate">{checkpoint.label}</span>
+                  <span className="min-w-0">
+                    <span className="block text-xs font-bold text-white truncate">{checkpoint.label}</span>
+                    <span className="block text-[10px] text-slate-500 truncate">{checkpoint.act}</span>
+                  </span>
                   <span className="text-[11px] font-mono font-bold shrink-0">
                     <span className={checkpoint.met ? 'text-emerald-400' : 'text-white'}>
                       {formatStatValue(checkpoint.current, checkpoint.stat.unit)}
@@ -195,6 +227,8 @@ const ActCard: React.FC<{ act: ActStatus; isLast: boolean }> = ({ act, isLast })
           {Math.round(act.progress * 100)}%
         </span>
       </div>
+
+      {act.nodes.length === 0 && <p className="text-[11px] text-slate-500">No goals in this act yet.</p>}
 
       <ul className="flex flex-wrap gap-1.5">
         {act.nodes.map((node) => (

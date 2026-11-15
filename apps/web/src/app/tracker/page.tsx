@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useMemo, useRef, useState } from 'react';
-import { BarChart3, Cloud, CloudOff, CloudUpload, GitBranch, Hexagon, Map, Skull, Swords } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { BarChart3, Cloud, CloudOff, CloudUpload, GitBranch, Hexagon, Map, Skull, SlidersHorizontal, Swords } from 'lucide-react';
 import { Header } from '../../components/Header';
 import { BossGallery } from '../../components/protocol/BossGallery';
 import { AuthGate } from '../../components/account/AuthGate';
@@ -12,7 +12,8 @@ import { SkillTrees } from '../../components/protocol/SkillTrees';
 import { StatSheet } from '../../components/protocol/StatSheet';
 import { Toast, ToastStack } from '../../components/protocol/Toasts';
 import { TodayMission } from '../../components/protocol/TodayMission';
-import { QuestExercise, StatId } from '../../data/protocolData';
+import { PlanEditor } from '../../components/plan/PlanEditor';
+import { PlanExercise, PlanSpec, liftOf } from '../../utils/campaignPlan';
 import {
   GameEvent,
   LogEntry,
@@ -20,8 +21,8 @@ import {
   dayIdOf,
   derive,
   diffEvents,
+  currentOf,
   formatStatValue,
-  statById,
   toIsoDate,
   weekOf,
 } from '../../utils/protocolEngine';
@@ -34,7 +35,7 @@ import {
   useTodayIso,
 } from '../../utils/protocolStore';
 
-type TabId = 'today' | 'character' | 'campaign' | 'bosses' | 'trees' | 'stats';
+type TabId = 'today' | 'character' | 'campaign' | 'bosses' | 'trees' | 'stats' | 'plan';
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'today', label: 'Missions', icon: <Swords className="w-4 h-4" /> },
@@ -43,6 +44,7 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'bosses', label: 'Bosses', icon: <Skull className="w-4 h-4" /> },
   { id: 'trees', label: 'Skill Trees', icon: <GitBranch className="w-4 h-4" /> },
   { id: 'stats', label: 'Stats', icon: <BarChart3 className="w-4 h-4" /> },
+  { id: 'plan', label: 'Plan', icon: <SlidersHorizontal className="w-4 h-4" /> },
 ];
 
 const SYNC_BADGE: Record<SyncStatus, { label: string; hint: string; icon: React.ReactNode; tone: string }> = {
@@ -87,7 +89,7 @@ function mergeLog(log: LogEntry[], events: GameEvent[], date: string): LogEntry[
 }
 
 export default function TrackerPage() {
-  const { save, gate, sync } = useCampaign();
+  const { save, spec, plan, gate, sync } = useCampaign();
   const todayIso = useTodayIso();
 
   const currentWeek = todayIso ? weekOf(save.startedAt, todayIso) : 1;
@@ -97,12 +99,26 @@ export default function TrackerPage() {
   const [weekOverride, setWeekOverride] = useState<number | null>(null);
   const [dayOverride, setDayOverride] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  /** Plan edits not saved yet. Kept here so switching tabs does not lose them. */
+  const [planDraft, setPlanDraft] = useState<PlanSpec | null>(null);
   const toastSeq = useRef(0);
 
   const viewWeek = weekOverride ?? currentWeek;
   const selectedDayId = dayOverride ?? todayDayId ?? 'mon';
 
-  const derived = useMemo(() => derive(save, { currentWeek, viewWeek }), [save, currentWeek, viewWeek]);
+  const derived = useMemo(() => derive(save, { currentWeek, viewWeek }, plan), [save, currentWeek, viewWeek, plan]);
+  const planDirty = useMemo(
+    () => planDraft !== null && JSON.stringify(planDraft) !== JSON.stringify(spec),
+    [planDraft, spec],
+  );
+
+  // Leaving the page with plan edits still unsaved asks first.
+  useEffect(() => {
+    if (!planDirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [planDirty]);
 
   const dismissToast = (id: number) => setToasts((current) => current.filter((toast) => toast.id !== id));
 
@@ -124,7 +140,7 @@ export default function TrackerPage() {
     const before = peekSave();
     const after = mutate(before);
     const clock = { currentWeek, viewWeek };
-    const events = [...extra, ...diffEvents(derive(before, clock), derive(after, clock))];
+    const events = [...extra, ...diffEvents(derive(before, clock, plan), derive(after, clock, plan))];
 
     commitSave(
       events.length ? { ...after, log: mergeLog(after.log, events, todayIso ?? toIsoDate(new Date())) } : after,
@@ -132,9 +148,10 @@ export default function TrackerPage() {
     if (events.length) announce(events);
   };
 
-  const logStat = (id: StatId, value: number) => {
-    const stat = statById(id);
-    const previous = peekSave().stats[id] ?? stat.baseline;
+  const logStat = (id: string, value: number) => {
+    const stat = liftOf(plan, id);
+    if (!stat) return;
+    const previous = currentOf(peekSave(), stat);
     const firstLog = !stat.hasBaseline && previous === 0;
     const extra: GameEvent[] =
       value > previous
@@ -150,7 +167,7 @@ export default function TrackerPage() {
     play((current) => ({ ...current, stats: { ...current.stats, [id]: value } }), extra);
   };
 
-  const logLoad = (exercise: QuestExercise, value: number) => {
+  const logLoad = (exercise: PlanExercise, value: number) => {
     const previous = peekSave().loads[exercise.id] ?? exercise.load?.start ?? 0;
     const extra: GameEvent[] =
       value > previous
@@ -198,7 +215,7 @@ export default function TrackerPage() {
           <AuthGate mode={gate} />
         ) : (
           <>
-            <Hud derived={derived} currentWeek={currentWeek} />
+            <Hud derived={derived} currentWeek={currentWeek} title={plan.name} />
 
             <nav
               aria-label="Campaign sections"
@@ -215,7 +232,9 @@ export default function TrackerPage() {
                         ? `${derived.attributes.filter((a) => a.unlocked).length}/${
                             derived.attributes.filter((a) => !a.def.secret || a.unlocked).length
                           }`
-                        : null;
+                        : entry.id === 'plan' && planDirty
+                          ? 'edited'
+                          : null;
 
                 return (
                   <button
@@ -256,6 +275,7 @@ export default function TrackerPage() {
             {tab === 'today' && (
               <TodayMission
                 save={save}
+                plan={plan}
                 derived={derived}
                 viewWeek={viewWeek}
                 currentWeek={currentWeek}
@@ -277,16 +297,27 @@ export default function TrackerPage() {
               <CharacterSheet attributes={derived.attributes} level={derived.level.level} rank={derived.level.rank} />
             )}
 
-            {tab === 'campaign' && <CampaignMap derived={derived} currentWeek={currentWeek} onWeighIn={weighIn} />}
+            {tab === 'campaign' && (
+              <CampaignMap derived={derived} bodyweight={plan.bodyweight} currentWeek={currentWeek} onWeighIn={weighIn} />
+            )}
 
             {tab === 'bosses' && (
-              <BossGallery bosses={derived.bosses} save={save} onToggleMilestone={toggleMilestone} />
+              <BossGallery
+                bosses={derived.bosses}
+                save={save}
+                goalKg={plan.bodyweight.goal}
+                onToggleMilestone={toggleMilestone}
+              />
             )}
 
             {tab === 'trees' && <SkillTrees ladders={derived.ladders} bodyWeightKg={save.bodyWeightKg} />}
 
             {tab === 'stats' && (
-              <StatSheet save={save} derived={derived} onLogStat={logStat} onReset={resetCampaign} />
+              <StatSheet save={save} plan={plan} derived={derived} onLogStat={logStat} onReset={resetCampaign} />
+            )}
+
+            {tab === 'plan' && (
+              <PlanEditor spec={spec} draft={planDraft} bodyWeightKg={save.bodyWeightKg} onDraftChange={setPlanDraft} />
             )}
           </>
         )}

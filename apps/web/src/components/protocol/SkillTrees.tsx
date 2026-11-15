@@ -19,9 +19,13 @@ export const SkillTrees: React.FC<SkillTreesProps> = ({ ladders, bodyWeightKg })
       <PanelHead
         icon={<GitBranch className="w-4 h-4" />}
         title="Skill Trees"
-        subtitle={`Climb from the bottom. Planche gates are calculated for your ${bodyWeightKg.toFixed(1)} kg bodyweight and rise as you gain.`}
+        subtitle={`Climb from the bottom. Gates marked ⇡ are calculated for your ${bodyWeightKg.toFixed(1)} kg bodyweight and move with it.`}
         right={<Tally icon={<Star className="w-4 h-4 text-neon-emerald" />} value={`${cleared} / ${total}`} label="tiers" />}
       />
+
+      {ladders.length === 0 && (
+        <p className="text-xs text-slate-400">Your plan has no skill trees yet. Add one in the Plan tab, under Skill trees.</p>
+      )}
 
       <div className="grid gap-4 xl:grid-cols-3">
         {ladders.map((status) => {
@@ -37,7 +41,7 @@ export const SkillTrees: React.FC<SkillTreesProps> = ({ ladders, bodyWeightKg })
               <p className="text-[11px] text-slate-400 mb-3">{status.ladder.tagline}</p>
 
               <div className="flex items-center gap-2 mb-4">
-                <MeterBar value={status.clearedCount / status.tiers.length} theme={status.ladder.branch} size="sm" />
+                <MeterBar value={status.tiers.length ? status.clearedCount / status.tiers.length : 0} theme={status.ladder.branch} size="sm" />
                 <span className="text-[10px] font-mono font-bold text-slate-400 shrink-0">
                   {status.clearedCount}/{status.tiers.length}
                 </span>
@@ -98,10 +102,10 @@ const Rung: React.FC<{ tier: TierStatus; theme: Theme; branch: string }> = ({ ti
 
           {gates.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
-              {gates.map((gate) => (
+              {gates.map((gate, gateIndex) => (
                 <span
-                  key={gate.stat.id}
-                  title={`${gate.stat.name}: you are at ${formatStatValue(gate.current, gate.stat.unit)}`}
+                  key={`${gate.stat.id}_${gateIndex}`}
+                  title={`${gate.stat.name}: you are at ${formatStatValue(gate.current, gate.stat.unit)}${gate.scales ? ' · moves with your bodyweight' : ''}`}
                   className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md border ${
                     gate.met
                       ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/60'
@@ -110,6 +114,7 @@ const Rung: React.FC<{ tier: TierStatus; theme: Theme; branch: string }> = ({ ti
                 >
                   <span className="font-sans font-semibold">{gate.stat.short}</span>{' '}
                   {formatStatValue(gate.target, gate.stat.unit)}
+                  {gate.scales && <span aria-label="moves with bodyweight"> ⇡</span>}
                 </span>
               ))}
             </div>
@@ -125,7 +130,7 @@ const Rung: React.FC<{ tier: TierStatus; theme: Theme; branch: string }> = ({ ti
           )}
 
           {byBlueprint && (
-            <p className="mt-1.5 text-[10px] text-emerald-400/80 font-semibold">Cleared in your blueprint.</p>
+            <p className="mt-1.5 text-[10px] text-emerald-400/80 font-semibold">Marked as cleared in your plan.</p>
           )}
         </div>
       </div>

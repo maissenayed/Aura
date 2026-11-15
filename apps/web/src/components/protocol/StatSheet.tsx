@@ -2,19 +2,20 @@
 
 import React, { useState } from 'react';
 import { Dumbbell, RotateCcw, Sparkles, Target } from 'lucide-react';
-import { IRON_STATS, StatId } from '../../data/protocolData';
-import { Derived, ProtocolSave, XP_RULES, formatStatValue } from '../../utils/protocolEngine';
+import { CampaignPlan } from '../../utils/campaignPlan';
+import { Derived, ProtocolSave, XP_RULES, currentOf, formatStatValue, unitLabel } from '../../utils/protocolEngine';
 import { MeterBar, Panel, PanelHead, Stepper, themeFor } from './primitives';
 
 interface StatSheetProps {
   save: ProtocolSave;
+  plan: CampaignPlan;
   derived: Derived;
-  onLogStat: (id: StatId, value: number) => void;
+  onLogStat: (id: string, value: number) => void;
   onReset: () => void;
 }
 
 /** The character sheet: every Iron Stat in one place, plus where the XP came from. */
-export const StatSheet: React.FC<StatSheetProps> = ({ save, derived, onLogStat, onReset }) => {
+export const StatSheet: React.FC<StatSheetProps> = ({ save, plan, derived, onLogStat, onReset }) => {
   const [confirmReset, setConfirmReset] = useState(false);
   const { level, gates } = derived;
 
@@ -27,13 +28,21 @@ export const StatSheet: React.FC<StatSheetProps> = ({ save, derived, onLogStat, 
           subtitle="Your best working numbers. Log them here or straight from the day's mission — bosses, tiers and level all read from these."
         />
 
+        {plan.lifts.length === 0 && (
+          <p className="text-xs text-slate-400">
+            Your plan has no lifts yet. Add the lifts you want to track in the Plan tab, under Lifts.
+          </p>
+        )}
+
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {IRON_STATS.map((stat) => {
+          {plan.lifts.map((stat) => {
             const theme = themeFor(stat.branch);
-            const current = save.stats[stat.id] ?? stat.baseline;
+            const current = currentOf(save, stat);
             const gate = gates.find((entry) => entry.stat.id === stat.id);
             const mastery =
-              stat.endgame === null ? null : Math.min(1, Math.max(0, (current - stat.baseline) / (stat.endgame - stat.baseline)));
+              stat.endgame === null || stat.endgame <= stat.baseline
+                ? null
+                : Math.min(1, Math.max(0, (current - stat.baseline) / (stat.endgame - stat.baseline)));
 
             return (
               <div key={stat.id} className="p-4 rounded-2xl bg-dark-950/60 border border-slate-800/80">
@@ -48,7 +57,7 @@ export const StatSheet: React.FC<StatSheetProps> = ({ save, derived, onLogStat, 
                 <Stepper
                   value={current}
                   step={stat.step}
-                  unit={stat.unit === 'reps' ? 'reps' : 'kg'}
+                  unit={unitLabel(stat.unit)}
                   prefix={stat.unit === 'added-kg' ? '+' : ''}
                   accent={theme.text}
                   placeholder={stat.hasBaseline ? undefined : 'log it'}
@@ -75,9 +84,14 @@ export const StatSheet: React.FC<StatSheetProps> = ({ save, derived, onLogStat, 
                       <span className="text-slate-500"> — {gate.unlocks}</span>
                     </span>
                   ) : stat.endgame === null ? (
-                    <span className="text-slate-400">Pin the full stack, then claim it on Boss 6.</span>
+                    <span className="text-slate-400">No number unlocks anything on this lift yet.</span>
+                  ) : current >= stat.endgame ? (
+                    <span className="text-emerald-300 font-semibold">End-game number reached.</span>
                   ) : (
-                    <span className="text-emerald-300 font-semibold">Every gate on this lift is open.</span>
+                    <span className="text-slate-400">
+                      Nothing gates on it yet — chase your{' '}
+                      <strong className="text-neon-gold font-mono">{formatStatValue(stat.endgame, stat.unit)}</strong> end-game.
+                    </span>
                   )}
                 </div>
               </div>
@@ -117,7 +131,7 @@ export const StatSheet: React.FC<StatSheetProps> = ({ save, derived, onLogStat, 
           <PanelHead
             icon={<RotateCcw className="w-4 h-4" />}
             title="New Game"
-            subtitle="Wipes every logged lift, mission and weigh-in — on the server and on every device — and restarts at week 1."
+            subtitle="Wipes every logged lift, mission and weigh-in — on the server and on every device — and restarts at week 1. Your plan stays as it is."
           />
           {confirmReset ? (
             <div className="flex flex-wrap gap-2">

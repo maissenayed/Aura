@@ -14,24 +14,26 @@ import {
   Skull,
   Swords,
 } from 'lucide-react';
-import { BOSSES, QuestDay, QuestExercise, StatId } from '../../data/protocolData';
+import { CampaignPlan, DAY_NAMES, PlanDay, PlanExercise, liftOf } from '../../utils/campaignPlan';
 import {
+  BossStatus,
   Derived,
   Gate,
   ProtocolSave,
   XP_RULES,
+  currentOf,
   formatStatValue,
+  unitLabel,
   questKey,
   restKey,
-  statById,
+  shortBossName,
 } from '../../utils/protocolEngine';
 import { EVENT_VISUAL } from './Toasts';
 import { MeterBar, Panel, PanelHead, Stepper, Tally, themeFor } from './primitives';
 
-const BOSS_BY_ID = new Map(BOSSES.map((boss) => [boss.id, boss]));
-
 interface TodayMissionProps {
   save: ProtocolSave;
+  plan: CampaignPlan;
   derived: Derived;
   viewWeek: number;
   currentWeek: number;
@@ -41,12 +43,13 @@ interface TodayMissionProps {
   onWeekChange: (week: number) => void;
   onJumpToToday: () => void;
   onToggleQuest: (key: string) => void;
-  onLogStat: (id: StatId, value: number) => void;
-  onLogLoad: (exercise: QuestExercise, value: number) => void;
+  onLogStat: (id: string, value: number) => void;
+  onLogLoad: (exercise: PlanExercise, value: number) => void;
 }
 
 export const TodayMission: React.FC<TodayMissionProps> = ({
   save,
+  plan,
   derived,
   viewWeek,
   currentWeek,
@@ -135,7 +138,7 @@ export const TodayMission: React.FC<TodayMissionProps> = ({
               >
                 <div className="flex items-center justify-between gap-1 mb-1">
                   <span className={`text-[10px] font-black uppercase tracking-widest ${active ? theme.text : 'text-slate-400'}`}>
-                    {entry.day.day.slice(0, 3)}
+                    {entry.name.slice(0, 3)}
                   </span>
                   {entry.cleared ? (
                     <span className="flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-400">
@@ -164,6 +167,8 @@ export const TodayMission: React.FC<TodayMissionProps> = ({
         <div className="lg:col-span-2">
           <MissionCard
             save={save}
+            plan={plan}
+            bosses={derived.bosses}
             day={selected.day}
             done={selected.done}
             total={selected.total}
@@ -208,6 +213,7 @@ export const TodayMission: React.FC<TodayMissionProps> = ({
             )}
           </Panel>
 
+          {week.armor.length > 0 && (
           <Panel className="p-4 sm:p-5">
             <PanelHead
               icon={<ShieldCheck className="w-4 h-4" />}
@@ -250,6 +256,7 @@ export const TodayMission: React.FC<TodayMissionProps> = ({
               ))}
             </ul>
           </Panel>
+          )}
 
           <Panel className="p-4 sm:p-5">
             <PanelHead icon={<ScrollText className="w-4 h-4" />} title="Battle Log" />
@@ -290,19 +297,23 @@ export const TodayMission: React.FC<TodayMissionProps> = ({
 
 interface MissionCardProps {
   save: ProtocolSave;
-  day: QuestDay;
+  plan: CampaignPlan;
+  bosses: BossStatus[];
+  day: PlanDay;
   done: number;
   total: number;
   cleared: boolean;
   week: number;
   gates: Gate[];
   onToggleQuest: (key: string) => void;
-  onLogStat: (id: StatId, value: number) => void;
-  onLogLoad: (exercise: QuestExercise, value: number) => void;
+  onLogStat: (id: string, value: number) => void;
+  onLogLoad: (exercise: PlanExercise, value: number) => void;
 }
 
 const MissionCard: React.FC<MissionCardProps> = ({
   save,
+  plan,
+  bosses,
   day,
   done,
   total,
@@ -321,7 +332,7 @@ const MissionCard: React.FC<MissionCardProps> = ({
     <Panel className={`p-4 sm:p-6 ${cleared ? 'border-emerald-500/40' : ''}`}>
       <PanelHead
         icon={day.kind === 'rest' ? <Moon className="w-4 h-4" /> : <Swords className="w-4 h-4" />}
-        title={`${day.day} · ${day.title}`}
+        title={`${DAY_NAMES[day.id]} · ${day.title}`}
         subtitle={day.purpose}
         right={
           <Tally
@@ -338,8 +349,8 @@ const MissionCard: React.FC<MissionCardProps> = ({
             Mandatory warm-up
           </div>
           <ul className="flex flex-wrap gap-x-5 gap-y-1">
-            {day.warmUps.map((warmUp) => (
-              <li key={warmUp} className="text-xs text-slate-200">
+            {day.warmUps.map((warmUp, index) => (
+              <li key={`${index}_${warmUp}`} className="text-xs text-slate-200">
                 {warmUp}
               </li>
             ))}
@@ -377,15 +388,19 @@ const MissionCard: React.FC<MissionCardProps> = ({
             </span>
           </span>
         </button>
+      ) : day.exercises.length === 0 ? (
+        <p className="text-xs text-slate-400">No exercises on this day yet. Add them in the Plan tab, under Week.</p>
       ) : (
         <ul className="space-y-2">
           {day.exercises.map((exercise) => (
             <ExerciseRow
               key={exercise.id}
               save={save}
+              plan={plan}
+              bosses={bosses}
               exercise={exercise}
               done={Boolean(save.quests[questKey(week, exercise.id)])}
-              gate={exercise.statId ? gates.find((g) => g.stat.id === exercise.statId) : undefined}
+              gate={exercise.lift ? gates.find((g) => g.stat.id === exercise.lift) : undefined}
               onToggle={() => onToggleQuest(questKey(week, exercise.id))}
               onLogStat={onLogStat}
               onLogLoad={onLogLoad}
@@ -405,16 +420,18 @@ const MissionCard: React.FC<MissionCardProps> = ({
 
 interface ExerciseRowProps {
   save: ProtocolSave;
-  exercise: QuestExercise;
+  plan: CampaignPlan;
+  bosses: BossStatus[];
+  exercise: PlanExercise;
   done: boolean;
   gate?: Gate;
   onToggle: () => void;
-  onLogStat: (id: StatId, value: number) => void;
-  onLogLoad: (exercise: QuestExercise, value: number) => void;
+  onLogStat: (id: string, value: number) => void;
+  onLogLoad: (exercise: PlanExercise, value: number) => void;
 }
 
-const ExerciseRow: React.FC<ExerciseRowProps> = ({ save, exercise, done, gate, onToggle, onLogStat, onLogLoad }) => {
-  const stat = exercise.statId ? statById(exercise.statId) : undefined;
+const ExerciseRow: React.FC<ExerciseRowProps> = ({ save, plan, bosses, exercise, done, gate, onToggle, onLogStat, onLogLoad }) => {
+  const stat = liftOf(plan, exercise.lift);
   const statTheme = stat ? themeFor(stat.branch) : undefined;
 
   return (
@@ -439,19 +456,19 @@ const ExerciseRow: React.FC<ExerciseRowProps> = ({ save, exercise, done, gate, o
             <span className="text-slate-600"> · </span>
             {exercise.focus}
           </span>
-          {(exercise.bossIds?.length || exercise.armor) && (
+          {(exercise.bosses?.length || exercise.armor) && (
             <span className="flex flex-wrap gap-1 mt-1.5">
-              {exercise.bossIds?.map((id) => {
-                const boss = BOSS_BY_ID.get(id);
-                if (!boss) return null;
+              {exercise.bosses?.map((id) => {
+                const status = bosses.find((entry) => entry.boss.id === id);
+                if (!status) return null;
                 return (
                   <span
                     key={id}
-                    title={boss.name}
+                    title={status.boss.name}
                     className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md border font-bold uppercase tracking-wider bg-rose-950/30 text-rose-300/90 border-rose-800/40"
                   >
                     <Skull className="w-2.5 h-2.5" />
-                    Boss {boss.order} · {boss.name.replace(/^(The|One Clean) /, '')}
+                    Boss {status.order} · {shortBossName(status.boss)}
                   </span>
                 );
               })}
@@ -472,9 +489,9 @@ const ExerciseRow: React.FC<ExerciseRowProps> = ({ save, exercise, done, gate, o
             Your best · {stat.measure}
           </div>
           <Stepper
-            value={save.stats[stat.id] ?? stat.baseline}
+            value={currentOf(save, stat)}
             step={stat.step}
-            unit={stat.unit === 'reps' ? 'reps' : 'kg'}
+            unit={unitLabel(stat.unit)}
             prefix={stat.unit === 'added-kg' ? '+' : ''}
             accent={statTheme.text}
             size="sm"
@@ -489,9 +506,13 @@ const ExerciseRow: React.FC<ExerciseRowProps> = ({ save, exercise, done, gate, o
                 <span className="font-mono font-bold text-neon-gold">{formatStatValue(gate.target, stat.unit)}</span>
               </>
             ) : stat.endgame === null ? (
-              'Gate: the full stack'
+              'No number gate'
+            ) : currentOf(save, stat) >= stat.endgame ? (
+              <span className="text-emerald-400 font-semibold">End-game reached</span>
             ) : (
-              <span className="text-emerald-400 font-semibold">All gates cleared</span>
+              <>
+                End-game <span className="font-mono font-bold text-slate-300">{formatStatValue(stat.endgame, stat.unit)}</span>
+              </>
             )}
           </div>
         </div>

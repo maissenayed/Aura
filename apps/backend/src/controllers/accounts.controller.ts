@@ -323,6 +323,7 @@ export class AccountsController {
     }
     await api.api.removeUser({ body: { userId: id }, headers: fromNodeHeaders(request.headers) });
     await this.store.delete(saveKey(id));
+    await this.store.delete(`plan:${id}`);
     return { success: true };
   }
 }

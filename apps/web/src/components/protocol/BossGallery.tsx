@@ -17,8 +17,8 @@ import {
   Wind,
   Zap,
 } from 'lucide-react';
-import { MILESTONES, StatId } from '../../data/protocolData';
-import { BossStatus, ProtocolSave, formatStatValue, statById } from '../../utils/protocolEngine';
+import { Branch } from '../../utils/campaignPlan';
+import { BossStatus, ProtocolSave, formatStatValue } from '../../utils/protocolEngine';
 import { MeterBar, Panel, PanelHead, Tally, themeFor } from './primitives';
 
 const BOSS_ICON: Record<string, React.ReactNode> = {
@@ -34,18 +34,38 @@ const BOSS_ICON: Record<string, React.ReactNode> = {
   boss_oap: <Hand className="w-5 h-5" />,
 };
 
+/** Bosses added in the plan editor get an icon from their branch. */
+const BRANCH_ICON: Record<Branch, React.ReactNode> = {
+  push: <Flame className="w-5 h-5" />,
+  pull: <Zap className="w-5 h-5" />,
+  legs: <Footprints className="w-5 h-5" />,
+  core: <Flag className="w-5 h-5" />,
+};
+
+const NUMBER_WORDS = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
+
+function galleryTitle(count: number): string {
+  if (count === 1) return 'The Final Boss';
+  return `The ${NUMBER_WORDS[count] ?? count} Final Bosses`;
+}
+
 interface BossGalleryProps {
   bosses: BossStatus[];
   save: ProtocolSave;
+  goalKg: number;
   onToggleMilestone: (id: string) => void;
 }
 
-export const BossGallery: React.FC<BossGalleryProps> = ({ bosses, save, onToggleMilestone }) => (
+export const BossGallery: React.FC<BossGalleryProps> = ({ bosses, save, goalKg, onToggleMilestone }) => (
   <Panel className="p-4 sm:p-6">
     <PanelHead
       icon={<Skull className="w-4 h-4" />}
-      title="The Ten Final Bosses"
-      subtitle={`Every PR on a linked lift deals damage. The Full Planche is weighed against your ${save.bodyWeightKg.toFixed(1)} kg — it grows as you do, up to its 75 kg form.`}
+      title={bosses.length ? galleryTitle(bosses.length) : 'Final Bosses'}
+      subtitle={
+        bosses.some((status) => status.requirements.some((req) => req.scales))
+          ? `Every PR on a linked lift deals damage. Targets marked ⇡ are weighed against your ${save.bodyWeightKg.toFixed(1)} kg and grow with you, up to their ${goalKg} kg form.`
+          : 'Every PR on a linked lift deals damage. Claim milestones when you own them.'
+      }
       right={
         <Tally
           icon={<Crown className="w-4 h-4 text-neon-gold" />}
@@ -54,6 +74,10 @@ export const BossGallery: React.FC<BossGalleryProps> = ({ bosses, save, onToggle
         />
       }
     />
+
+    {bosses.length === 0 && (
+      <p className="text-xs text-slate-400">Your plan has no bosses yet. Add one in the Plan tab, under Bosses.</p>
+    )}
 
     <div className="grid gap-4 md:grid-cols-2">
       {bosses.map((status) => (
@@ -70,7 +94,7 @@ interface BossCardProps {
 }
 
 const BossCard: React.FC<BossCardProps> = ({ status, save, onToggleMilestone }) => {
-  const { boss, defeated, sealed, damage } = status;
+  const { boss, order, defeated, sealed, damage } = status;
   const theme = themeFor(boss.branch);
   const hp = defeated ? 0 : 1 - damage;
 
@@ -86,9 +110,9 @@ const BossCard: React.FC<BossCardProps> = ({ status, save, onToggleMilestone }) 
             defeated ? 'bg-amber-500/20 text-neon-gold border-amber-400/50' : `${theme.bg} ${theme.text} ${theme.border}`
           }`}
         >
-          {defeated ? <Crown className="w-5 h-5" /> : BOSS_ICON[boss.id]}
+          {defeated ? <Crown className="w-5 h-5" /> : (BOSS_ICON[boss.id] ?? BRANCH_ICON[boss.branch])}
           <span className="absolute -top-1.5 -left-1.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-md bg-dark-950 border border-slate-700 text-[9px] font-black font-mono text-slate-300">
-            {boss.order}
+            {order}
           </span>
         </div>
 
@@ -125,8 +149,8 @@ const BossCard: React.FC<BossCardProps> = ({ status, save, onToggleMilestone }) 
       <ul className="space-y-1.5">
         {status.requirements.map((req, index) => {
           const kind = req.requirement.kind;
-          const stat = kind === 'stat' ? statById(req.requirement.ref as StatId) : undefined;
-          const milestone = kind === 'milestone' ? MILESTONES.find((m) => m.id === req.requirement.ref) : undefined;
+          const stat = req.lift;
+          const milestone = req.milestone;
 
           return (
             <li
@@ -142,7 +166,8 @@ const BossCard: React.FC<BossCardProps> = ({ status, save, onToggleMilestone }) 
                   <Check className="w-2.5 h-2.5" strokeWidth={4} />
                 </span>
                 <span className={`truncate ${req.met ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
-                  {req.requirement.label}
+                  {req.label}
+                  {req.scales && <span className="text-slate-500" title="Grows with your bodyweight"> ⇡</span>}
                 </span>
               </span>
 

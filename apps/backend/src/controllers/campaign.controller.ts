@@ -1,9 +1,9 @@
 import { BadRequestException, Body, ConflictException, Controller, Get, Put, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { SignedInGuard, accountOf } from '../auth/account.js';
-import { CampaignService, isCampaignSave } from '../services/campaign.service.js';
+import { CampaignService, isCampaignPlan, isCampaignSave } from '../services/campaign.service.js';
 
-/** Each signed-in person has their own campaign save. */
+/** Each signed-in person has their own campaign save and their own plan. */
 @Controller('api/v1/campaign')
 @UseGuards(SignedInGuard)
 export class CampaignController {
@@ -22,6 +22,25 @@ export class CampaignController {
     }
 
     const result = await this.campaign.write(accountOf(request).id, save, baseRev);
+    if (result.ok === false) {
+      throw new ConflictException({ success: false, code: 'conflict', data: result.current });
+    }
+    return { success: true, data: { rev: result.doc.rev, updatedAt: result.doc.updatedAt } };
+  }
+
+  @Get('plan')
+  async loadPlan(@Req() request: Request) {
+    return { success: true, data: await this.campaign.loadPlan(accountOf(request).id) };
+  }
+
+  @Put('plan')
+  async savePlan(@Req() request: Request, @Body() body: unknown) {
+    const { baseRev, plan } = (body ?? {}) as { baseRev?: unknown; plan?: unknown };
+    if (typeof baseRev !== 'number' || !Number.isInteger(baseRev) || baseRev < 0 || !isCampaignPlan(plan)) {
+      throw new BadRequestException({ success: false, code: 'bad-plan', message: 'Expected { baseRev, plan }.' });
+    }
+
+    const result = await this.campaign.writePlan(accountOf(request).id, plan, baseRev);
     if (result.ok === false) {
       throw new ConflictException({ success: false, code: 'conflict', data: result.current });
     }
