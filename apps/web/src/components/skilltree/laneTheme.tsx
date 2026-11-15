@@ -65,6 +65,13 @@ export const BOULDERING_LANE_THEME: Record<string, LaneTheme> = {
   Strength: { label: 'Strength', icon: <Hand className={ICON} />, ...EMERALD },
 };
 
+export const GYM_LANE_THEME: Record<string, LaneTheme> = {
+  Push: { label: 'Push', icon: <Flame className={ICON} />, ...CYAN },
+  Pull: { label: 'Pull', icon: <Dumbbell className={ICON} />, ...EMERALD },
+  Legs: { label: 'Legs', icon: <Target className={ICON} />, ...AMBER },
+  Core: { label: 'Core & Grip', icon: <ShieldHalf className={ICON} />, ...PURPLE },
+};
+
 /** For a branch a tree does not describe — say, from an edited dataset — rather than failing. */
 export const FALLBACK_LANE_THEME: LaneTheme = {
   label: 'Other',

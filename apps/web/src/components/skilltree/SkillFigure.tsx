@@ -12,8 +12,11 @@ import React, { useId, useSyncExternalStore } from 'react';
 
 export type Pt = readonly [number, number];
 
-/** body: the figure · focus: the part the skill is about · ghost: where it was a moment ago. */
-export type Tone = 'body' | 'focus' | 'ghost';
+/**
+ * body: the figure · focus: the part the skill is about · ghost: where it was a
+ * moment ago · gear: cables, bars and handles, drawn behind the figure.
+ */
+export type Tone = 'body' | 'focus' | 'ghost' | 'gear';
 
 export interface Stroke {
   pts: Pt[];
@@ -27,6 +30,8 @@ export interface Disc {
   at: Pt;
   r: number;
   tone: Tone;
+  /** A weight plate or dumbbell end, drawn in front of the figure. */
+  kind?: 'plate';
 }
 
 export type HoldShape = 'jug' | 'edge' | 'sloper' | 'pinch' | 'pocket' | 'foot' | 'volume' | 'rung' | 'bar';
@@ -108,6 +113,8 @@ const INK = {
   holdEdge: '#475569',
   body: '#cbd5e1',
   ghost: '#64748b',
+  gear: '#64748b',
+  plate: '#94a3b8',
   arrow: '#f8fafc',
   label: '#f8fafc',
 };
@@ -166,8 +173,9 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
   const reducedMotion = useReducedMotion();
   const arrowHead = `${uid}-arrow`;
   const clip = `${uid}-clip`;
-  const order: Tone[] = ['ghost', 'body', 'focus'];
-  const toneColour = (tone: Tone) => (tone === 'focus' ? accent : tone === 'ghost' ? INK.ghost : INK.body);
+  const order: Tone[] = ['gear', 'ghost', 'body', 'focus'];
+  const toneColour = (tone: Tone) =>
+    tone === 'focus' ? accent : tone === 'ghost' ? INK.ghost : tone === 'gear' ? INK.gear : INK.body;
   const arrowWidth = compact ? 2.6 : 1.5;
 
   const motion = animate && !reducedMotion ? spec.motion : undefined;
@@ -185,6 +193,16 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
 
   const strokes = spec.strokes.map((stroke, index) => ({ stroke, target: motion?.strokes[index] }));
   const discs = (spec.discs ?? []).map((disc, index) => ({ disc, target: motion?.discs[index] }));
+  const plates = discs.filter(({ disc }) => disc.kind === 'plate');
+  /** cx and cy animations for a disc that moves with the motion. */
+  const follow = (disc: Disc, target?: Disc) =>
+    timing &&
+    target && (
+      <>
+        <animate attributeName="cx" values={loop(String(disc.at[0]), String(target.at[0]))} {...timing} />
+        <animate attributeName="cy" values={loop(String(disc.at[1]), String(target.at[1]))} {...timing} />
+      </>
+    );
 
   return (
     <svg
@@ -221,7 +239,7 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
 
         {order.map((tone) => {
           const lines = strokes.filter(({ stroke }) => stroke.tone === tone);
-          const dots = discs.filter(({ disc }) => disc.tone === tone);
+          const dots = discs.filter(({ disc }) => disc.tone === tone && disc.kind !== 'plate');
           if (lines.length === 0 && dots.length === 0) return null;
           const colour = toneColour(tone);
           return (
@@ -257,17 +275,23 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
                   stroke={colour}
                   strokeWidth={tone === 'ghost' ? 1.2 : 0}
                 >
-                  {timing && target && (
-                    <>
-                      <animate attributeName="cx" values={loop(String(disc.at[0]), String(target.at[0]))} {...timing} />
-                      <animate attributeName="cy" values={loop(String(disc.at[1]), String(target.at[1]))} {...timing} />
-                    </>
-                  )}
+                  {follow(disc, target)}
                 </circle>
               ))}
             </g>
           );
         })}
+
+        {plates.map(({ disc, target }, index) => (
+          <g key={index}>
+            <circle cx={disc.at[0]} cy={disc.at[1]} r={disc.r} fill={INK.wall} stroke={INK.plate} strokeWidth={compact ? 1.8 : 1.4}>
+              {follow(disc, target)}
+            </circle>
+            <circle cx={disc.at[0]} cy={disc.at[1]} r={Math.max(0.9, disc.r * 0.22)} fill={INK.plate}>
+              {follow(disc, target)}
+            </circle>
+          </g>
+        ))}
 
         {spec.rings?.map(([x, y], index) => (
           <circle key={index} cx={x} cy={y} r={compact ? 5 : 5.5} fill="none" stroke={accent} strokeWidth={compact ? 1.6 : 1.1} strokeDasharray="2 1.6" />

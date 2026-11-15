@@ -39,6 +39,27 @@ export interface TreeSkill {
   proStatus?: boolean;
 }
 
+/**
+ * A skill from one of the built-in trees (bouldering, gym), with the fields
+ * other features such as the campaign can rely on.
+ */
+export interface CatalogSkill extends TreeSkill {
+  /** The branch; the same as `swimlane`. */
+  lane: string;
+  /** One line on what it builds, e.g. "Upper Chest" or "Footwork & Precision". */
+  focus: string;
+  /** The level as people say it: "V4 · 6B+", "Intermediate". */
+  levelLabel: string;
+  /** One sentence on what the skill is. */
+  summary: string;
+}
+
+/** "A", "A & B", "A, B & C". */
+export function listOf(items: string[]): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} & ${items[items.length - 1]}`;
+}
+
 export interface LevelBand {
   id: string;
   label: string;

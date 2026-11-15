@@ -11,14 +11,15 @@ import { getStoredExercises } from './exerciseStorage';
  * client render agree. A new athlete starts with nothing mastered.
  */
 
-export type SkillTreeId = 'calisthenics' | 'bouldering';
+export type SkillTreeId = 'calisthenics' | 'bouldering' | 'gym';
 
-export const SKILL_TREE_IDS: readonly SkillTreeId[] = ['calisthenics', 'bouldering'];
+export const SKILL_TREE_IDS: readonly SkillTreeId[] = ['calisthenics', 'bouldering', 'gym'];
 
 /** The calisthenics key predates the other trees and stays as it was, so existing progress keeps loading. */
 const PROGRESS_KEYS: Record<SkillTreeId, string> = {
   calisthenics: 'aura_calisthenics_skill_tree_progress_v1',
   bouldering: 'aura_bouldering_skill_tree_progress_v1',
+  gym: 'aura_gym_skill_tree_progress_v1',
 };
 
 const EMPTY: readonly string[] = Object.freeze([]);

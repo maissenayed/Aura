@@ -1,12 +1,14 @@
 import React from 'react';
-import { Dumbbell, Mountain } from 'lucide-react';
-import { BOULDERING_RULES, BOULDERING_SKILLS, fontGrade, vGrade } from '../../data/boulderingSkills';
+import { BicepsFlexed, Mountain, Weight } from 'lucide-react';
+import { BOULDERING_RULES, BOULDERING_SKILLS, fontGrade, vGrade } from '../../data/boulderingTree';
+import { GYM_RULES, GYM_SKILLS, gymLevelName, gymLevelTag } from '../../data/gymTree';
 import { SkillTreeId } from '../../utils/skillProgressStore';
 import { CALISTHENICS_RULES, TreeRules, TreeSkill } from '../../utils/skillTree';
 import { FigureSpec } from './SkillFigure';
-import { BOULDERING_LANE_THEME, FALLBACK_LANE_THEME, LANE_THEME, LaneTheme } from './laneTheme';
+import { BOULDERING_LANE_THEME, FALLBACK_LANE_THEME, GYM_LANE_THEME, LANE_THEME, LaneTheme } from './laneTheme';
 import { boulderingFigure } from './boulderingFigures';
 import { calisthenicsFigure } from './calisthenicsFigures';
+import { gymFigure } from './gymFigures';
 
 /**
  * Everything that makes one skill tree look and read differently from another:
@@ -44,7 +46,7 @@ const ICON = 'w-4 h-4';
 export const CALISTHENICS_TREE: SkillTreeDef = {
   id: 'calisthenics',
   label: 'Calisthenics',
-  icon: <Dumbbell className={ICON} />,
+  icon: <BicepsFlexed className={ICON} />,
   rules: CALISTHENICS_RULES,
   lanes: LANE_THEME,
   noun: { one: 'exercise', many: 'exercises' },
@@ -76,9 +78,29 @@ export const BOULDERING_TREE: SkillTreeDef = {
   figureFor: boulderingFigure,
 };
 
+export const GYM_TREE: SkillTreeDef = {
+  id: 'gym',
+  label: 'Gym',
+  icon: <Weight className={ICON} />,
+  rules: GYM_RULES,
+  skills: GYM_SKILLS,
+  lanes: GYM_LANE_THEME,
+  noun: { one: 'lift', many: 'lifts' },
+  levelWord: 'level',
+  levelName: gymLevelName,
+  levelTag: gymLevelTag,
+  levelRange: (min, max) => (min === max ? gymLevelName(min) : `${gymLevelName(min)}–${gymLevelName(max)}`),
+  basicsMax: 1,
+  searchPlaceholder: 'Find a lift — bench, deadlift, face pulls…',
+  tutorialTopic: 'proper form',
+  figureFor: gymFigure,
+};
+
+/** In the order the dropdown lists them. */
 export const SKILL_TREES: Record<SkillTreeId, SkillTreeDef> = {
   calisthenics: CALISTHENICS_TREE,
   bouldering: BOULDERING_TREE,
+  gym: GYM_TREE,
 };
 
 export const laneThemeOf = (tree: SkillTreeDef, lane: string): LaneTheme => tree.lanes[lane] ?? FALLBACK_LANE_THEME;

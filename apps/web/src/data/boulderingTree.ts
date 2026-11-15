@@ -1,11 +1,13 @@
-import { LevelBand, Rank, TreeRules, TreeSkill } from '../utils/skillTree';
+import { CatalogSkill, LevelBand, Rank, TreeRules, listOf } from '../utils/skillTree';
 
 /**
  * The bouldering skill tree: technique, body positions, movement, and grip and
  * strength skills, each placed on the V-grade where it starts to matter.
  *
- * `level` is the V-grade number (0 = V0 … 10 = V10 and harder). Prerequisites
- * point at skills of the same or an easier grade.
+ * `level` is the V-grade number (0 = V0 … 10 = V10 and harder); `grade`,
+ * `font` and `levelLabel` spell it out. Prerequisites point at skills of an
+ * easier grade. Ids start with `bld_` and are permanent: progress and other
+ * features refer to them.
  */
 
 export const BOULDERING_LANES = ['Technique', 'Body', 'Movement', 'Strength'] as const;
@@ -59,14 +61,23 @@ interface SkillInput {
   search?: string;
 }
 
-export interface BoulderingSkill extends TreeSkill {
-  summary: string;
+export interface BoulderingSkill extends CatalogSkill {
+  lane: BoulderingLane;
+  /** "V4", or "V10+" at the top. */
+  grade: string;
+  /** The Font equivalent, e.g. "6B+". */
+  font: string;
 }
 
 const skill = (input: SkillInput): BoulderingSkill => ({
   id: input.id,
   name: input.name,
   level: input.grade,
+  grade: vGrade(input.grade),
+  font: fontGrade(input.grade),
+  levelLabel: `${vGrade(input.grade)} · ${fontGrade(input.grade)}`,
+  lane: input.lane,
+  focus: listOf(input.trains),
   subCategory: input.line,
   swimlane: input.lane,
   prerequisites: input.after ?? [],
@@ -79,13 +90,14 @@ const skill = (input: SkillInput): BoulderingSkill => ({
   xpReward: (input.grade + 1) * 150,
 });
 
+/** Every bouldering skill, easiest branches first. Also the tree's export for other features. */
 export const BOULDERING_SKILLS: BoulderingSkill[] = [
   /* ---------------------------------------------------------------- */
   /* Technique — footwork, hooks and tactics                           */
   /* ---------------------------------------------------------------- */
 
   skill({
-    id: 'silent-feet',
+    id: 'bld_silent_feet',
     name: 'Silent Feet',
     grade: 0,
     lane: 'Technique',
@@ -101,12 +113,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Footwork', 'Precision'],
   }),
   skill({
-    id: 'edging',
+    id: 'bld_edging',
     name: 'Edging',
     grade: 1,
     lane: 'Technique',
     line: 'Footwork',
-    after: ['silent-feet'],
+    after: ['bld_silent_feet'],
     summary: 'Stand on the edge of the shoe — big-toe side or little-toe side — instead of the middle of your foot.',
     masteredWhen: 'You can stand on a small foothold with the inside and the outside edge of each shoe, and turn your hips without the foot rolling off.',
     steps: [
@@ -119,7 +131,7 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Footwork', 'Ankle stability'],
   }),
   skill({
-    id: 'smearing',
+    id: 'bld_smearing',
     name: 'Smearing',
     grade: 0,
     lane: 'Technique',
@@ -135,12 +147,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Footwork', 'Balance', 'Calves'],
   }),
   skill({
-    id: 'high-step',
+    id: 'bld_high_step',
     name: 'High Step',
     grade: 1,
     lane: 'Technique',
     line: 'Footwork',
-    after: ['silent-feet', 'hips-over-feet'],
+    after: ['bld_silent_feet', 'bld_hips_over_feet'],
     summary: 'Bring a foot up to hip height or above and stand up on it, so your legs do the pull for your arms.',
     masteredWhen: 'You can put a foot on a hold at waist height, move your hips over it and stand up without yanking on your arms.',
     steps: [
@@ -152,12 +164,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Hip mobility', 'Legs', 'Footwork'],
   }),
   skill({
-    id: 'slab-friction',
+    id: 'bld_slab_friction',
     name: 'Slab Friction',
     grade: 3,
     lane: 'Technique',
     line: 'Footwork',
-    after: ['smearing', 'high-step'],
+    after: ['bld_smearing', 'bld_high_step'],
     summary: 'Climb a low-angled wall on smears and flat palms, trusting rubber where there is nothing to hold.',
     masteredWhen: 'You can climb a V3 slab with no positive handholds, moving from smear to smear without stalling.',
     steps: [
@@ -170,12 +182,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Balance', 'Footwork', 'Commitment'],
   }),
   skill({
-    id: 'toe-in',
+    id: 'bld_toe_in',
     name: 'Toe-In on Steep',
     grade: 4,
     lane: 'Technique',
     line: 'Footwork',
-    after: ['edging', 'body-tension'],
+    after: ['bld_edging', 'bld_body_tension'],
     summary: 'Hook the tip of the shoe onto a foothold and pull with it, so your feet stay on an overhang.',
     masteredWhen: 'On a 30–45° wall you can move a hand between two holds while both feet keep pulling on their footholds.',
     steps: [
@@ -188,12 +200,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     search: 'toe hook pull overhang feet',
   }),
   skill({
-    id: 'heel-hook',
+    id: 'bld_heel_hook',
     name: 'Heel Hook',
     grade: 2,
     lane: 'Technique',
     line: 'Hooks',
-    after: ['high-step'],
+    after: ['bld_high_step'],
     summary: 'Set your heel on a hold and pull with the back of the leg — an extra hand on steep walls and corners.',
     masteredWhen: 'You can set a heel above waist height, pull on it to take weight off a hand, and move that hand to the next hold.',
     steps: [
@@ -205,12 +217,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Hamstrings', 'Hip mobility', 'Footwork'],
   }),
   skill({
-    id: 'toe-hook',
+    id: 'bld_toe_hook',
     name: 'Toe Hook',
     grade: 3,
     lane: 'Technique',
     line: 'Hooks',
-    after: ['heel-hook'],
+    after: ['bld_heel_hook'],
     summary: 'Hook the top of your shoe behind a hold or edge to stop your body swinging away.',
     masteredWhen: 'You can hold a toe hook on a roof or arête while moving a hand, and catch a cut-loose with it.',
     steps: [
@@ -222,12 +234,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Shins', 'Core', 'Body tension'],
   }),
   skill({
-    id: 'bicycle',
+    id: 'bld_bicycle',
     name: 'Bicycle',
     grade: 5,
     lane: 'Technique',
     line: 'Hooks',
-    after: ['toe-hook', 'toe-in'],
+    after: ['bld_toe_hook', 'bld_toe_in'],
     summary: 'One foot pushes on a hold while the other toe-hooks it from behind — two feet clamping one hold.',
     masteredWhen: 'You can set a bicycle on a roof or feature and take a hand off without your feet cutting.',
     steps: [
@@ -241,12 +253,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     search: 'bicycle toe hook',
   }),
   skill({
-    id: 'knee-bar',
+    id: 'bld_knee_bar',
     name: 'Knee Bar',
     grade: 5,
     lane: 'Technique',
     line: 'Hooks',
-    after: ['heel-hook', 'body-tension'],
+    after: ['bld_heel_hook', 'bld_body_tension'],
     summary: 'Wedge your thigh between a foothold and a feature above the knee to rest with no hands.',
     masteredWhen: 'You can set a knee bar on a steep problem and shake out each hand in turn for ten seconds.',
     steps: [
@@ -258,7 +270,7 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Resting', 'Calves', 'Quads'],
   }),
   skill({
-    id: 'falling',
+    id: 'bld_falling',
     name: 'Falling & Downclimbing',
     grade: 0,
     lane: 'Technique',
@@ -276,12 +288,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     search: 'how to fall',
   }),
   skill({
-    id: 'route-reading',
+    id: 'bld_route_reading',
     name: 'Reading the Problem',
     grade: 1,
     lane: 'Technique',
     line: 'Tactics',
-    after: ['falling'],
+    after: ['bld_falling'],
     summary: 'Plan every hand and most feet from the ground, before you touch the wall.',
     masteredWhen: 'Before trying a problem you can call every hand move and most foot placements, and you flash most V1s.',
     steps: [
@@ -295,12 +307,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     search: 'route reading',
   }),
   skill({
-    id: 'projecting',
+    id: 'bld_projecting',
     name: 'Working a Project',
     grade: 4,
     lane: 'Technique',
     line: 'Tactics',
-    after: ['route-reading'],
+    after: ['bld_route_reading'],
     summary: 'Break a hard problem into single moves, solve each one, then link them into a send.',
     masteredWhen: 'You have sent a problem that took more than one session, by working its moves separately and then linking them.',
     steps: [
@@ -319,7 +331,7 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
   /* ---------------------------------------------------------------- */
 
   skill({
-    id: 'straight-arms',
+    id: 'bld_straight_arms',
     name: 'Straight Arms',
     grade: 0,
     lane: 'Body',
@@ -335,7 +347,7 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Efficiency', 'Endurance'],
   }),
   skill({
-    id: 'hips-over-feet',
+    id: 'bld_hips_over_feet',
     name: 'Hips Over Feet',
     grade: 0,
     lane: 'Body',
@@ -352,12 +364,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     search: 'centre of gravity',
   }),
   skill({
-    id: 'flagging',
+    id: 'bld_flagging',
     name: 'Flagging',
     grade: 1,
     lane: 'Body',
     line: 'Balance',
-    after: ['hips-over-feet'],
+    after: ['bld_hips_over_feet'],
     summary: 'Use the free leg as a counterweight, pressed against the wall, to stop your body swinging open.',
     masteredWhen: 'You can make a long reach with no foothold on that side by flagging the free leg, and hold the position for two seconds.',
     steps: [
@@ -369,12 +381,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Balance', 'Hip mobility'],
   }),
   skill({
-    id: 'stemming',
+    id: 'bld_stemming',
     name: 'Stemming',
     grade: 2,
     lane: 'Body',
     line: 'Balance',
-    after: ['hips-over-feet', 'smearing'],
+    after: ['bld_hips_over_feet', 'bld_smearing'],
     summary: 'Push outwards with your feet against two opposing walls or volumes and stand in the gap between them.',
     masteredWhen: 'You can climb a corner or between two volumes using only pressure, and let go with both hands for a moment.',
     steps: [
@@ -386,12 +398,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Balance', 'Adductors', 'Footwork'],
   }),
   skill({
-    id: 'mantle',
+    id: 'bld_mantle',
     name: 'Mantle',
     grade: 2,
     lane: 'Body',
     line: 'Balance',
-    after: ['high-step', 'straight-arms'],
+    after: ['bld_high_step', 'bld_straight_arms'],
     summary: 'Press yourself up onto a ledge or the top of the boulder, switching from pulling to pushing.',
     masteredWhen: 'You can top out a boulder, or a ledge at chest height, by pressing on your palms and stepping a foot up beside a hand.',
     steps: [
@@ -403,12 +415,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Triceps', 'Hip mobility', 'Top-outs'],
   }),
   skill({
-    id: 'hip-turn',
+    id: 'bld_hip_turn',
     name: 'Hip Turn',
     grade: 1,
     lane: 'Body',
     line: 'Turns & opposition',
-    after: ['straight-arms'],
+    after: ['bld_straight_arms'],
     summary: 'Turn one hip into the wall as you reach, to gain height while the other arm stays straight.',
     masteredWhen: 'You can reach a hold beyond your square-on reach by turning the hip in, with the lower arm nearly straight.',
     steps: [
@@ -420,12 +432,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Reach', 'Efficiency'],
   }),
   skill({
-    id: 'backstep',
+    id: 'bld_backstep',
     name: 'Backstep',
     grade: 2,
     lane: 'Body',
     line: 'Turns & opposition',
-    after: ['hip-turn', 'edging'],
+    after: ['bld_hip_turn', 'bld_edging'],
     summary: 'Place the outside edge of a shoe behind you and turn side-on, locking that hip to the wall.',
     masteredWhen: 'On a steep wall you can backstep, turn your hip in and make a long reach without your feet cutting.',
     steps: [
@@ -437,12 +449,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Hip mobility', 'Footwork', 'Efficiency'],
   }),
   skill({
-    id: 'drop-knee',
+    id: 'bld_drop_knee',
     name: 'Drop Knee',
     grade: 3,
     lane: 'Body',
     line: 'Turns & opposition',
-    after: ['backstep'],
+    after: ['bld_backstep'],
     summary: 'Drop one knee down and inwards so the hip locks into the wall on steep ground.',
     masteredWhen: 'You can drop-knee between two opposing footholds on an overhang and move a hand freely from there.',
     steps: [
@@ -454,12 +466,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Hip mobility', 'Reach'],
   }),
   skill({
-    id: 'gaston',
+    id: 'bld_gaston',
     name: 'Gaston',
     grade: 3,
     lane: 'Body',
     line: 'Turns & opposition',
-    after: ['hip-turn'],
+    after: ['bld_hip_turn'],
     summary: 'Grip a hold that faces away from you and push it outwards, elbow out, like prising open a lift door.',
     masteredWhen: 'You can hold a gaston at shoulder height and move your other hand to the next hold.',
     steps: [
@@ -471,12 +483,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Shoulders', 'Opposition'],
   }),
   skill({
-    id: 'body-tension',
+    id: 'bld_body_tension',
     name: 'Body Tension',
     grade: 3,
     lane: 'Body',
     line: 'Steep',
-    after: ['straight-arms'],
+    after: ['bld_straight_arms'],
     summary: 'Stay rigid from fingers to toes so your feet stick to steep walls.',
     masteredWhen: 'You can move between hand holds on a 40° overhang without your feet cutting loose.',
     steps: [
@@ -488,12 +500,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Core', 'Shoulders', 'Body tension'],
   }),
   skill({
-    id: 'compression',
+    id: 'bld_compression',
     name: 'Compression',
     grade: 5,
     lane: 'Body',
     line: 'Steep',
-    after: ['body-tension', 'pinches'],
+    after: ['bld_body_tension', 'bld_pinches'],
     summary: 'Squeeze two opposing holds or an arête between your hands, as if hugging a barrel.',
     masteredWhen: 'You can hold a compression between two holds a shoulder-width apart and move a foot up.',
     steps: [
@@ -505,12 +517,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Chest', 'Shoulders', 'Core'],
   }),
   skill({
-    id: 'roof',
+    id: 'bld_roof',
     name: 'Roof Climbing',
     grade: 7,
     lane: 'Body',
     line: 'Steep',
-    after: ['compression', 'bicycle'],
+    after: ['bld_compression', 'bld_bicycle'],
     summary: 'Move along a horizontal ceiling on toe hooks, heel hooks and constant core tension.',
     masteredWhen: 'You can climb a roof section of three or more moves without your feet cutting loose.',
     steps: [
@@ -522,12 +534,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Core', 'Hooks', 'Body tension'],
   }),
   skill({
-    id: 'iron-cross',
+    id: 'bld_iron_cross',
     name: 'Iron Cross',
     grade: 9,
     lane: 'Body',
     line: 'Steep',
-    after: ['roof', 'one-arm-lock'],
+    after: ['bld_roof', 'bld_one_arm_lock'],
     summary: 'Hold two holds far apart at arm’s length and bring your feet up between them.',
     masteredWhen: 'You can hold a full-span compression with nearly straight arms and move your feet to a new pair of holds.',
     steps: [
@@ -545,12 +557,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
   /* ---------------------------------------------------------------- */
 
   skill({
-    id: 'deadpoint',
+    id: 'bld_deadpoint',
     name: 'Deadpoint',
     grade: 2,
     lane: 'Movement',
     line: 'Dynamic',
-    after: ['straight-arms', 'hips-over-feet'],
+    after: ['bld_straight_arms', 'bld_hips_over_feet'],
     summary: 'Drive your body up and grab the next hold at the top of the motion, the instant you are weightless.',
     masteredWhen: 'You can deadpoint to a hold just out of static reach and catch it without your feet cutting.',
     steps: [
@@ -562,12 +574,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Timing', 'Power'],
   }),
   skill({
-    id: 'dyno',
+    id: 'bld_dyno',
     name: 'Dyno',
     grade: 4,
     lane: 'Movement',
     line: 'Dynamic',
-    after: ['deadpoint'],
+    after: ['bld_deadpoint'],
     summary: 'Jump for a hold, with both hands and feet leaving the wall.',
     masteredWhen: 'You can dyno to a jug about half a metre out of reach and stick it with control.',
     steps: [
@@ -580,12 +592,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Power', 'Coordination', 'Commitment'],
   }),
   skill({
-    id: 'double-dyno',
+    id: 'bld_double_dyno',
     name: 'Double Dyno',
     grade: 6,
     lane: 'Movement',
     line: 'Dynamic',
-    after: ['dyno', 'swing-catch'],
+    after: ['bld_dyno', 'bld_swing_catch'],
     summary: 'Jump from hold to hold twice in a row, catching only long enough to throw again.',
     masteredWhen: 'You can do two dynos back to back without putting your feet back on between them.',
     steps: [
@@ -597,12 +609,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Coordination', 'Power', 'Timing'],
   }),
   skill({
-    id: 'paddle-dyno',
+    id: 'bld_paddle_dyno',
     name: 'Paddle Dyno',
     grade: 8,
     lane: 'Movement',
     line: 'Dynamic',
-    after: ['double-dyno', 'slopers'],
+    after: ['bld_double_dyno', 'bld_slopers'],
     summary: 'Tap your way along a row of holds mid-flight, each hand landing just long enough to push you on.',
     masteredWhen: 'You can paddle across three holds in a row without stopping or matching.',
     steps: [
@@ -614,12 +626,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Coordination', 'Timing'],
   }),
   skill({
-    id: 'cut-loose',
+    id: 'bld_cut_loose',
     name: 'Cutting Loose',
     grade: 4,
     lane: 'Movement',
     line: 'Swing',
-    after: ['body-tension'],
+    after: ['bld_body_tension'],
     summary: 'When your feet come off, slow the swing and put them back on the wall.',
     masteredWhen: 'You can let your feet cut from a steep hold, stop the swing within one cycle and replace both feet.',
     steps: [
@@ -632,12 +644,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     search: 'feet cut loose recover',
   }),
   skill({
-    id: 'swing-catch',
+    id: 'bld_swing_catch',
     name: 'Catching the Swing',
     grade: 5,
     lane: 'Movement',
     line: 'Swing',
-    after: ['cut-loose', 'dyno'],
+    after: ['bld_cut_loose', 'bld_dyno'],
     summary: 'Stick a big move that throws your feet off, then stop the swing before it peels you away.',
     masteredWhen: 'You can catch a sideways dyno or big cross move and bring the swing to a stop with one hand on.',
     steps: [
@@ -650,12 +662,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     search: 'controlled swing catch dyno',
   }),
   skill({
-    id: 'pogo',
+    id: 'bld_pogo',
     name: 'Pogo',
     grade: 6,
     lane: 'Movement',
     line: 'Swing',
-    after: ['dyno'],
+    after: ['bld_dyno'],
     summary: 'Swing your free leg like a pendulum to launch off one foot towards a far hold.',
     masteredWhen: 'You can pogo from a single foothold to a hold out of reach and catch it.',
     steps: [
@@ -667,12 +679,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Power', 'Coordination', 'Hip flexors'],
   }),
   skill({
-    id: 'run-jump',
+    id: 'bld_run_jump',
     name: 'Run & Jump',
     grade: 7,
     lane: 'Movement',
     line: 'Coordination',
-    after: ['dyno', 'pogo'],
+    after: ['bld_dyno', 'bld_pogo'],
     summary: 'Run across the floor or volumes and jump into the first holds — the classic competition start.',
     masteredWhen: 'You can run, jump and stick a run-and-jump start, then carry on to the next move.',
     steps: [
@@ -685,12 +697,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     search: 'run and jump comp',
   }),
   skill({
-    id: 'double-clutch',
+    id: 'bld_double_clutch',
     name: 'Double Clutch',
     grade: 10,
     lane: 'Movement',
     line: 'Coordination',
-    after: ['run-jump', 'double-dyno'],
+    after: ['bld_run_jump', 'bld_double_dyno'],
     summary: 'In one jump, touch a first hold and catch a second with the other hand before you start to drop.',
     masteredWhen: 'You can do a double-clutch move — two hand contacts in one jump — and hold the second.',
     steps: [
@@ -708,12 +720,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
   /* ---------------------------------------------------------------- */
 
   skill({
-    id: 'open-hand',
+    id: 'bld_open_hand',
     name: 'Open-Hand Grip',
     grade: 1,
     lane: 'Strength',
     line: 'Grips',
-    after: ['straight-arms'],
+    after: ['bld_straight_arms'],
     summary: 'Drape the fingers over the hold with the thumb relaxed — the safest and most efficient grip.',
     masteredWhen: 'You can climb an easy problem using an open-hand grip on every hold.',
     steps: [
@@ -726,12 +738,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     search: 'open hand grip drag',
   }),
   skill({
-    id: 'half-crimp',
+    id: 'bld_half_crimp',
     name: 'Half Crimp',
     grade: 2,
     lane: 'Strength',
     line: 'Grips',
-    after: ['open-hand'],
+    after: ['bld_open_hand'],
     summary: 'Fingers bent to a right angle at the middle knuckle, thumb free — the workhorse grip for small edges.',
     masteredWhen: 'You can hold a 20 mm edge on the wall in a half crimp and move between two such holds.',
     steps: [
@@ -743,12 +755,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Fingers', 'Forearms'],
   }),
   skill({
-    id: 'slopers',
+    id: 'bld_slopers',
     name: 'Slopers',
     grade: 3,
     lane: 'Strength',
     line: 'Grips',
-    after: ['open-hand', 'straight-arms'],
+    after: ['bld_open_hand', 'bld_straight_arms'],
     summary: 'Hold rounded holds with your whole palm, keeping your body low underneath them.',
     masteredWhen: 'You can traverse three sloping holds on a vertical wall with your arms straight.',
     steps: [
@@ -760,12 +772,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Forearms', 'Open hand', 'Body position'],
   }),
   skill({
-    id: 'pinches',
+    id: 'bld_pinches',
     name: 'Pinches',
     grade: 3,
     lane: 'Strength',
     line: 'Grips',
-    after: ['open-hand'],
+    after: ['bld_open_hand'],
     summary: 'Squeeze a hold between thumb and fingers.',
     masteredWhen: 'You can hold a wide pinch with one hand and move the other.',
     steps: [
@@ -777,12 +789,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Thumb', 'Forearms', 'Grip'],
   }),
   skill({
-    id: 'full-crimp',
+    id: 'bld_full_crimp',
     name: 'Full Crimp',
     grade: 5,
     lane: 'Strength',
     line: 'Grips',
-    after: ['half-crimp', 'hangboard'],
+    after: ['bld_half_crimp', 'bld_hangboard'],
     summary: 'Lock the thumb over the index finger on top of a crimp for the most hold on tiny edges.',
     masteredWhen: 'You can full crimp a 10 mm edge on the wall and move off it with control.',
     steps: [
@@ -794,12 +806,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Fingers', 'Pulleys'],
   }),
   skill({
-    id: 'monos',
+    id: 'bld_monos',
     name: 'Monos',
     grade: 8,
     lane: 'Strength',
     line: 'Grips',
-    after: ['full-crimp', 'hangboard'],
+    after: ['bld_full_crimp', 'bld_hangboard'],
     summary: 'Hold a pocket that only fits one finger.',
     masteredWhen: 'You can hold a mono pocket and make a controlled move off it.',
     steps: [
@@ -812,12 +824,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     search: 'mono pocket',
   }),
   skill({
-    id: 'lock-off',
+    id: 'bld_lock_off',
     name: 'Lock-Off',
     grade: 2,
     lane: 'Strength',
     line: 'Pulling',
-    after: ['straight-arms'],
+    after: ['bld_straight_arms'],
     summary: 'Hold yourself still with one arm bent while the other hand reaches.',
     masteredWhen: 'You can lock off at 90° with one arm on a jug and touch a hold above with the other hand for three seconds.',
     steps: [
@@ -829,12 +841,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     trains: ['Biceps', 'Lats', 'Shoulders'],
   }),
   skill({
-    id: 'one-arm-lock',
+    id: 'bld_one_arm_lock',
     name: 'One-Arm Lock-Off',
     grade: 6,
     lane: 'Strength',
     line: 'Pulling',
-    after: ['lock-off'],
+    after: ['bld_lock_off'],
     summary: 'Hold your whole weight on one bent arm, feet off, while the other hand reaches.',
     masteredWhen: 'Hanging from a jug on one arm, you can pull up to 90° and hold it for three seconds, feet off.',
     steps: [
@@ -847,12 +859,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     search: 'one arm lock off',
   }),
   skill({
-    id: 'hangboard',
+    id: 'bld_hangboard',
     name: 'Hangboard Basics',
     grade: 4,
     lane: 'Strength',
     line: 'Board',
-    after: ['half-crimp'],
+    after: ['bld_half_crimp'],
     summary: 'Build finger strength with short, timed hangs on a 20 mm edge.',
     masteredWhen: 'You can hang a 20 mm edge in a half crimp for 10 seconds, five times, with your feet off.',
     steps: [
@@ -866,12 +878,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     search: 'hangboard beginner',
   }),
   skill({
-    id: 'campus-move',
+    id: 'bld_campus_move',
     name: 'Campus Move',
     grade: 5,
     lane: 'Strength',
     line: 'Board',
-    after: ['lock-off', 'body-tension'],
+    after: ['bld_lock_off', 'bld_body_tension'],
     summary: 'Move from hold to hold with your hands only, feet hanging free.',
     masteredWhen: 'You can campus three moves on big holds on a steep wall.',
     steps: [
@@ -884,12 +896,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     search: 'campusing',
   }),
   skill({
-    id: 'campus-ladder',
+    id: 'bld_campus_ladder',
     name: 'Campus Ladder',
     grade: 7,
     lane: 'Strength',
     line: 'Board',
-    after: ['campus-move', 'hangboard'],
+    after: ['bld_campus_move', 'bld_hangboard'],
     summary: 'Climb a campus board one rung per hand, left-right-left, to the top.',
     masteredWhen: 'You can ladder from rung 1 to rung 6 on medium rungs with no feet.',
     steps: [
@@ -902,12 +914,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     search: 'campus board ladder',
   }),
   skill({
-    id: 'campus-skip',
+    id: 'bld_campus_skip',
     name: 'Campus 1-5-9',
     grade: 9,
     lane: 'Strength',
     line: 'Board',
-    after: ['campus-ladder'],
+    after: ['bld_campus_ladder'],
     summary: 'Skip rungs on the campus board: from rung 1 to 5 to 9, one hand each.',
     masteredWhen: 'You can do 1-5-9 on medium rungs.',
     steps: [
@@ -920,12 +932,12 @@ export const BOULDERING_SKILLS: BoulderingSkill[] = [
     search: 'campus 1-5-9',
   }),
   skill({
-    id: 'one-arm-hang',
+    id: 'bld_one_arm_hang',
     name: 'One-Arm Hang',
     grade: 10,
     lane: 'Strength',
     line: 'Board',
-    after: ['full-crimp', 'one-arm-lock'],
+    after: ['bld_full_crimp', 'bld_one_arm_lock'],
     summary: 'Hang a 20 mm edge with one hand for five seconds.',
     masteredWhen: 'You can hang a 20 mm edge one-handed in a half crimp for five seconds.',
     steps: [

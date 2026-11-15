@@ -50,7 +50,7 @@ function handInProfile(fingers: Pt[], wrist: Pt, knuckle: Pt, thumb?: Pt[], focu
 const FIGURES: Record<string, FigureSpec> = {
   /* Technique ------------------------------------------------------- */
 
-  'silent-feet': figure({
+  bld_silent_feet: figure({
     scene: 'vertical',
     holds: [hold(41, 15, 'jug'), hold(60, 18, 'jug'), hold(43, 88.5, 'foot'), hold(63, 76, 'foot', { key: true })],
     people: [
@@ -63,7 +63,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[63, 76]],
   }),
 
-  edging: figure({
+  bld_edging: figure({
     scene: 'vertical',
     holds: [hold(41, 15, 'jug'), hold(59, 15, 'jug'), hold(37, 87, 'edge', { size: 0.8 }), hold(65, 80, 'edge', { key: true, size: 0.8 })],
     people: [
@@ -75,7 +75,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[65, 79]],
   }),
 
-  smearing: figure({
+  bld_smearing: figure({
     scene: 'slab',
     wall: SLAB_WALL,
     people: [
@@ -99,7 +99,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[55.5, 84]],
   }),
 
-  'high-step': figure({
+  bld_high_step: figure({
     scene: 'vertical',
     holds: [hold(42, 17, 'jug'), hold(58, 13, 'jug'), hold(43, 87.5, 'foot'), hold(65, 61, 'foot', { key: true })],
     people: [
@@ -111,7 +111,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[65, 60.5]],
   }),
 
-  'slab-friction': figure({
+  bld_slab_friction: figure({
     scene: 'slab',
     wall: SLAB_WALL,
     people: [
@@ -134,7 +134,7 @@ const FIGURES: Record<string, FigureSpec> = {
     arrows: [{ d: 'M78,70 L74,40' }],
   }),
 
-  'toe-in': figure({
+  bld_toe_in: figure({
     scene: 'overhang',
     wall: STEEP_WALL,
     holds: [
@@ -164,7 +164,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[steep(84) + 2, 84]],
   }),
 
-  'heel-hook': figure({
+  bld_heel_hook: figure({
     scene: 'vertical',
     holds: [hold(40, 20, 'jug'), hold(60, 9, 'jug'), hold(44, 86.5, 'foot'), hold(70, 41.5, 'jug', { key: true })],
     people: [
@@ -186,7 +186,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[70, 41]],
   }),
 
-  'toe-hook': figure({
+  bld_toe_hook: figure({
     scene: 'roof',
     wall: 'M0,0 L100,0 L100,18 L0,18 Z',
     holds: [hold(30, 20.5, 'jug', { rotate: 180 }), hold(44, 20.5, 'jug', { rotate: 180 }), hold(80, 20, 'edge', { key: true, rotate: 180 })],
@@ -210,7 +210,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[80, 21]],
   }),
 
-  bicycle: figure({
+  bld_bicycle: figure({
     scene: 'overhang',
     wall: STEEP_WALL,
     holds: [hold(steep(15) + 2, 15, 'jug', { rotate: -63 }), hold(steep(26) + 2, 26, 'jug', { rotate: -63 }), hold(steep(72) + 3.5, 72, 'jug', { key: true, rotate: -63, size: 1.25 })],
@@ -238,7 +238,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[steep(72) + 3.5, 72]],
   }),
 
-  'knee-bar': figure({
+  bld_knee_bar: figure({
     scene: 'overhang',
     wall: 'M0,0 L70,0 L44,52 L58,54 L57,60 L40,60 L20,100 L0,100 Z',
     holds: [hold(steep(28) + 2, 28, 'jug', { rotate: -63 }), hold(steep(76) + 2, 76, 'foot', { key: true })],
@@ -263,7 +263,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[53, 62]],
   }),
 
-  falling: figure({
+  bld_falling: figure({
     scene: 'ground',
     wall: `M0,8 L24,8 L24,86 L0,86 Z ${PAD}`,
     people: [
@@ -289,7 +289,7 @@ const FIGURES: Record<string, FigureSpec> = {
     arrows: [{ d: 'M46,46 Q54,52 54,62' }],
   }),
 
-  'route-reading': figure({
+  bld_route_reading: figure({
     scene: 'ground',
     wall: FLOOR,
     holds: [hold(26, 52, 'jug'), hold(36, 33, 'edge'), hold(56, 22, 'sloper', { key: true }), hold(74, 8, 'jug')],
@@ -317,7 +317,7 @@ const FIGURES: Record<string, FigureSpec> = {
     ],
   }),
 
-  projecting: figure({
+  bld_projecting: figure({
     scene: 'vertical',
     holds: [hold(40, 41, 'jug'), hold(50, 13, 'edge', { key: true }), hold(70, 7, 'jug'), hold(44, 87.5, 'foot'), hold(58, 81.5, 'foot')],
     people: [
@@ -340,7 +340,7 @@ const FIGURES: Record<string, FigureSpec> = {
 
   /* Body ------------------------------------------------------------ */
 
-  'straight-arms': figure({
+  bld_straight_arms: figure({
     scene: 'vertical',
     holds: [hold(40, 14, 'jug'), hold(60, 14, 'jug'), hold(36, 82, 'foot'), hold(64, 82, 'foot')],
     people: [
@@ -349,7 +349,7 @@ const FIGURES: Record<string, FigureSpec> = {
     arrows: [{ d: 'M50,92 L50,70' }],
   }),
 
-  'hips-over-feet': figure({
+  bld_hips_over_feet: figure({
     scene: 'vertical',
     holds: [hold(60, 15, 'jug'), hold(57, 88, 'foot', { key: true }), hold(43, 76, 'foot')],
     people: [
@@ -362,7 +362,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[57, 87]],
   }),
 
-  flagging: figure({
+  bld_flagging: figure({
     scene: 'vertical',
     holds: [hold(42, 26, 'jug'), hold(63, 8, 'jug', { key: true }), hold(59, 84, 'foot')],
     people: [
@@ -374,7 +374,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[25, 73]],
   }),
 
-  stemming: figure({
+  bld_stemming: figure({
     scene: 'vertical',
     wall: 'M50,0 L100,0 L100,100 L50,100 Z',
     people: [
@@ -399,7 +399,7 @@ const FIGURES: Record<string, FigureSpec> = {
     ],
   }),
 
-  mantle: figure({
+  bld_mantle: figure({
     scene: 'vertical',
     wall: 'M4,50 L96,50 L96,100 L4,100 Z',
     people: [
@@ -422,7 +422,7 @@ const FIGURES: Record<string, FigureSpec> = {
     ],
   }),
 
-  'hip-turn': figure({
+  bld_hip_turn: figure({
     scene: 'vertical',
     holds: [hold(28, 44, 'jug'), hold(60, 9, 'jug', { key: true }), hold(42, 87.5, 'foot'), hold(59, 82, 'foot')],
     people: [
@@ -444,7 +444,7 @@ const FIGURES: Record<string, FigureSpec> = {
     arrows: [{ d: 'M66,66 Q72,58 64,50' }],
   }),
 
-  backstep: figure({
+  bld_backstep: figure({
     scene: 'vertical',
     holds: [hold(35, 8, 'jug', { key: true }), hold(60, 27, 'jug'), hold(33, 78, 'foot', { key: true }), hold(58, 87.5, 'foot')],
     people: [
@@ -466,7 +466,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[33.5, 77]],
   }),
 
-  'drop-knee': figure({
+  bld_drop_knee: figure({
     scene: 'vertical',
     holds: [hold(38, 28, 'jug'), hold(58, 8, 'jug', { key: true }), hold(40, 81.5, 'foot'), hold(70, 62, 'foot', { key: true })],
     people: [
@@ -488,7 +488,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[57, 72]],
   }),
 
-  gaston: figure({
+  bld_gaston: figure({
     scene: 'vertical',
     holds: [
       hold(33, 30, 'edge', { key: true, rotate: 90 }),
@@ -508,7 +508,7 @@ const FIGURES: Record<string, FigureSpec> = {
     ],
   }),
 
-  'body-tension': figure({
+  bld_body_tension: figure({
     scene: 'overhang',
     wall: STEEPER_WALL,
     holds: [
@@ -537,7 +537,7 @@ const FIGURES: Record<string, FigureSpec> = {
     arrows: [{ d: 'M80,36 L60,62', kind: 'guide' }],
   }),
 
-  compression: figure({
+  bld_compression: figure({
     scene: 'overhang',
     wall: 'M12,8 L30,4 L33,74 L16,78 Z M70,4 L88,8 L84,78 L67,74 Z',
     people: [
@@ -560,7 +560,7 @@ const FIGURES: Record<string, FigureSpec> = {
     ],
   }),
 
-  roof: figure({
+  bld_roof: figure({
     scene: 'roof',
     wall: 'M0,0 L100,0 L100,22 L0,22 Z',
     holds: [
@@ -589,7 +589,7 @@ const FIGURES: Record<string, FigureSpec> = {
     arrows: [{ d: 'M30,64 L10,64' }],
   }),
 
-  'iron-cross': figure({
+  bld_iron_cross: figure({
     scene: 'overhang',
     holds: [hold(22, 30, 'pinch', { key: true }), hold(78, 30, 'pinch', { key: true }), hold(43, 76, 'foot'), hold(58, 72, 'foot')],
     people: [
@@ -606,7 +606,7 @@ const FIGURES: Record<string, FigureSpec> = {
 
   /* Movement -------------------------------------------------------- */
 
-  deadpoint: figure({
+  bld_deadpoint: figure({
     scene: 'vertical',
     holds: [hold(42, 24, 'jug'), hold(58, 26, 'jug'), hold(59, 6, 'edge', { key: true }), hold(42, 86, 'foot'), hold(58, 84, 'foot')],
     people: [
@@ -620,7 +620,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[59, 6]],
   }),
 
-  dyno: figure({
+  bld_dyno: figure({
     scene: 'vertical',
     holds: [hold(42, 40, 'jug'), hold(58, 40, 'jug'), hold(50, 7, 'jug', { key: true }), hold(40, 90, 'foot'), hold(60, 90, 'foot')],
     people: [
@@ -635,7 +635,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[50, 7]],
   }),
 
-  'double-dyno': figure({
+  bld_double_dyno: figure({
     scene: 'vertical',
     holds: [hold(30, 36, 'jug', { key: true }), hold(70, 11, 'jug', { key: true })],
     people: [
@@ -654,7 +654,7 @@ const FIGURES: Record<string, FigureSpec> = {
     ],
   }),
 
-  'paddle-dyno': figure({
+  bld_paddle_dyno: figure({
     scene: 'vertical',
     holds: [hold(20, 24, 'sloper'), hold(50, 20, 'sloper', { key: true }), hold(80, 24, 'sloper')],
     people: [
@@ -682,7 +682,7 @@ const FIGURES: Record<string, FigureSpec> = {
     ],
   }),
 
-  'cut-loose': figure({
+  bld_cut_loose: figure({
     scene: 'overhang',
     wall: STEEP_WALL,
     holds: [hold(steep(15) + 2, 15, 'jug', { rotate: -63 }), hold(steep(70) + 1.5, 70, 'foot'), hold(steep(82) + 1.5, 82, 'foot')],
@@ -709,7 +709,7 @@ const FIGURES: Record<string, FigureSpec> = {
     arrows: [{ d: 'M38,90 Q56,100 84,94' }],
   }),
 
-  'swing-catch': figure({
+  bld_swing_catch: figure({
     scene: 'vertical',
     holds: [hold(67, 11, 'jug', { key: true }), hold(30, 38, 'jug')],
     people: [
@@ -722,7 +722,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[67, 11]],
   }),
 
-  pogo: figure({
+  bld_pogo: figure({
     scene: 'vertical',
     holds: [hold(42, 28, 'jug'), hold(58, 26, 'jug'), hold(60, 86.5, 'foot'), hold(22, 7, 'jug', { key: true })],
     people: [
@@ -736,7 +736,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[22, 7]],
   }),
 
-  'run-jump': figure({
+  bld_run_jump: figure({
     scene: 'ground',
     wall: FLOOR,
     holds: [hold(74, 12, 'jug', { key: true }), hold(86, 22, 'jug', { key: true })],
@@ -757,7 +757,7 @@ const FIGURES: Record<string, FigureSpec> = {
     ],
   }),
 
-  'double-clutch': figure({
+  bld_double_clutch: figure({
     scene: 'vertical',
     holds: [hold(34, 30, 'jug', { key: true }), hold(72, 10, 'jug', { key: true })],
     people: [
@@ -775,7 +775,7 @@ const FIGURES: Record<string, FigureSpec> = {
 
   /* Strength -------------------------------------------------------- */
 
-  'open-hand': figure({
+  bld_open_hand: figure({
     scene: 'close-up',
     wall: 'M0,0 L24,0 L24,40 Q44,40 44,50 Q44,58 24,58 L24,100 L0,100 Z',
     extra: handInProfile(
@@ -795,7 +795,7 @@ const FIGURES: Record<string, FigureSpec> = {
     arrows: [{ d: 'M70,40 L70,56', kind: 'force' }],
   }),
 
-  'half-crimp': figure({
+  bld_half_crimp: figure({
     scene: 'close-up',
     wall: 'M0,0 L24,0 L24,48 L40,48 L40,53 L24,53 L24,100 L0,100 Z',
     extra: handInProfile(
@@ -816,7 +816,7 @@ const FIGURES: Record<string, FigureSpec> = {
     labels: [{ at: [42, 28], text: '90°' }],
   }),
 
-  slopers: figure({
+  bld_slopers: figure({
     scene: 'vertical',
     holds: [hold(40, 18, 'sloper', { key: true, size: 1.3 }), hold(60, 18, 'sloper', { key: true, size: 1.3 }), hold(40, 88, 'foot'), hold(60, 88, 'foot')],
     people: [
@@ -828,7 +828,7 @@ const FIGURES: Record<string, FigureSpec> = {
     arrows: [{ d: 'M50,70 L50,82', kind: 'force' }],
   }),
 
-  pinches: figure({
+  bld_pinches: figure({
     scene: 'close-up',
     wall: 'M43,10 L57,10 L59,90 L41,90 Z',
     extra: [
@@ -845,7 +845,7 @@ const FIGURES: Record<string, FigureSpec> = {
     ],
   }),
 
-  'full-crimp': figure({
+  bld_full_crimp: figure({
     scene: 'close-up',
     wall: 'M0,0 L24,0 L24,49 L36,49 L36,52.5 L24,52.5 L24,100 L0,100 Z',
     extra: handInProfile(
@@ -866,7 +866,7 @@ const FIGURES: Record<string, FigureSpec> = {
     arrows: [{ d: 'M70,40 L70,56', kind: 'force' }],
   }),
 
-  monos: figure({
+  bld_monos: figure({
     scene: 'close-up',
     wall: 'M0,0 L30,0 L30,44 L20,44 L20,51 L30,51 L30,100 L0,100 Z',
 
@@ -880,7 +880,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[25, 47.5]],
   }),
 
-  'lock-off': figure({
+  bld_lock_off: figure({
     scene: 'vertical',
     holds: [hold(41, 36, 'jug'), hold(60, 6, 'jug', { key: true }), hold(42, 82, 'foot'), hold(58, 80, 'foot')],
     people: [
@@ -892,7 +892,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[60, 6]],
   }),
 
-  'one-arm-lock': figure({
+  bld_one_arm_lock: figure({
     scene: 'vertical',
     holds: [hold(44, 36, 'jug', { key: true }), hold(62, 6, 'jug')],
     people: [
@@ -913,7 +913,7 @@ const FIGURES: Record<string, FigureSpec> = {
     arrows: [{ d: 'M68,30 L64,14' }],
   }),
 
-  hangboard: figure({
+  bld_hangboard: figure({
     scene: 'board',
     wall: 'M16,6 L84,6 L84,20 L16,20 Z',
     holds: [hold(37, 20, 'edge', { key: true }), hold(63, 20, 'edge', { key: true })],
@@ -926,7 +926,7 @@ const FIGURES: Record<string, FigureSpec> = {
     labels: [{ at: [80, 52], text: '10s' }],
   }),
 
-  'campus-move': figure({
+  bld_campus_move: figure({
     scene: 'overhang',
     holds: [hold(40, 34, 'jug'), hold(60, 7, 'jug', { key: true })],
     people: [
@@ -939,7 +939,7 @@ const FIGURES: Record<string, FigureSpec> = {
     rings: [[60, 7]],
   }),
 
-  'campus-ladder': figure({
+  bld_campus_ladder: figure({
     scene: 'board',
     wall: 'M28,0 L72,0 L72,100 L28,100 Z',
     holds: [
@@ -965,7 +965,7 @@ const FIGURES: Record<string, FigureSpec> = {
     ],
   }),
 
-  'campus-skip': figure({
+  bld_campus_skip: figure({
     scene: 'board',
     wall: 'M30,0 L70,0 L70,100 L30,100 Z',
     holds: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((rung) => hold(50, 94 - (rung - 1) * 10.5, 'rung', { key: rung === 1 || rung === 5 || rung === 9, size: 0.75 })),
@@ -987,7 +987,7 @@ const FIGURES: Record<string, FigureSpec> = {
     ],
   }),
 
-  'one-arm-hang': figure({
+  bld_one_arm_hang: figure({
     scene: 'board',
     wall: 'M16,6 L84,6 L84,20 L16,20 Z',
     holds: [hold(40, 20, 'edge'), hold(60, 20, 'edge', { key: true })],
