@@ -1,16 +1,64 @@
 /**
- * The rules of the skill tree: what counts as mastered, ready or locked, which
- * exercises lead to which, and where each one sits on the canvas.
+ * The rules of a skill tree: what counts as mastered, ready or locked, which
+ * skills lead to which, and where each one sits on the canvas.
  *
  * Pure functions only — no React, no storage — so the page can ask for a fresh
- * answer on every change and the rules stay in one readable place.
+ * answer on every change and the rules stay in one readable place. Every tree
+ * (calisthenics, bouldering) runs on the same rules; what differs between them
+ * — branches, level ranges, ranks — comes in as a `TreeRules`.
  */
 
-import { Exercise, Swimlane } from '@aura/types';
+import { Swimlane } from '@aura/types';
 
 export type SkillStatus = 'mastered' | 'ready' | 'locked';
 
-export const LANES: Swimlane[] = ['Push', 'Pull', 'Core', 'Legs'];
+/**
+ * What the tree needs to know about a skill. A calisthenics `Exercise` is one;
+ * other trees bring their own skills in the same shape, with their own branch names.
+ */
+export interface TreeSkill {
+  id: string;
+  name: string;
+  /** The column it sits in: a calisthenics level, or a V-grade for bouldering. */
+  level: number;
+  /** The progression (row) it belongs to inside its branch. */
+  subCategory: string;
+  /** The branch (swimlane) it belongs to. */
+  swimlane: string;
+  prerequisites: string[];
+  /** What it takes to call it mastered. */
+  unlockRequirements: string;
+  /** How to do it, one step per entry. */
+  description: string[];
+  expertTip?: string;
+  youtubeQuery?: string;
+  videoSearchUrl?: string;
+  /** What it trains, shown as tags. */
+  musclesTargeted: string[];
+  xpReward: number;
+  proStatus?: boolean;
+}
+
+/**
+ * A skill from one of the built-in trees (bouldering, gym), with the fields
+ * other features such as the campaign can rely on.
+ */
+export interface CatalogSkill extends TreeSkill {
+  /** The branch; the same as `swimlane`. */
+  lane: string;
+  /** One line on what it builds, e.g. "Upper Chest" or "Footwork & Precision". */
+  focus: string;
+  /** The level as people say it: "V4 · 6B+", "Intermediate". */
+  levelLabel: string;
+  /** One sentence on what the skill is. */
+  summary: string;
+}
+
+/** "A", "A & B", "A, B & C". */
+export function listOf(items: string[]): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} & ${items[items.length - 1]}`;
+}
 
 export interface LevelBand {
   id: string;
@@ -18,6 +66,24 @@ export interface LevelBand {
   min: number;
   max: number;
 }
+
+export interface Rank {
+  /** Skills mastered to reach it. */
+  min: number;
+  title: string;
+}
+
+/** What makes one tree different from another, as far as the rules are concerned. */
+export interface TreeRules {
+  /** Branch ids, in the order they are drawn and listed. */
+  lanes: string[];
+  /** Non-overlapping level ranges plus a final `all` band that spans every level. */
+  bands: LevelBand[];
+  /** Ranks earned by the number of skills mastered, lowest first. */
+  ranks: Rank[];
+}
+
+export const LANES: Swimlane[] = ['Push', 'Pull', 'Core', 'Legs'];
 
 /** Non-overlapping level ranges, so every exercise belongs to exactly one band. */
 export const LEVEL_BANDS: LevelBand[] = [
@@ -28,8 +94,23 @@ export const LEVEL_BANDS: LevelBand[] = [
   { id: 'all', label: 'All levels', min: 1, max: 16 },
 ];
 
-export function bandForLevel(level: number): LevelBand {
-  return LEVEL_BANDS.find((band) => band.id !== 'all' && level >= band.min && level <= band.max) ?? LEVEL_BANDS[4];
+const RANKS: Rank[] = [
+  { min: 0, title: 'Novice Athlete' },
+  { min: 5, title: 'Intermediate Gymnast' },
+  { min: 15, title: 'Advanced Practitioner' },
+  { min: 35, title: 'Static Hold Master' },
+  { min: 60, title: 'Calisthenics Titan' },
+];
+
+export const CALISTHENICS_RULES: TreeRules = { lanes: LANES, bands: LEVEL_BANDS, ranks: RANKS };
+
+/** The band a level belongs to; the `all` band when no narrower one holds it. */
+export function bandForLevel(level: number, bands: LevelBand[] = LEVEL_BANDS): LevelBand {
+  return (
+    bands.find((band) => band.id !== 'all' && level >= band.min && level <= band.max) ??
+    bands.find((band) => band.id === 'all') ??
+    bands[bands.length - 1]
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -43,8 +124,8 @@ export interface DroppedLink {
 }
 
 export interface SkillGraph {
-  exercises: Exercise[];
-  byId: Map<string, Exercise>;
+  exercises: TreeSkill[];
+  byId: Map<string, TreeSkill>;
   /** Exercises that list this one as a prerequisite. */
   children: Map<string, string[]>;
   /** Prerequisite links removed because they could never be satisfied. */
@@ -57,7 +138,7 @@ export interface SkillGraph {
  * where two exercises wait on each other. Left in, those leave exercises that
  * can never unlock.
  */
-export function buildGraph(list: Exercise[]): SkillGraph {
+export function buildGraph(list: TreeSkill[]): SkillGraph {
   const levelOf = new Map(list.map((exercise) => [exercise.id, exercise.level]));
   const dropped: DroppedLink[] = [];
 
@@ -120,7 +201,7 @@ export function buildGraph(list: Exercise[]): SkillGraph {
   return { exercises, byId, children, dropped };
 }
 
-export function statusOf(exercise: Exercise, mastered: ReadonlySet<string>): SkillStatus {
+export function statusOf(exercise: TreeSkill, mastered: ReadonlySet<string>): SkillStatus {
   if (mastered.has(exercise.id)) return 'mastered';
   return exercise.prerequisites.every((id) => mastered.has(id)) ? 'ready' : 'locked';
 }
@@ -159,16 +240,8 @@ export function descendantsOf(graph: SkillGraph, id: string): Set<string> {
 /* Progress summary                                                    */
 /* ------------------------------------------------------------------ */
 
-const RANKS = [
-  { min: 0, title: 'Novice Athlete' },
-  { min: 5, title: 'Intermediate Gymnast' },
-  { min: 15, title: 'Advanced Practitioner' },
-  { min: 35, title: 'Static Hold Master' },
-  { min: 60, title: 'Calisthenics Titan' },
-];
-
 export interface LaneSummary {
-  lane: Swimlane;
+  lane: string;
   total: number;
   mastered: number;
   ready: number;
@@ -183,47 +256,50 @@ export interface SkillSummary {
   nextRank: { title: string; remaining: number; progress: number } | null;
   lanes: LaneSummary[];
   /** Unlocked and not yet mastered — easiest first. */
-  ready: Exercise[];
+  ready: TreeSkill[];
   highestLevel: number;
 }
 
-export function summarize(graph: SkillGraph, mastered: ReadonlySet<string>): SkillSummary {
-  const lanes: LaneSummary[] = LANES.map((lane) => ({ lane, total: 0, mastered: 0, ready: 0 }));
-  const ready: Exercise[] = [];
+export function summarize(graph: SkillGraph, mastered: ReadonlySet<string>, rules: TreeRules = CALISTHENICS_RULES): SkillSummary {
+  const order = rules.lanes;
+  const ranks = rules.ranks;
+  const lanes: LaneSummary[] = order.map((lane) => ({ lane, total: 0, mastered: 0, ready: 0 }));
+  const ready: TreeSkill[] = [];
   let masteredCount = 0;
   let xp = 0;
   let highestLevel = 0;
 
   for (const exercise of graph.exercises) {
-    const lane = lanes[LANES.indexOf(exercise.swimlane)];
+    // A skill in a branch the tree does not list still counts towards the totals.
+    const lane = lanes[order.indexOf(exercise.swimlane)] as LaneSummary | undefined;
     const status = statusOf(exercise, mastered);
-    lane.total += 1;
+    if (lane) lane.total += 1;
     if (status === 'mastered') {
-      lane.mastered += 1;
+      if (lane) lane.mastered += 1;
       masteredCount += 1;
       xp += exercise.xpReward;
       highestLevel = Math.max(highestLevel, exercise.level);
     } else if (status === 'ready') {
-      lane.ready += 1;
+      if (lane) lane.ready += 1;
       ready.push(exercise);
     }
   }
 
-  ready.sort((a, b) => a.level - b.level || LANES.indexOf(a.swimlane) - LANES.indexOf(b.swimlane) || a.name.localeCompare(b.name));
+  ready.sort((a, b) => a.level - b.level || order.indexOf(a.swimlane) - order.indexOf(b.swimlane) || a.name.localeCompare(b.name));
 
-  const rankIndex = RANKS.reduce((index, rank, i) => (masteredCount >= rank.min ? i : index), 0);
-  const next = RANKS[rankIndex + 1];
+  const rankIndex = ranks.reduce((index, rank, i) => (masteredCount >= rank.min ? i : index), 0);
+  const next = ranks[rankIndex + 1];
 
   return {
     total: graph.exercises.length,
     mastered: masteredCount,
     xp,
-    rank: RANKS[rankIndex].title,
+    rank: ranks[rankIndex].title,
     nextRank: next
       ? {
           title: next.title,
           remaining: next.min - masteredCount,
-          progress: (masteredCount - RANKS[rankIndex].min) / (next.min - RANKS[rankIndex].min),
+          progress: (masteredCount - ranks[rankIndex].min) / (next.min - ranks[rankIndex].min),
         }
       : null,
     lanes,
@@ -260,7 +336,7 @@ export interface PlacedCard {
 export interface PlacedLine {
   key: string;
   label: string;
-  lane: Swimlane;
+  lane: string;
   y: number;
   height: number;
   mastered: number;
@@ -268,7 +344,7 @@ export interface PlacedLine {
 }
 
 export interface PlacedLane {
-  lane: Swimlane;
+  lane: string;
   y: number;
 }
 
@@ -287,13 +363,15 @@ export interface TreeLayout {
  * then reads left to right as a line instead of a tangle.
  *
  * `levels` lists the columns to draw, in order. Passing only the levels that
- * are in use (as the path view does) closes the gaps between them.
+ * are in use (as the path view does) closes the gaps between them. `laneOrder`
+ * is the tree's branches, top to bottom.
  */
 export function layoutTree(
-  visible: Exercise[],
+  visible: TreeSkill[],
   graph: SkillGraph,
   mastered: ReadonlySet<string>,
   levels: number[],
+  laneOrder: string[] = LANES,
 ): TreeLayout {
   const cards: PlacedCard[] = [];
   const lines: PlacedLine[] = [];
@@ -312,14 +390,14 @@ export function layoutTree(
   }
 
   let y = 0;
-  for (const lane of LANES) {
+  for (const lane of laneOrder) {
     const inLane = visible.filter((exercise) => exercise.swimlane === lane);
     if (inLane.length === 0) continue;
 
     lanes.push({ lane, y });
     y += LAYOUT.laneHeaderHeight;
 
-    const byLine = new Map<string, Exercise[]>();
+    const byLine = new Map<string, TreeSkill[]>();
     for (const exercise of inLane) {
       const group = byLine.get(exercise.subCategory);
       if (group) group.push(exercise);
@@ -366,19 +444,20 @@ export function layoutTree(
 /* ------------------------------------------------------------------ */
 
 /** True when the steps are the auto-generated filler rather than a written guide. */
-export function hasWrittenGuide(exercise: Exercise): boolean {
+export function hasWrittenGuide(exercise: TreeSkill): boolean {
   return !(exercise.description[0] ?? '').startsWith('1. Position your body in the starting');
 }
 
 /** The YouTube video id when the exercise links a specific video, otherwise null. */
-export function videoIdOf(exercise: Exercise): string | null {
+export function videoIdOf(exercise: TreeSkill): string | null {
   const match = (exercise.videoSearchUrl ?? '').match(
     /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/,
   );
   return match ? match[1] : null;
 }
 
-export function tutorialSearchUrl(exercise: Exercise): string {
-  const query = exercise.youtubeQuery || `${exercise.name} calisthenics tutorial`;
+/** A YouTube search for the skill; `topic` is added to the name when the skill has no query of its own. */
+export function tutorialSearchUrl(exercise: TreeSkill, topic = 'calisthenics tutorial'): string {
+  const query = exercise.youtubeQuery || `${exercise.name} ${topic}`;
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
 }
