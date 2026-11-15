@@ -1,5 +1,5 @@
 import { Exercise, RawExercise, Swimlane } from '@aura/types';
-import { rawExercises } from './rawExercisesData';
+import { rawExercises } from './rawExercisesData.js';
 
 export { rawExercises };
 

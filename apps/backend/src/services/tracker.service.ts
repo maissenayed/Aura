@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { WeekPlanBlock, MonthlyCalendarSchedule } from '@aura/types';
-import { JsonFileRepository } from '../repositories/json-file.repository';
+import { JsonFileRepository } from '../repositories/json-file.repository.js';
 
 export interface TrackerStorageData {
   blocks: WeekPlanBlock[];

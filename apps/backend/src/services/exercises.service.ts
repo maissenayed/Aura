@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Exercise, RawExercise } from '@aura/types';
-import { JsonFileRepository } from '../repositories/json-file.repository';
-import { EXERCISES } from '../data/exercisesData';
+import { JsonFileRepository } from '../repositories/json-file.repository.js';
+import { EXERCISES } from '../data/exercisesData.js';
 
 @Injectable()
 export class ExercisesService {

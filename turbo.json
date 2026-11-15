@@ -1,9 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": ["DATABASE_URL", "POSTGRES_URL", "CAMPAIGN_AUTH", "CAMPAIGN_DATA_DIR"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!-next/cache/**", "dist/**"]
+      "env": ["BACKEND_ORIGIN", "NEXT_PUBLIC_API_URL", "NEXT_PUBLIC_ADMIN_URL", "VERCEL"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "dev": {
       "cache": false,

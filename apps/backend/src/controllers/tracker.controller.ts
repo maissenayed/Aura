@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
-import { TrackerService } from '../services/tracker.service';
+import { TrackerService } from '../services/tracker.service.js';
 
 @Controller('api/v1/tracker')
 export class TrackerController {

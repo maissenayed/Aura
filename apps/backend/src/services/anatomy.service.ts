@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { MuscleMetadata, Exercise } from '@aura/types';
-import { MUSCLE_DICTIONARY, getMuscleInfo, getExercisesForMuscle } from '../data/muscleData';
+import { MUSCLE_DICTIONARY, getMuscleInfo, getExercisesForMuscle } from '../data/muscleData.js';
 
 @Injectable()
 export class AnatomyService {

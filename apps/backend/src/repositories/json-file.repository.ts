@@ -5,7 +5,7 @@ export class JsonFileRepository<T> {
   private readonly filePath: string;
 
   constructor(filename: string, defaultData: T) {
-    const storageDir = path.join(__dirname, '..', 'storage');
+    const storageDir = path.join(import.meta.dirname, '..', 'storage');
     this.filePath = path.join(storageDir, filename);
     this.ensureStorageExists(defaultData);
   }

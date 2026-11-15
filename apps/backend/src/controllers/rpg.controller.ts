@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
-import { RpgService } from '../services/rpg.service';
+import { RpgService } from '../services/rpg.service.js';
 
 @Controller('api/v1/rpg')
 export class RpgController {

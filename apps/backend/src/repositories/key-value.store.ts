@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { neon, NeonQueryFunction } from '@neondatabase/serverless';
+import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 
 /** Injection token for the campaign's storage backend. */
 export const KEY_VALUE_STORE = 'KEY_VALUE_STORE';

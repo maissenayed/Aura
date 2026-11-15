@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomBytes, scrypt, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
-import { KEY_VALUE_STORE, KeyValueStore } from '../repositories/key-value.store';
+import { KEY_VALUE_STORE } from '../repositories/key-value.store.js';
+import type { KeyValueStore } from '../repositories/key-value.store.js';
 
 const scryptAsync = promisify(scrypt) as (password: string, salt: Buffer, keylen: number) => Promise<Buffer>;
 

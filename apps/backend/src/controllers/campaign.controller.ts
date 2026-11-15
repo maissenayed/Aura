@@ -10,13 +10,13 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { CampaignPasscodeGuard } from '../guards/campaign-passcode.guard';
+import { CampaignPasscodeGuard } from '../guards/campaign-passcode.guard.js';
 import {
   CampaignAuthService,
   PASSCODE_MAX_LENGTH,
   PASSCODE_MIN_LENGTH,
-} from '../services/campaign-auth.service';
-import { CampaignService, isCampaignSave } from '../services/campaign.service';
+} from '../services/campaign-auth.service.js';
+import { CampaignService, isCampaignSave } from '../services/campaign.service.js';
 
 function requirePasscode(body: unknown): string {
   const passcode = (body as { passcode?: unknown } | null)?.passcode;

@@ -1,5 +1,5 @@
 import { Swimlane, Exercise } from '@aura/types';
-import { EXERCISES } from './exercisesData';
+import { EXERCISES } from './exercisesData.js';
 
 export type MuscleRegion = 'Upper Body' | 'Core & Spine' | 'Lower Body';
 

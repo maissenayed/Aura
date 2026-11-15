@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { KEY_VALUE_STORE, KeyValueStore, StoredDoc } from '../repositories/key-value.store';
+import { KEY_VALUE_STORE } from '../repositories/key-value.store.js';
+import type { KeyValueStore, StoredDoc } from '../repositories/key-value.store.js';
 
 const SAVE_KEY = 'save';
 const MAX_SAVE_BYTES = 512 * 1024;

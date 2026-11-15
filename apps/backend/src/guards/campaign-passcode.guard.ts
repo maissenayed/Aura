@@ -1,6 +1,7 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import type { Request } from 'express';
-import { CampaignAuthService } from '../services/campaign-auth.service';
+import { CampaignAuthService } from '../services/campaign-auth.service.js';
 
 export const PASSCODE_HEADER = 'x-campaign-passcode';
 

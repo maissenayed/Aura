@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
-import { ExercisesService } from '../services/exercises.service';
-import { rawExercises } from '../data/rawExercisesData';
+import { ExercisesService } from '../services/exercises.service.js';
+import { rawExercises } from '../data/rawExercisesData.js';
 
 @Controller('api/v1/admin')
 export class AdminController {

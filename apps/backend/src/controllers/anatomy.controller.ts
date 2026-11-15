@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
-import { AnatomyService } from '../services/anatomy.service';
+import { AnatomyService } from '../services/anatomy.service.js';
 
 @Controller('api/v1/anatomy')
 export class AnatomyController {

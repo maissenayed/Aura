@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { UserProgress } from '@aura/types';
-import { JsonFileRepository } from '../repositories/json-file.repository';
+import { JsonFileRepository } from '../repositories/json-file.repository.js';
 
 @Injectable()
 export class RpgService {
