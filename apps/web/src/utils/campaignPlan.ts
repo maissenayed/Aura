@@ -728,6 +728,24 @@ export function resolvePlan(spec: PlanSpec): CampaignPlan {
 }
 
 /* ------------------------------------------------------------------ */
+/* Formatting                                                          */
+/* ------------------------------------------------------------------ */
+
+/** The short unit shown next to a lift's number box. */
+export function unitLabel(unit: StatUnit): string {
+  return unit === 'reps' ? 'reps' : unit === 'seconds' ? 's' : 'kg';
+}
+
+/** "+10 kg", "45 kg", "12 reps", "30 s". */
+export function formatStatValue(value: number, unit: StatUnit): string {
+  const rounded = Math.round(value * 10) / 10;
+  if (unit === 'reps') return `${rounded} reps`;
+  if (unit === 'added-kg') return `+${rounded} kg`;
+  if (unit === 'seconds') return `${rounded} s`;
+  return `${rounded} kg`;
+}
+
+/* ------------------------------------------------------------------ */
 /* Lookups                                                             */
 /* ------------------------------------------------------------------ */
 

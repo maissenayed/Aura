@@ -19,9 +19,11 @@ import {
   PlanDay,
   SkillTier,
   SkillTree,
-  StatUnit,
   liftOf,
 } from './campaignPlan';
+import { formatStatValue } from './campaignPlan';
+
+export { formatStatValue, unitLabel } from './campaignPlan';
 import { AttributeStatus, evaluateAttributes } from './attributes';
 
 /* ------------------------------------------------------------------ */
@@ -133,19 +135,6 @@ export function towards(current: number, from: number, to: number): number {
 /** True once the number has reached `to`, coming from `from`. */
 export function reached(current: number, from: number, to: number): boolean {
   return to >= from ? current >= to : current <= to;
-}
-
-/** The short unit shown next to a lift's number box. */
-export function unitLabel(unit: StatUnit): string {
-  return unit === 'reps' ? 'reps' : unit === 'seconds' ? 's' : 'kg';
-}
-
-export function formatStatValue(value: number, unit: StatUnit): string {
-  const rounded = round1(value);
-  if (unit === 'reps') return `${rounded} reps`;
-  if (unit === 'added-kg') return `+${rounded} kg`;
-  if (unit === 'seconds') return `${rounded} s`;
-  return `${rounded} kg`;
 }
 
 /**

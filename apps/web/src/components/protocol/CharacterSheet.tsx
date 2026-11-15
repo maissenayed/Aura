@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useSyncExternalStore } from 'react';
-import { Hexagon, Lock, Sparkles } from 'lucide-react';
-import { AttributeStatus } from '../../utils/attributes';
+import { Calculator, Hexagon, Info, Lock, Sparkles } from 'lucide-react';
+import { ATTRIBUTE_MAX, AttributeStatus } from '../../utils/attributes';
 import { MeterBar, Panel, PanelHead, Tally } from './primitives';
 
 /* Geometry of the web, in SVG units. */
@@ -82,14 +82,16 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ attributes, leve
 
   const count = shown.length;
   // A value of 0 (or one not measured yet) still draws a sliver, so the shape never collapses to a dot.
-  const valuePoints = shown.map((attribute, index) => point(index, count, Math.max(0.04, (attribute.value ?? 0) / 100)));
+  const valuePoints = shown.map((attribute, index) =>
+    point(index, count, Math.max(0.04, (attribute.value ?? 0) / ATTRIBUTE_MAX)),
+  );
 
   return (
     <Panel className="p-4 sm:p-6">
       <PanelHead
         icon={<Hexagon className="w-4 h-4" />}
         title="Character"
-        subtitle="Read from the numbers on your account: your current lifts against their end-game targets, your bodyweight and the missions you tick. Which exercises build what is set in the Plan tab. Hidden attributes join the web as you hit milestones."
+        subtitle={`Every attribute is scored out of ${ATTRIBUTE_MAX}, read from the numbers on your account. Open any attribute to see exactly how its score is worked out. Hidden attributes join the web as you hit milestones.`}
         right={<Tally icon={<Sparkles className="w-4 h-4 text-neon-purple" />} value={`${shown.length} / ${total}`} label="attributes" />}
       />
 
@@ -120,6 +122,22 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ attributes, leve
                 strokeWidth={ring === 1 ? 1.5 : 1}
               />
             ))}
+
+            {/* Scale, up the first axis: a quarter, half, three quarters and the 999 cap. */}
+            {count > 0 &&
+              RINGS.map((ring) => (
+                <text
+                  key={`scale_${ring}`}
+                  x={CENTER + 5}
+                  y={CENTER - RADIUS * ring + 4}
+                  fontSize={font * 0.62}
+                  fill="#64748b"
+                  fontFamily="ui-monospace, monospace"
+                  aria-hidden
+                >
+                  {ring === 1 ? ATTRIBUTE_MAX : Math.round(ring * 1000)}
+                </text>
+              ))}
 
             {shown.map((attribute, index) => {
               const end = point(index, count, 1);
@@ -186,6 +204,7 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ attributes, leve
             </span>
             <span>
               Average <strong className="font-mono text-white">{average ?? '–'}</strong>
+              <span className="text-slate-600"> / {ATTRIBUTE_MAX}</span>
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-neon-cyan" /> Core attribute
@@ -203,24 +222,54 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ attributes, leve
 
         {/* The numbers */}
         <div className="space-y-5">
+          <details className="p-3 rounded-xl border border-slate-800 bg-dark-950/60">
+            <summary className="flex items-center gap-2 text-xs font-bold text-slate-200 cursor-pointer select-none">
+              <Info className="w-4 h-4 text-neon-cyan shrink-0" />
+              How scores work
+            </summary>
+            <ul className="mt-2 space-y-1.5 text-[11px] text-slate-400 leading-relaxed list-disc pl-4">
+              <li>
+                Every attribute is scored out of <strong className="text-slate-200">{ATTRIBUTE_MAX}</strong>: a share of the way
+                to the top, times {ATTRIBUTE_MAX}.
+              </li>
+              <li>
+                <strong className="text-slate-200">Strength</strong> (Push, Pull, Legs, Endurance, Straight-Arm, Balance, Power): each
+                linked lift&apos;s current number divided by its end-game number, averaged. Lifts you haven&apos;t logged are left out,
+                so logging one never lowers the score.
+              </li>
+              <li>
+                <strong className="text-slate-200">Conditioning</strong> (Core, Compression, Grip, Tendons): sessions ticked, up to 12 for
+                each exercise that builds it. Tendons also count weeks with every armor piece forged.
+              </li>
+              <li>
+                <strong className="text-slate-200">Lean Mass</strong>: your bodyweight against your goal weight.
+              </li>
+              <li>Which exercises build which attribute is set in the Plan tab.</li>
+            </ul>
+          </details>
+
           <ul className="space-y-2">
             {shown.map((attribute) => {
               const focused = focusId === attribute.def.id;
               return (
-                <li key={attribute.def.id}>
+                <li
+                  key={attribute.def.id}
+                  onMouseEnter={() => setFocusId(attribute.def.id)}
+                  onMouseLeave={() => setFocusId(null)}
+                  className={`p-3 rounded-xl border transition ${
+                    attribute.def.secret
+                      ? 'bg-amber-950/25 border-amber-500/40'
+                      : focused
+                        ? 'bg-dark-800 border-slate-500'
+                        : 'bg-dark-950/60 border-slate-800 hover:border-slate-600'
+                  }`}
+                >
                   <button
                     type="button"
                     onClick={() => setFocusId(focused ? null : attribute.def.id)}
-                    onMouseEnter={() => setFocusId(attribute.def.id)}
-                    onMouseLeave={() => setFocusId(null)}
                     aria-pressed={focused}
-                    className={`w-full text-left p-3 rounded-xl border transition cursor-pointer ${
-                      attribute.def.secret
-                        ? 'bg-amber-950/25 border-amber-500/40'
-                        : focused
-                          ? 'bg-dark-800 border-slate-500'
-                          : 'bg-dark-950/60 border-slate-800 hover:border-slate-600'
-                    }`}
+                    aria-label={`Highlight ${attribute.def.name} on the web`}
+                    className="w-full text-left cursor-pointer"
                   >
                     <span className="flex items-center justify-between gap-3 mb-1.5">
                       <span className="flex items-center gap-2 min-w-0">
@@ -232,41 +281,78 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ attributes, leve
                           </span>
                         )}
                       </span>
-                      <span className={`font-mono font-black ${attribute.value === null ? 'text-slate-500' : 'text-white'}`}>
+                      <span className={`font-mono font-black shrink-0 ${attribute.value === null ? 'text-slate-500' : 'text-white'}`}>
                         {shownValue(attribute)}
+                        {attribute.value !== null && !attribute.display && (
+                          <span className="text-[10px] font-bold text-slate-500"> / {ATTRIBUTE_MAX}</span>
+                        )}
                       </span>
                     </span>
                     <MeterBar
-                      value={(attribute.value ?? 0) / 100}
+                      value={(attribute.value ?? 0) / ATTRIBUTE_MAX}
                       theme={attribute.def.secret ? 'gold' : attribute.def.unlock ? 'core' : 'push'}
                       size="sm"
                       label={
                         attribute.value === null
                           ? `${attribute.def.name} not measured yet`
-                          : `${attribute.def.name} ${attribute.value} of 100`
+                          : `${attribute.def.name} ${attribute.value} of ${ATTRIBUTE_MAX}`
                       }
                     />
-                    {attribute.explain && (
-                      <span className="block mt-2 text-[11px] font-semibold text-slate-300">{attribute.explain}</span>
-                    )}
-                    {attribute.value === null && attribute.measure && (
-                      <span className="block mt-2 text-[11px] font-semibold text-amber-300/90">
-                        Not measured yet — {attribute.measure}
-                      </span>
-                    )}
-                    <span className="block mt-2 text-[11px] text-slate-400 leading-relaxed">{attribute.def.blurb}</span>
-                    {attribute.builtBy.length > 0 && (
-                      <span className="block mt-1 text-[11px] text-slate-500">
-                        Built by {attribute.builtBy.join(', ')}
-                        {attribute.sessions > 0 && (
-                          <span className="text-slate-400">
-                            {' '}
-                            · {attribute.sessions} {attribute.sessions === 1 ? 'session' : 'sessions'} logged
-                          </span>
-                        )}
-                      </span>
-                    )}
                   </button>
+
+                  {attribute.explain && <p className="mt-2 text-[11px] font-semibold text-slate-300">{attribute.explain}</p>}
+                  {attribute.value === null && attribute.measure && (
+                    <p className="mt-2 text-[11px] font-semibold text-amber-300/90">Not measured yet — {attribute.measure}</p>
+                  )}
+                  <p className="mt-2 text-[11px] text-slate-400 leading-relaxed">{attribute.def.blurb}</p>
+
+                  {attribute.parts.length > 0 && (
+                    <details className="mt-2 group">
+                      <summary className="flex items-center gap-1.5 w-fit text-[11px] font-bold text-neon-cyan cursor-pointer select-none hover:underline">
+                        <Calculator className="w-3.5 h-3.5" />
+                        How it&apos;s calculated
+                      </summary>
+                      <div className="mt-2 p-2.5 rounded-lg border border-slate-800 bg-dark-900/80 space-y-2">
+                        <ul className="space-y-1.5">
+                          {attribute.parts.map((part, index) => (
+                            <li key={`${part.label}_${index}`} className="text-[11px]">
+                              <span className="flex items-baseline justify-between gap-2">
+                                <span className={`min-w-0 truncate ${part.share === null ? 'text-slate-500' : 'text-slate-200'}`}>
+                                  {part.label}
+                                </span>
+                                {part.share !== null && (
+                                  <span className="font-mono font-bold text-slate-300 shrink-0">{Math.round(part.share * 100)}%</span>
+                                )}
+                              </span>
+                              <span className="block text-[10px] text-slate-500">{part.detail}</span>
+                              {part.share !== null && (
+                                <span className="block mt-1 h-1 rounded-full bg-dark-950 overflow-hidden" aria-hidden>
+                                  <span className="block h-full rounded-full bg-slate-400/70" style={{ width: `${part.share * 100}%` }} />
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                        {attribute.formula ? (
+                          <p className="pt-2 border-t border-slate-800 text-[11px] font-mono text-slate-200 break-words">{attribute.formula}</p>
+                        ) : (
+                          <p className="pt-2 border-t border-slate-800 text-[11px] text-slate-500">Nothing measured yet, so there is no score.</p>
+                        )}
+                      </div>
+                    </details>
+                  )}
+
+                  {attribute.builtBy.length > 0 && (
+                    <p className="mt-2 text-[11px] text-slate-500">
+                      Built by {attribute.builtBy.join(', ')}
+                      {attribute.sessions > 0 && (
+                        <span className="text-slate-400">
+                          {' '}
+                          · {attribute.sessions} {attribute.sessions === 1 ? 'session' : 'sessions'} logged
+                        </span>
+                      )}
+                    </p>
+                  )}
                 </li>
               );
             })}

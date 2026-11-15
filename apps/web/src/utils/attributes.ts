@@ -11,10 +11,15 @@
  * strength (bent-arm and straight-arm), endurance, core control and
  * compression, balance, explosive power, grip and tendon resilience.
  *
- * Pure functions only. Types are imported type-only, so this module and
+ * Every attribute is scored out of ATTRIBUTE_MAX (999), and each one carries
+ * the parts it was built from and the sum that produced it, so the Character
+ * tab can show exactly how a number was reached.
+ *
+ * Pure functions only. Engine types are imported type-only, so this module and
  * protocolEngine can depend on each other without a runtime cycle.
  */
 
+import { formatStatValue } from './campaignPlan';
 import type { CampaignPlan, PlanExercise, TrainableAttribute } from './campaignPlan';
 import type { BossStatus, LadderStatus, ProtocolSave } from './protocolEngine';
 
@@ -68,25 +73,68 @@ function liftsOf(ctx: AttributeContext, exercises: PlanExercise[]) {
   return ids.map((id) => ctx.plan.lifts.find((lift) => lift.id === id)).filter((lift) => lift !== undefined);
 }
 
-/**
- * Average of each lift's current number against its end-game target, read
- * straight from the account's stats. Lifts never logged (or with no target)
- * are left out rather than counted as zero. Null when nothing is measured.
- */
-function liftScore(ctx: AttributeContext, exercises: PlanExercise[]): number | null {
-  const levels = liftsOf(ctx, exercises).flatMap((lift) => {
-    if (!lift.endgame) return [];
-    const current = ctx.save.stats[lift.id] ?? lift.baseline;
-    if (!lift.hasBaseline && current === 0) return [];
-    return [clamp01(current / lift.endgame)];
-  });
-  return levels.length ? levels.reduce((sum, level) => sum + level, 0) / levels.length : null;
+/** The top of every axis on the web. */
+export const ATTRIBUTE_MAX = 999;
+
+/** One thing an attribute is built from, as shown in its breakdown. */
+export interface AttributePart {
+  label: string;
+  /** "+10 kg of +60 kg end-game", "4 of 12 sessions". */
+  detail: string;
+  /** 0–1, or null when it is left out of the score. */
+  share: number | null;
 }
 
-/** Sessions ticked across these exercises, against a target that grows with how many there are. Null before the first. */
-function sessionScore(ctx: AttributeContext, exercises: PlanExercise[]): number | null {
-  const done = exercises.reduce((sum, exercise) => sum + (ctx.ticks.get(exercise.id) ?? 0), 0);
-  return done === 0 ? null : clamp01(done / (SESSIONS_PER_EXERCISE * exercises.length));
+interface Assessment {
+  /** 0–1, or null when nothing it is built from has been measured. */
+  score: number | null;
+  parts: AttributePart[];
+  /** The sum, up to the 0–1 score: "(16.7% + 39.1% + 36.8%) ÷ 3 = 30.9%". */
+  sum: string;
+}
+
+/** "30.9%", "60%". */
+const pct = (n: number) => `${(Math.round(n * 1000) / 10).toString()}%`;
+
+/**
+ * Each lift's current number against its end-game target, read straight from
+ * the account's stats, averaged. Lifts never logged (or with no target) are
+ * left out rather than counted as zero.
+ */
+function liftAssessment(ctx: AttributeContext, exercises: PlanExercise[]): Assessment | null {
+  const lifts = liftsOf(ctx, exercises);
+  if (lifts.length === 0) return null;
+  const parts: AttributePart[] = lifts.map((lift) => {
+    const current = ctx.save.stats[lift.id] ?? lift.baseline;
+    if (!lift.endgame) return { label: lift.name, detail: 'No end-game number — not counted', share: null };
+    if (!lift.hasBaseline && current === 0) return { label: lift.name, detail: 'Not logged yet — left out until you log it', share: null };
+    return {
+      label: lift.name,
+      detail: `${formatStatValue(current, lift.unit)} of ${formatStatValue(lift.endgame, lift.unit)} end-game`,
+      share: clamp01(current / lift.endgame),
+    };
+  });
+  const shares = parts.flatMap((part) => (part.share === null ? [] : [part.share]));
+  if (shares.length === 0) return { score: null, parts, sum: '' };
+  const score = shares.reduce((sum, share) => sum + share, 0) / shares.length;
+  const sum = shares.length === 1 ? `${pct(score)} of the end-game` : `(${shares.map(pct).join(' + ')}) ÷ ${shares.length} = ${pct(score)}`;
+  return { score, parts, sum };
+}
+
+/** Sessions ticked of each exercise, each counting up to SESSIONS_PER_EXERCISE. */
+function sessionAssessment(ctx: AttributeContext, exercises: PlanExercise[]): Assessment | null {
+  if (exercises.length === 0) return null;
+  const counted = exercises.map((exercise) => Math.min(SESSIONS_PER_EXERCISE, ctx.ticks.get(exercise.id) ?? 0));
+  const parts: AttributePart[] = exercises.map((exercise, index) => ({
+    label: exercise.name,
+    detail: `${ctx.ticks.get(exercise.id) ?? 0} of ${SESSIONS_PER_EXERCISE} sessions`,
+    share: counted[index] / SESSIONS_PER_EXERCISE,
+  }));
+  const done = counted.reduce((sum, n) => sum + n, 0);
+  if (done === 0) return { score: null, parts, sum: '' };
+  const target = SESSIONS_PER_EXERCISE * exercises.length;
+  const score = done / target;
+  return { score, parts, sum: `${done} of ${target} sessions (${SESSIONS_PER_EXERCISE} for each of ${exercises.length}) = ${pct(score)}` };
 }
 
 const sessionsOf = (ctx: AttributeContext, exercises: PlanExercise[]) =>
@@ -249,9 +297,13 @@ export interface AttributeStatus {
   unlocked: boolean;
   /** What unlocks it, in words. Empty for attributes visible from the start. */
   unlockLabel: string;
-  /** 0–100, or null while it cannot be measured yet. */
+  /** 0–ATTRIBUTE_MAX (999), or null while it cannot be measured yet. */
   value: number | null;
-  /** Shown instead of the 0–100 number where a real unit reads better, e.g. "66 kg". */
+  /** What the score is built from. */
+  parts: AttributePart[];
+  /** How the parts became the number: "(16.7% + 39.1% + 36.8%) ÷ 3 = 30.9% × 999 = 308". Empty until measured. */
+  formula: string;
+  /** Shown instead of the score where a real unit reads better, e.g. "66 kg". */
   display: string | null;
   /** A line explaining the number, e.g. "88% of your 75 kg goal". */
   explain: string;
@@ -285,24 +337,56 @@ export function tally(save: ProtocolSave, plan: CampaignPlan): { ticks: Map<stri
   return { ticks, fullArmorWeeks };
 }
 
-function score(def: AttributeDef, ctx: AttributeContext, exercises: PlanExercise[]): number | null {
+function assess(def: AttributeDef, ctx: AttributeContext, exercises: PlanExercise[]): Assessment {
+  const empty: Assessment = { score: null, parts: [], sum: '' };
   switch (def.kind) {
     case 'mass': {
       const { start, goal } = ctx.plan.bodyweight;
-      const current = ctx.save.bodyWeightKg;
-      return goal >= start ? clamp01(current / goal) : clamp01(goal / current);
+      const current = Math.round(ctx.save.bodyWeightKg * 10) / 10;
+      const gaining = goal >= start;
+      const score = gaining ? clamp01(current / goal) : clamp01(goal / current);
+      return {
+        score,
+        parts: [{ label: 'Bodyweight', detail: `${current} kg against your ${goal} kg goal`, share: score }],
+        sum: gaining ? `${current} kg ÷ ${goal} kg = ${pct(score)}` : `${goal} kg goal ÷ ${current} kg = ${pct(score)}`,
+      };
     }
-    case 'aura':
-      return clamp01(0.4 + 0.06 * ctx.bosses.filter((boss) => boss.defeated).length);
-    case 'strength':
-      return liftScore(ctx, exercises) ?? sessionScore(ctx, exercises);
+    case 'aura': {
+      const defeated = ctx.bosses.filter((boss) => boss.defeated).length;
+      const score = clamp01(0.4 + 0.06 * defeated);
+      return {
+        score,
+        parts: [{ label: 'Bosses defeated', detail: String(defeated), share: null }],
+        sum: `40% + 6% × ${defeated} boss${defeated === 1 ? '' : 'es'} defeated = ${pct(score)}`,
+      };
+    }
+    case 'strength': {
+      const lifts = liftAssessment(ctx, exercises);
+      const sessions = sessionAssessment(ctx, exercises);
+      if (lifts?.score != null) return lifts;
+      if (sessions?.score != null) return sessions;
+      return lifts ?? sessions ?? empty;
+    }
     case 'conditioning': {
-      const sessions = sessionScore(ctx, exercises);
-      if (def.id !== 'tendon') return sessions ?? liftScore(ctx, exercises);
-      // Tendons also count whole weeks of armor.
-      const armor = ctx.fullArmorWeeks > 0 ? clamp01(ctx.fullArmorWeeks / 12) : null;
-      if (armor === null) return sessions;
-      return sessions === null ? armor : armor * 0.6 + sessions * 0.4;
+      const sessions = sessionAssessment(ctx, exercises);
+      const lifts = liftAssessment(ctx, exercises);
+      if (def.id !== 'tendon') {
+        if (sessions?.score != null) return sessions;
+        if (lifts?.score != null) return lifts;
+        return sessions ?? lifts ?? empty;
+      }
+      // Tendons also count whole weeks with every armor piece forged.
+      const armor = ctx.plan.armor.length ? clamp01(ctx.fullArmorWeeks / 12) : null;
+      const armorPart: AttributePart[] =
+        armor === null ? [] : [{ label: 'Full armor weeks', detail: `${ctx.fullArmorWeeks} of 12 weeks`, share: armor }];
+      const parts = [...armorPart, ...(sessions?.parts ?? [])];
+      const sessionScore = sessions?.score ?? null;
+      const armorScore = armor !== null && ctx.fullArmorWeeks > 0 ? armor : null;
+      if (armorScore === null && sessionScore === null) return { score: null, parts, sum: '' };
+      if (armorScore === null) return { score: sessionScore, parts, sum: sessions!.sum };
+      if (sessionScore === null) return { score: armorScore, parts, sum: `${ctx.fullArmorWeeks} of 12 armor weeks = ${pct(armorScore)}` };
+      const score = armorScore * 0.6 + sessionScore * 0.4;
+      return { score, parts, sum: `armor ${pct(armorScore)} × 60% + sessions ${pct(sessionScore)} × 40% = ${pct(score)}` };
     }
   }
 }
@@ -318,15 +402,15 @@ function measureOf(def: AttributeDef, ctx: AttributeContext, exercises: PlanExer
   return hint || `Tag exercises with ${def.short} in the Plan tab.`;
 }
 
-/** Lean Mass is a 0–100 score like the rest, but reads as kilos on the sheet. */
-function massReadout(def: AttributeDef, ctx: AttributeContext, value: number | null): { display: string | null; explain: string } {
+/** Lean Mass is scored like the rest, but reads as kilos on the sheet. */
+function massReadout(def: AttributeDef, ctx: AttributeContext, score: number | null): { display: string | null; explain: string } {
   if (def.kind !== 'mass') return { display: null, explain: '' };
   const { start, goal } = ctx.plan.bodyweight;
   const current = ctx.save.bodyWeightKg;
   const kg = `${Math.round(current * 10) / 10} kg`;
   if (goal === start) return { display: kg, explain: `Your bodyweight. Set a goal weight in the Plan tab to score it.` };
   if (goal > start) {
-    return { display: kg, explain: current >= goal ? `Goal weight of ${goal} kg reached.` : `${value}% of your ${goal} kg goal.` };
+    return { display: kg, explain: current >= goal ? `Goal weight of ${goal} kg reached.` : `${Math.round((score ?? 0) * 100)}% of your ${goal} kg goal.` };
   }
   return {
     display: kg,
@@ -345,14 +429,16 @@ export function evaluateAttributes(
 
   return ATTRIBUTES.map((def) => {
     const exercises = def.kind === 'strength' || def.kind === 'conditioning' ? tagged(ctx, def.id as TrainableAttribute) : [];
-    const value = score(def, ctx, exercises);
-    const rounded = value === null ? null : Math.round(clamp01(value) * 100);
+    const { score, parts, sum } = assess(def, ctx, exercises);
+    const value = score === null ? null : Math.round(clamp01(score) * ATTRIBUTE_MAX);
     return {
       def,
-      ...massReadout(def, ctx, rounded),
+      ...massReadout(def, ctx, score),
       unlocked: !def.unlock || def.unlock.test(ctx),
       unlockLabel: def.unlock ? def.unlock.label(ctx) : '',
-      value: rounded,
+      value,
+      parts,
+      formula: value === null ? '' : `${sum} × ${ATTRIBUTE_MAX} = ${value}`,
       measure: measureOf(def, ctx, exercises),
       builtBy: [...new Set(exercises.map((exercise) => exercise.name))],
       sessions: sessionsOf(ctx, exercises),
