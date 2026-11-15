@@ -179,3 +179,26 @@ Cached:    0 cached, 3 total
 ## 📄 License
 
 MIT License. Designed & Developed for Calisthenics Athletes.
+
+## Campaign save, sync & deployment
+
+The Campaign page (`/tracker`) keeps your progress in three places, in this order:
+
+1. **This browser** (`localStorage`) — every change lands here first, so the game never waits on the network and works offline.
+2. **The backend** (`/api/v1/campaign`) — each change is then pushed with the revision the device last saw. If another device saved first, the backend answers `409`, the two versions are merged field by field, and the result is pushed again.
+3. **Storage behind the backend** — a JSON file in `apps/backend/.data/` locally, Postgres when `DATABASE_URL` is set (a single `campaign_kv` table, created on first use).
+
+The browser always calls the backend through the web app's own origin. Locally `apps/web/next.config.ts` proxies `/api/v1/*` to `http://localhost:3002`; on Vercel, `vercel.json` routes `/api/*` to the NestJS service and everything else to the Next.js service, so one deployment serves both.
+
+| Variable | Where | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | backend | Postgres connection string. Unset → JSON file. |
+| `CAMPAIGN_AUTH` | backend | `passcode` or `none`. Defaults to `passcode` on Vercel, `none` locally. |
+| `CAMPAIGN_DATA_DIR` | backend | Folder for the local JSON file. Defaults to `./.data`. |
+| `BACKEND_ORIGIN` | web | Where to proxy `/api/v1/*` when the backend is not on `localhost:3002`. |
+
+**Passcode.** When protection is on, the first person to open the campaign sets a passcode; every other device must enter it. Only a salted scrypt hash is stored. To reset a forgotten passcode, delete that hash and claim the campaign again — your progress is untouched:
+
+```sql
+DELETE FROM campaign_kv WHERE key = 'auth';
+```

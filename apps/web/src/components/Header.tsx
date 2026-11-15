@@ -114,7 +114,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Dumbbell className="w-3.5 h-3.5 text-blue-400" />
-              <span>14kg Protocol</span>
+              <span>Campaign</span>
             </Link>
 
             <a

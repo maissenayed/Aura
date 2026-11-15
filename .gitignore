@@ -60,3 +60,6 @@ yarn-error.log*
 .pnpm-debug.log*
 logs/
 *.log
+
+# Local campaign save written by the backend (personal data, not source)
+**/.data/

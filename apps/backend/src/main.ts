@@ -1,8 +1,11 @@
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // A campaign save grows with every logged week; the 100kb default would eventually reject it.
+  app.useBodyParser('json', { limit: '1mb' });
   app.enableCors({
     origin: true,
     credentials: true,
