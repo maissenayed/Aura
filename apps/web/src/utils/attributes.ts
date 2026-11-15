@@ -38,40 +38,47 @@ export interface AttributeDef {
   unlock?: { label: string; test: (ctx: AttributeContext) => boolean };
   /** Hidden entirely — not even teased — until unlocked. */
   secret?: boolean;
-  /** 0–1. */
-  score: (ctx: AttributeContext) => number;
+  /** What to log so this attribute can be measured. */
+  measure: string;
+  /** 0–1, or null while nothing it is built from has been logged. */
+  score: (ctx: AttributeContext) => number | null;
 }
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
-/** How far a lift has travelled from where the campaign started it to a target, 0–1. */
-function travel(save: ProtocolSave, id: StatId, target?: number): number {
+/**
+ * A lift's current number as a share of a target, 0–1 — read straight from
+ * the account's stats, so an athlete who already rows 60 kg starts with real
+ * pull strength. Null when the lift has never been logged.
+ */
+function level(save: ProtocolSave, id: StatId, target?: number): number | null {
   const stat = IRON_STATS.find((entry) => entry.id === id);
-  if (!stat) return 0;
+  if (!stat) return null;
   const goal = target ?? stat.endgame;
-  if (goal === null || goal === undefined) return 0;
+  if (!goal) return null;
   const current = save.stats[id] ?? stat.baseline;
-  const span = goal - stat.baseline;
-  return span <= 0 ? (current >= goal ? 1 : 0) : clamp01((current - stat.baseline) / span);
+  if (!stat.hasBaseline && current === 0) return null;
+  return clamp01(current / goal);
 }
 
-/** Training volume: sessions done for these exercises against a target count, 0–1. */
-function volume(ctx: AttributeContext, ids: string[], target: number): number {
+/** Sessions done for these exercises against a target count, 0–1. Null before the first session. */
+function volume(ctx: AttributeContext, ids: string[], target: number): number | null {
   const done = ids.reduce((sum, id) => sum + (ctx.ticks.get(id) ?? 0), 0);
-  return clamp01(done / target);
+  return done === 0 ? null : clamp01(done / target);
 }
 
-const avg = (...values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
+const claimed = (flag: boolean | undefined) => (flag ? 1 : null);
 
-function ladderProgress(ladders: LadderStatus[], id: string): number {
-  const ladder = ladders.find((entry) => entry.ladder.id === id);
-  if (!ladder) return 0;
-  // Tiers the blueprint pre-clears are where the athlete started, not something they earned.
-  const earnable = ladder.tiers.filter((tier) => !tier.byBlueprint);
-  if (earnable.length === 0) return 0;
-  const cleared = earnable.filter((tier) => tier.cleared).length;
-  const partial = earnable.find((tier) => tier.isCurrent)?.progress ?? 0;
-  return clamp01((cleared + partial) / earnable.length);
+/**
+ * Weighted average of whatever has been measured. Parts with no data yet are
+ * left out rather than counted as zero, so logging one lift never makes an
+ * attribute look worse. Null when nothing is measured.
+ */
+function blend(...parts: [number | null, number][]): number | null {
+  const known = parts.filter((part): part is [number, number] => part[0] !== null);
+  if (known.length === 0) return null;
+  const weight = known.reduce((sum, [, w]) => sum + w, 0);
+  return known.reduce((sum, [value, w]) => sum + value * w, 0) / weight;
 }
 
 const tierCleared = (ladders: LadderStatus[], tierId: string) =>
@@ -83,60 +90,56 @@ export const ATTRIBUTES: AttributeDef[] = [
     id: 'push',
     name: 'Push Strength',
     short: 'Push',
-    blurb: 'Bent-arm pressing power through chest, shoulders and triceps.',
+    blurb: 'Bent-arm pressing power through chest, shoulders and triceps — measured against the full-planche numbers.',
+    measure: 'Log your weighted dips, incline bench or DB press.',
     exercises: ['thu_dips', 'thu_bench', 'sun_press', 'thu_pushdown', 'sun_lateral', 'sun_overhead'],
-    score: (ctx) =>
-      0.75 * avg(travel(ctx.save, 'dips'), travel(ctx.save, 'inclineBench'), travel(ctx.save, 'dbPress')) +
-      0.25 * volume(ctx, ['thu_dips', 'thu_bench', 'sun_press', 'thu_pushdown', 'sun_lateral', 'sun_overhead'], 72),
+    score: (ctx) => blend([level(ctx.save, 'dips'), 1], [level(ctx.save, 'inclineBench'), 1], [level(ctx.save, 'dbPress'), 1]),
   },
   {
     id: 'pull',
     name: 'Pull Strength',
     short: 'Pull',
-    blurb: 'Bent-arm pulling power through lats, upper back and biceps.',
+    blurb: 'Bent-arm pulling power through lats, upper back and biceps — measured against the one-arm pull-up and 100 kg row.',
+    measure: 'Log your weighted chin-ups or cable row.',
     exercises: ['tue_chin', 'tue_row', 'tue_pecdeck', 'tue_curl', 'sun_hammer'],
-    score: (ctx) =>
-      0.75 * avg(travel(ctx.save, 'chinUps'), travel(ctx.save, 'cableRow')) +
-      0.25 * volume(ctx, ['tue_chin', 'tue_row', 'tue_pecdeck', 'tue_curl', 'sun_hammer'], 60),
+    score: (ctx) => blend([level(ctx.save, 'chinUps'), 1], [level(ctx.save, 'cableRow'), 1]),
   },
   {
     id: 'legs',
     name: 'Leg Strength',
     short: 'Legs',
     blurb: 'Single-leg strength and hamstring power — the road to pistols and Nordics.',
+    measure: 'Log your Bulgarian split squat weight.',
     exercises: ['mon_split', 'mon_legcurl'],
-    score: (ctx) =>
-      0.55 * travel(ctx.save, 'splitSquat') +
-      0.15 * (ctx.save.milestones.ms_legcurl_stack ? 1 : 0) +
-      0.3 * volume(ctx, ['mon_split', 'mon_legcurl'], 24),
+    score: (ctx) => blend([level(ctx.save, 'splitSquat'), 0.85], [claimed(ctx.save.milestones.ms_legcurl_stack), 0.15]),
   },
   {
     id: 'core',
     name: 'Core Control',
     short: 'Core',
     blurb: 'Holding the trunk rigid against gravity and leverage.',
+    measure: 'Tick your Monday core missions.',
     exercises: ['mon_dragon', 'mon_ttb', 'mon_abwheel'],
     score: (ctx) =>
-      0.3 * (ctx.save.milestones.ms_dragonflag ? 1 : 0) + 0.7 * volume(ctx, ['mon_dragon', 'mon_ttb', 'mon_abwheel'], 36),
+      blend([volume(ctx, ['mon_dragon', 'mon_ttb', 'mon_abwheel'], 36), 0.7], [claimed(ctx.save.milestones.ms_dragonflag), 0.3]),
   },
   {
     id: 'endurance',
     name: 'Muscular Endurance',
     short: 'Endurance',
-    blurb: 'Reps on reps: how long the engine runs before it stalls.',
+    blurb: 'Reps on reps: how long the engine runs before it stalls — against 15 pull-ups and 70 push-ups.',
+    measure: 'Log your max pull-ups or push-ups.',
     exercises: ['tue_pullups', 'sat_pullups', 'thu_pushups', 'wed_feeder', 'wed_pushdown'],
-    score: (ctx) =>
-      0.7 * avg(travel(ctx.save, 'pullUpReps'), travel(ctx.save, 'pushUpReps')) +
-      0.3 * volume(ctx, ['tue_pullups', 'sat_pullups', 'thu_pushups', 'wed_feeder', 'wed_pushdown'], 50),
+    score: (ctx) => blend([level(ctx.save, 'pullUpReps'), 1], [level(ctx.save, 'pushUpReps'), 1]),
   },
   {
     id: 'mass',
     name: 'Lean Mass',
     short: 'Mass',
-    blurb: `Bodyweight built toward the ${BODYWEIGHT_QUEST.finalBoss} kg final boss.`,
+    blurb: `Your bodyweight as a share of the ${BODYWEIGHT_QUEST.finalBoss} kg final boss.`,
+    measure: 'Weigh in on the Campaign tab.',
     exercises: [],
-    score: (ctx) =>
-      clamp01((ctx.save.bodyWeightKg - BODYWEIGHT_QUEST.start) / (BODYWEIGHT_QUEST.finalBoss - BODYWEIGHT_QUEST.start)),
+    score: (ctx) => clamp01(ctx.save.bodyWeightKg / BODYWEIGHT_QUEST.finalBoss),
   },
 
   /* ---------------- unlocked by milestones ---------------- */
@@ -145,73 +148,90 @@ export const ATTRIBUTES: AttributeDef[] = [
     name: 'Straight-Arm Strength',
     short: 'Straight-Arm',
     blurb: 'Force through a locked elbow — what planche and front lever are made of.',
+    measure: 'Log your dips, incline bench, DB press and cable row.',
     exercises: ['tue_row', 'thu_dips', 'thu_bench'],
     unlock: {
       label: 'Clear Front Lever Phase 1 or Advanced Tuck Planche',
       test: (ctx) => tierCleared(ctx.ladders, 'lever_1') || tierCleared(ctx.ladders, 'planche_2'),
     },
-    score: (ctx) => avg(ladderProgress(ctx.ladders, 'planche'), ladderProgress(ctx.ladders, 'frontlever')),
+    score: (ctx) =>
+      blend(
+        [level(ctx.save, 'dips'), 1],
+        [level(ctx.save, 'inclineBench'), 1],
+        [level(ctx.save, 'dbPress'), 1],
+        [level(ctx.save, 'cableRow'), 1.5],
+      ),
   },
   {
     id: 'compression',
     name: 'Compression',
     short: 'Compression',
     blurb: 'Pulling the legs to the chest — the engine behind L-sits, pikes and the manna.',
+    measure: 'Tick your L-sit holds and toes-to-bar.',
     exercises: ['sun_lsit', 'mon_ttb'],
     unlock: {
       label: 'Complete 6 L-Sit Hold sessions',
       test: (ctx) => (ctx.ticks.get('sun_lsit') ?? 0) >= 6,
     },
-    score: (ctx) => 0.6 * volume(ctx, ['sun_lsit'], 24) + 0.4 * volume(ctx, ['mon_ttb'], 24),
+    score: (ctx) => blend([volume(ctx, ['sun_lsit'], 24), 0.6], [volume(ctx, ['mon_ttb'], 24), 0.4]),
   },
   {
     id: 'balance',
     name: 'Balance',
     short: 'Balance',
-    blurb: 'Control while inverted — owning the stack in a handstand.',
+    blurb: 'Control while inverted — measured by how close your press is to 1.0x bodyweight overhead.',
+    measure: 'Log your seated DB press.',
     exercises: ['sun_press'],
     unlock: {
       label: 'Clear the Year-One Press on the Handstand Tree',
       test: (ctx) => tierCleared(ctx.ladders, 'hs_1'),
     },
-    score: (ctx) => ladderProgress(ctx.ladders, 'handstand'),
+    score: (ctx) => level(ctx.save, 'dbPress', 32),
   },
   {
     id: 'grip',
     name: 'Grip',
     short: 'Grip',
     blurb: 'Hands and forearms that hold on when everything else is tired.',
+    measure: 'Tick bouldering and wrist curls, or log your chin-ups.',
     exercises: ['sat_boulder', 'sat_wrist', 'tue_chin'],
     unlock: {
       label: 'Log 4 bouldering sessions',
       test: (ctx) => (ctx.ticks.get('sat_boulder') ?? 0) >= 4,
     },
-    score: (ctx) => 0.5 * volume(ctx, ['sat_boulder'], 24) + 0.2 * volume(ctx, ['sat_wrist'], 24) + 0.3 * travel(ctx.save, 'chinUps'),
+    score: (ctx) =>
+      blend([volume(ctx, ['sat_boulder'], 24), 0.5], [volume(ctx, ['sat_wrist'], 24), 0.2], [level(ctx.save, 'chinUps'), 0.3]),
   },
   {
     id: 'tendon',
     name: 'Tendon Resilience',
     short: 'Tendons',
     blurb: 'Connective tissue that keeps up with the muscle — it adapts ten times slower.',
+    measure: 'Forge your weekly armor and do the recovery missions.',
     exercises: ['wed_feeder', 'wed_pushdown', 'sat_wrist'],
     unlock: {
       label: 'Forge all three armor pieces in one week',
       test: (ctx) => ctx.fullArmorWeeks >= 1,
     },
-    score: (ctx) => 0.6 * clamp01(ctx.fullArmorWeeks / 12) + 0.4 * volume(ctx, ['wed_feeder', 'wed_pushdown'], 24),
+    score: (ctx) =>
+      blend(
+        [ctx.fullArmorWeeks > 0 ? clamp01(ctx.fullArmorWeeks / 12) : null, 0.6],
+        [volume(ctx, ['wed_feeder', 'wed_pushdown'], 24), 0.4],
+      ),
   },
   {
     id: 'power',
     name: 'Explosive Power',
     short: 'Power',
     blurb: 'Speed through the pull — what turns a pull-up into a muscle-up.',
+    measure: 'Log your pull-ups, chin-ups and dips.',
     exercises: ['tue_pullups', 'sat_pullups', 'tue_chin', 'thu_dips'],
     unlock: {
       label: 'Hit 10 strict pull-ups',
       test: (ctx) => (ctx.save.stats.pullUpReps ?? 0) >= 10,
     },
     score: (ctx) =>
-      0.4 * travel(ctx.save, 'pullUpReps') + 0.3 * travel(ctx.save, 'chinUps', 20) + 0.3 * travel(ctx.save, 'dips', 30),
+      blend([level(ctx.save, 'pullUpReps'), 0.4], [level(ctx.save, 'chinUps', 20), 0.3], [level(ctx.save, 'dips', 30), 0.3]),
   },
 
   /* ---------------- the one easter egg ---------------- */
@@ -220,6 +240,7 @@ export const ATTRIBUTES: AttributeDef[] = [
     name: 'Aura',
     short: 'Aura',
     blurb: 'Cannot be measured. Cannot be trained directly. Everyone in the gym can feel it.',
+    measure: '',
     exercises: [],
     secret: true,
     unlock: {
@@ -237,8 +258,8 @@ export const ATTRIBUTES: AttributeDef[] = [
 export interface AttributeStatus {
   def: AttributeDef;
   unlocked: boolean;
-  /** 0–100. */
-  value: number;
+  /** 0–100, or null while it cannot be measured yet. */
+  value: number | null;
   /** Names of the exercises that build it, from the weekly routine. */
   builtBy: string[];
   sessions: number;
@@ -277,11 +298,14 @@ export function evaluateAttributes(
   const { ticks, fullArmorWeeks } = tally(save);
   const ctx: AttributeContext = { save, bosses, ladders, ticks, fullArmorWeeks };
 
-  return ATTRIBUTES.map((def) => ({
-    def,
-    unlocked: !def.unlock || def.unlock.test(ctx),
-    value: Math.round(clamp01(def.score(ctx)) * 100),
-    builtBy: def.exercises.map((id) => EXERCISE_NAMES.get(id)).filter((name): name is string => Boolean(name)),
-    sessions: def.exercises.reduce((sum, id) => sum + (ticks.get(id) ?? 0), 0),
-  }));
+  return ATTRIBUTES.map((def) => {
+    const score = def.score(ctx);
+    return {
+      def,
+      unlocked: !def.unlock || def.unlock.test(ctx),
+      value: score === null ? null : Math.round(clamp01(score) * 100),
+      builtBy: def.exercises.map((id) => EXERCISE_NAMES.get(id)).filter((name): name is string => Boolean(name)),
+      sessions: def.exercises.reduce((sum, id) => sum + (ticks.get(id) ?? 0), 0),
+    };
+  });
 }

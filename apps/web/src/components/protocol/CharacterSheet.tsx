@@ -37,10 +37,20 @@ const COLOUR = {
   secret: '#f59e0b',
   grid: '#1e293b',
   gridOuter: '#334155',
+  unmeasured: '#64748b',
 };
 
 const colourOf = (attribute: AttributeStatus) =>
-  attribute.def.secret ? COLOUR.secret : attribute.def.unlock ? COLOUR.earned : COLOUR.base;
+  attribute.value === null
+    ? COLOUR.unmeasured
+    : attribute.def.secret
+      ? COLOUR.secret
+      : attribute.def.unlock
+        ? COLOUR.earned
+        : COLOUR.base;
+
+/** The number shown for an attribute: a dash until something it is built from has been logged. */
+const shownValue = (attribute: AttributeStatus) => (attribute.value === null ? '–' : String(attribute.value));
 
 /** Point on the web for axis `index` of `count`, at `fraction` of the radius. Axis 0 points straight up. */
 function point(index: number, count: number, fraction: number) {
@@ -64,18 +74,21 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ attributes, leve
   // Hidden attributes are teased by their milestone — except the secret one, which stays a surprise.
   const hidden = attributes.filter((attribute) => !attribute.unlocked && !attribute.def.secret);
   const total = attributes.filter((attribute) => !attribute.def.secret || attribute.unlocked).length;
-  const average = shown.length ? Math.round(shown.reduce((sum, attribute) => sum + attribute.value, 0) / shown.length) : 0;
+  // Only what has been measured counts towards the average, so an unlogged lift never drags it down.
+  const measured = shown.filter((attribute) => attribute.value !== null).map((attribute) => attribute.value ?? 0);
+  const average = measured.length ? Math.round(measured.reduce((sum, value) => sum + value, 0) / measured.length) : null;
+  const unmeasured = shown.length - measured.length;
 
   const count = shown.length;
-  // A value of 0 still draws a sliver, so the shape never collapses to a dot.
-  const valuePoints = shown.map((attribute, index) => point(index, count, Math.max(0.04, attribute.value / 100)));
+  // A value of 0 (or one not measured yet) still draws a sliver, so the shape never collapses to a dot.
+  const valuePoints = shown.map((attribute, index) => point(index, count, Math.max(0.04, (attribute.value ?? 0) / 100)));
 
   return (
     <Panel className="p-4 sm:p-6">
       <PanelHead
         icon={<Hexagon className="w-4 h-4" />}
         title="Character"
-        subtitle="Every exercise you tick and every lift you log feeds these attributes. Hidden ones join the web as you hit milestones."
+        subtitle="Read from the numbers on your account: your current lifts against the end-game targets, your bodyweight and the missions you tick. Hidden attributes join the web as you hit milestones."
         right={<Tally icon={<Sparkles className="w-4 h-4 text-neon-purple" />} value={`${shown.length} / ${total}`} label="attributes" />}
       />
 
@@ -86,7 +99,9 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ attributes, leve
             viewBox={`${-padX} ${-padY} ${SIZE + padX * 2} ${SIZE + padY * 2}`}
             className="w-full max-w-[540px] mx-auto block"
             role="img"
-            aria-label={`Attribute web: ${shown.map((attribute) => `${attribute.def.name} ${attribute.value}`).join(', ')}`}
+            aria-label={`Attribute web: ${shown
+              .map((attribute) => `${attribute.def.name} ${attribute.value ?? 'not measured yet'}`)
+              .join(', ')}`}
           >
             <defs>
               <radialGradient id="character-fill" cx="50%" cy="50%" r="50%">
@@ -156,7 +171,7 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ attributes, leve
                   >
                     {attribute.def.short}
                     <tspan {...(twoLine ? { x: label.x, dy: '1.15em' } : { dx: 6 })} fill={colourOf(attribute)} fontFamily="ui-monospace, monospace" fontWeight={800}>
-                      {attribute.value}
+                      {shownValue(attribute)}
                     </tspan>
                   </text>
                 </g>
@@ -169,7 +184,7 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ attributes, leve
               Level <strong className="font-mono text-white">{level}</strong> · {rank}
             </span>
             <span>
-              Average <strong className="font-mono text-white">{average}</strong>
+              Average <strong className="font-mono text-white">{average ?? '–'}</strong>
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-neon-cyan" /> Core attribute
@@ -177,6 +192,11 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ attributes, leve
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-neon-purple" /> Unlocked
             </span>
+            {unmeasured > 0 && (
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-slate-500" /> Not measured yet
+              </span>
+            )}
           </figcaption>
         </figure>
 
@@ -211,14 +231,25 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({ attributes, leve
                           </span>
                         )}
                       </span>
-                      <span className="font-mono font-black text-white">{attribute.value}</span>
+                      <span className={`font-mono font-black ${attribute.value === null ? 'text-slate-500' : 'text-white'}`}>
+                        {shownValue(attribute)}
+                      </span>
                     </span>
                     <MeterBar
-                      value={attribute.value / 100}
+                      value={(attribute.value ?? 0) / 100}
                       theme={attribute.def.secret ? 'gold' : attribute.def.unlock ? 'core' : 'push'}
                       size="sm"
-                      label={`${attribute.def.name} ${attribute.value} of 100`}
+                      label={
+                        attribute.value === null
+                          ? `${attribute.def.name} not measured yet`
+                          : `${attribute.def.name} ${attribute.value} of 100`
+                      }
                     />
+                    {attribute.value === null && attribute.def.measure && (
+                      <span className="block mt-2 text-[11px] font-semibold text-amber-300/90">
+                        Not measured yet — {attribute.def.measure}
+                      </span>
+                    )}
                     <span className="block mt-2 text-[11px] text-slate-400 leading-relaxed">{attribute.def.blurb}</span>
                     {attribute.builtBy.length > 0 && (
                       <span className="block mt-1 text-[11px] text-slate-500">
