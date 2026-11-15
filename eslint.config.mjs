@@ -6,12 +6,16 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   // Override default ignores of eslint-config-next.
+  // Patterns are relative to this config file (the monorepo root), so they are
+  // globbed with `**/` to also cover build output inside apps/* workspaces.
   globalIgnores([
     // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
+    "**/.next/**",
+    "**/out/**",
+    "**/build/**",
+    "**/next-env.d.ts",
+    // Compiled output of the NestJS backend workspace:
+    "**/dist/**",
   ]),
 ]);
 
