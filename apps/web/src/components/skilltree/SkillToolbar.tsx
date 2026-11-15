@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useId, useMemo, useState } from 'react';
-import { ListChecks, Route, Search, X } from 'lucide-react';
-import { Exercise, Swimlane } from '@aura/types';
-import { LANES, LEVEL_BANDS, LaneSummary, SkillGraph, SkillStatus, statusOf } from '../../utils/skillTree';
-import { LANE_THEME } from './laneTheme';
+import { ChevronDown, ListChecks, Route, Search, X } from 'lucide-react';
+import { SkillTreeId } from '../../utils/skillProgressStore';
+import { LaneSummary, SkillGraph, SkillStatus, TreeSkill, statusOf } from '../../utils/skillTree';
+import { SKILL_TREES, SkillTreeDef, laneThemeOf } from './skillTrees';
 
 const STATUS_OPTIONS: { value: SkillStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'Any status' },
@@ -22,17 +22,19 @@ const STATUS_WORD: Record<SkillStatus, { label: string; tone: string }> = {
 const MAX_RESULTS = 8;
 
 interface SkillToolbarProps {
+  tree: SkillTreeDef;
   graph: SkillGraph;
   mastered: ReadonlySet<string>;
   lanes: LaneSummary[];
-  lane: Swimlane | 'All';
+  lane: string;
   bandId: string;
   status: SkillStatus | 'all';
-  /** Set while the canvas shows only the path to one exercise. */
-  pathTarget: Exercise | null;
+  /** Set while the canvas shows only the path to one skill. */
+  pathTarget: TreeSkill | null;
   pathLength: number;
   readyCount: number;
-  onLaneChange: (lane: Swimlane | 'All') => void;
+  onTreeChange: (tree: SkillTreeId) => void;
+  onLaneChange: (lane: string) => void;
   onBandChange: (bandId: string) => void;
   onStatusChange: (status: SkillStatus | 'all') => void;
   onExitPath: () => void;
@@ -44,6 +46,7 @@ const SELECT =
   'flex-1 min-w-0 sm:flex-none h-10 pl-3 pr-8 rounded-xl bg-dark-950 border border-slate-800 text-xs font-bold text-slate-200 outline-none focus-visible:border-neon-cyan cursor-pointer';
 
 export const SkillToolbar: React.FC<SkillToolbarProps> = ({
+  tree,
   graph,
   mastered,
   lanes,
@@ -53,6 +56,7 @@ export const SkillToolbar: React.FC<SkillToolbarProps> = ({
   pathTarget,
   pathLength,
   readyCount,
+  onTreeChange,
   onLaneChange,
   onBandChange,
   onStatusChange,
@@ -62,14 +66,16 @@ export const SkillToolbar: React.FC<SkillToolbarProps> = ({
 }) => (
   <div className="relative z-30 w-full bg-dark-900/95 border-b border-slate-800/80 px-3 sm:px-6 py-2.5">
     <div className="flex flex-wrap items-center gap-2">
+      <TreeSwitcher tree={tree} onChange={onTreeChange} />
+
       {pathTarget ? (
-        <div className="flex items-center gap-3 flex-1 min-w-[240px] h-10 px-3 rounded-xl bg-cyan-950/40 border border-cyan-500/40">
+        <div className="flex items-center gap-3 flex-1 min-w-0 sm:min-w-[240px] h-10 px-3 rounded-xl bg-cyan-950/40 border border-cyan-500/40">
           <Route className="w-4 h-4 text-neon-cyan shrink-0" />
           <p className="flex-1 min-w-0 text-xs text-slate-200 truncate">
             Path to <strong className="text-white">{pathTarget.name}</strong>
             <span className="text-slate-400">
               {' '}
-              · {pathLength} {pathLength === 1 ? 'exercise leads' : 'exercises lead'} here
+              · {pathLength} {pathLength === 1 ? `${tree.noun.one} leads` : `${tree.noun.many} lead`} here
             </span>
           </p>
           <button
@@ -83,10 +89,14 @@ export const SkillToolbar: React.FC<SkillToolbarProps> = ({
         </div>
       ) : (
         <>
-          <div role="tablist" aria-label="Branch" className="no-scrollbar flex items-center gap-1 p-1 rounded-xl bg-dark-950 border border-slate-800 overflow-x-auto max-w-full">
+          <div
+            role="tablist"
+            aria-label="Branch"
+            className="no-scrollbar flex flex-1 sm:flex-none min-w-0 items-center gap-1 p-1 rounded-xl bg-dark-950 border border-slate-800 overflow-x-auto max-w-full"
+          >
             <BranchTab label="All" active={lane === 'All'} onClick={() => onLaneChange('All')} />
-            {LANES.map((entry) => {
-              const theme = LANE_THEME[entry];
+            {tree.rules.lanes.map((entry) => {
+              const theme = laneThemeOf(tree, entry);
               const summary = lanes.find((item) => item.lane === entry);
               return (
                 <BranchTab
@@ -104,10 +114,10 @@ export const SkillToolbar: React.FC<SkillToolbarProps> = ({
 
           <div className="flex gap-2 w-full sm:w-auto">
           <label className="sr-only" htmlFor="skill-level-band">
-            Level range
+            {tree.levelWord === 'grade' ? 'Grade range' : 'Level range'}
           </label>
           <select id="skill-level-band" value={bandId} onChange={(event) => onBandChange(event.target.value)} className={SELECT}>
-            {LEVEL_BANDS.map((band) => (
+            {tree.rules.bands.map((band) => (
               <option key={band.id} value={band.id}>
                 {band.label}
               </option>
@@ -133,7 +143,7 @@ export const SkillToolbar: React.FC<SkillToolbarProps> = ({
         </>
       )}
 
-      <GoToSearch graph={graph} mastered={mastered} onGoTo={onGoTo} />
+      <GoToSearch tree={tree} graph={graph} mastered={mastered} onGoTo={onGoTo} />
 
       <button
         type="button"
@@ -177,10 +187,39 @@ const BranchTab: React.FC<BranchTabProps> = ({ label, icon, activeTone = 'text-w
 );
 
 /* ------------------------------------------------------------------ */
-/* Search that takes you to the exercise                               */
+/* Which tree is on screen                                             */
+/* ------------------------------------------------------------------ */
+
+const TreeSwitcher: React.FC<{ tree: SkillTreeDef; onChange: (tree: SkillTreeId) => void }> = ({ tree, onChange }) => (
+  <div className="relative shrink-0">
+    <label className="sr-only" htmlFor="skill-tree-choice">
+      Skill tree
+    </label>
+    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neon-cyan pointer-events-none" aria-hidden>
+      {tree.icon}
+    </span>
+    <select
+      id="skill-tree-choice"
+      value={tree.id}
+      onChange={(event) => onChange(event.target.value as SkillTreeId)}
+      className="appearance-none h-10 pl-9 pr-8 rounded-xl bg-cyan-950/30 border border-cyan-500/40 text-xs font-black text-white outline-none focus-visible:border-neon-cyan cursor-pointer"
+    >
+      {Object.values(SKILL_TREES).map((option) => (
+        <option key={option.id} value={option.id}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" aria-hidden />
+  </div>
+);
+
+/* ------------------------------------------------------------------ */
+/* Search that takes you to the skill                                  */
 /* ------------------------------------------------------------------ */
 
 interface GoToSearchProps {
+  tree: SkillTreeDef;
   graph: SkillGraph;
   mastered: ReadonlySet<string>;
   onGoTo: (id: string) => void;
@@ -191,7 +230,7 @@ interface GoToSearchProps {
  * picked. Filtering the canvas by text hid results off-screen; a list of
  * results never does.
  */
-const GoToSearch: React.FC<GoToSearchProps> = ({ graph, mastered, onGoTo }) => {
+const GoToSearch: React.FC<GoToSearchProps> = ({ tree, graph, mastered, onGoTo }) => {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -227,9 +266,9 @@ const GoToSearch: React.FC<GoToSearchProps> = ({ graph, mastered, onGoTo }) => {
         aria-expanded={showList}
         aria-controls={listId}
         aria-autocomplete="list"
-        aria-label="Find an exercise"
+        aria-label={`Find ${tree.noun.one === 'exercise' ? 'an' : 'a'} ${tree.noun.one}`}
         value={query}
-        placeholder="Find an exercise — muscle-up, planche, pistol…"
+        placeholder={tree.searchPlaceholder}
         onChange={(event) => {
           setQuery(event.target.value);
           setActive(0);
@@ -261,7 +300,9 @@ const GoToSearch: React.FC<GoToSearchProps> = ({ graph, mastered, onGoTo }) => {
           className="absolute left-0 right-0 top-full mt-1.5 z-50 p-1 rounded-xl bg-dark-900 border border-slate-700 shadow-2xl max-h-[60vh] overflow-y-auto"
         >
           {shown.length === 0 ? (
-            <li className="px-3 py-3 text-xs text-slate-400">No exercise matches “{query.trim()}”.</li>
+            <li className="px-3 py-3 text-xs text-slate-400">
+              No {tree.noun.one} matches “{query.trim()}”.
+            </li>
           ) : (
             shown.map((exercise, index) => {
               const state = STATUS_WORD[statusOf(exercise, mastered)];
@@ -277,11 +318,11 @@ const GoToSearch: React.FC<GoToSearchProps> = ({ graph, mastered, onGoTo }) => {
                       index === active ? 'bg-dark-700' : ''
                     }`}
                   >
-                    <span className={`w-1.5 h-8 rounded-full shrink-0 ${LANE_THEME[exercise.swimlane].solid}`} />
+                    <span className={`w-1.5 h-8 rounded-full shrink-0 ${laneThemeOf(tree, exercise.swimlane).solid}`} />
                     <span className="flex-1 min-w-0">
                       <span className="block text-sm font-bold text-white truncate">{exercise.name}</span>
                       <span className="block text-[11px] text-slate-400 truncate">
-                        Level {exercise.level} · {exercise.subCategory}
+                        {tree.levelName(exercise.level)} · {exercise.subCategory}
                       </span>
                     </span>
                     <span className={`text-[10px] font-black uppercase tracking-wider shrink-0 ${state.tone}`}>{state.label}</span>

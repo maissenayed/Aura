@@ -1,25 +1,34 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import { Exercise } from '@aura/types';
 import { EXERCISES } from '../data/exercisesData';
 import { getStoredExercises } from './exerciseStorage';
 
 /**
- * Which exercises are mastered, kept in localStorage and read through
- * `useSyncExternalStore` so the server render and the first client render
- * agree. A new athlete starts with nothing mastered.
+ * Which skills are mastered, kept in localStorage — one entry per skill tree —
+ * and read through `useSyncExternalStore` so the server render and the first
+ * client render agree. A new athlete starts with nothing mastered.
  */
 
-const STORAGE_KEY = 'aura_calisthenics_skill_tree_progress_v1';
+export type SkillTreeId = 'calisthenics' | 'bouldering';
+
+export const SKILL_TREE_IDS: readonly SkillTreeId[] = ['calisthenics', 'bouldering'];
+
+/** The calisthenics key predates the other trees and stays as it was, so existing progress keeps loading. */
+const PROGRESS_KEYS: Record<SkillTreeId, string> = {
+  calisthenics: 'aura_calisthenics_skill_tree_progress_v1',
+  bouldering: 'aura_bouldering_skill_tree_progress_v1',
+};
+
 const EMPTY: readonly string[] = Object.freeze([]);
 
-let cache: readonly string[] | null = null;
+const cache = new Map<SkillTreeId, readonly string[]>();
 const listeners = new Set<() => void>();
 
-function read(): readonly string[] {
+function read(tree: SkillTreeId): readonly string[] {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(PROGRESS_KEYS[tree]);
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as { masteredIds?: unknown };
     return Array.isArray(parsed.masteredIds) ? parsed.masteredIds.filter((id): id is string => typeof id === 'string') : EMPTY;
@@ -29,18 +38,25 @@ function read(): readonly string[] {
   }
 }
 
-function getSnapshot(): readonly string[] {
-  if (cache === null) cache = read();
-  return cache;
+function getSnapshot(tree: SkillTreeId): readonly string[] {
+  let ids = cache.get(tree);
+  if (ids === undefined) {
+    ids = read(tree);
+    cache.set(tree, ids);
+  }
+  return ids;
 }
 
 const getServerSnapshot = (): readonly string[] => EMPTY;
 
+/** One listener for every key this module owns; another tab changing any of them refreshes the cache. */
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
   const onStorage = (event: StorageEvent) => {
-    if (event.key !== STORAGE_KEY) return;
-    cache = null;
+    const tree = SKILL_TREE_IDS.find((id) => PROGRESS_KEYS[id] === event.key);
+    if (tree) cache.delete(tree);
+    else if (event.key === CHOICE_KEY) choice = undefined;
+    else return;
     listener();
   };
   window.addEventListener('storage', onStorage);
@@ -50,18 +66,63 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
-export function setMasteredIds(ids: string[]): void {
-  cache = Object.freeze([...new Set(ids)]);
+export function setMasteredIds(tree: SkillTreeId, ids: string[]): void {
+  const next = Object.freeze([...new Set(ids)]);
+  cache.set(tree, next);
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ masteredIds: cache }));
+    window.localStorage.setItem(PROGRESS_KEYS[tree], JSON.stringify({ masteredIds: next }));
   } catch (error) {
     console.error('Could not save skill tree progress on this device:', error);
   }
   listeners.forEach((listener) => listener());
 }
 
-export function useMasteredIds(): readonly string[] {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+export function useMasteredIds(tree: SkillTreeId): readonly string[] {
+  const snapshot = useCallback(() => getSnapshot(tree), [tree]);
+  return useSyncExternalStore(subscribe, snapshot, getServerSnapshot);
+}
+
+/* ------------------------------------------------------------------ */
+/* Which tree the athlete looked at last                               */
+/* ------------------------------------------------------------------ */
+
+const CHOICE_KEY = 'aura_skill_tree_choice_v1';
+const DEFAULT_TREE: SkillTreeId = 'calisthenics';
+
+/** Undefined until read; null when nothing is stored. */
+let choice: SkillTreeId | null | undefined;
+
+export function isSkillTreeId(value: unknown): value is SkillTreeId {
+  return typeof value === 'string' && (SKILL_TREE_IDS as readonly string[]).includes(value);
+}
+
+function getChoice(): SkillTreeId {
+  if (choice === undefined) {
+    try {
+      const stored = window.localStorage.getItem(CHOICE_KEY);
+      choice = isSkillTreeId(stored) ? stored : null;
+    } catch {
+      choice = null;
+    }
+  }
+  return choice ?? DEFAULT_TREE;
+}
+
+const getServerChoice = (): SkillTreeId => DEFAULT_TREE;
+
+/** The tree picked last on this device; calisthenics until one is picked. */
+export function useRememberedTree(): SkillTreeId {
+  return useSyncExternalStore(subscribe, getChoice, getServerChoice);
+}
+
+export function rememberTree(tree: SkillTreeId): void {
+  choice = tree;
+  try {
+    window.localStorage.setItem(CHOICE_KEY, tree);
+  } catch (error) {
+    console.error('Could not remember the skill tree on this device:', error);
+  }
+  listeners.forEach((listener) => listener());
 }
 
 /* The exercise list: the built-in dataset, or a custom one saved on this device. */

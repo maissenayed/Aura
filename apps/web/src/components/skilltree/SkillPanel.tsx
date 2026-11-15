@@ -15,30 +15,32 @@ import {
   Undo2,
   X,
 } from 'lucide-react';
-import { Exercise, Swimlane } from '@aura/types';
 import {
   SkillGraph,
   SkillStatus,
   SkillSummary,
+  TreeSkill,
   ancestorsOf,
   hasWrittenGuide,
   statusOf,
   tutorialSearchUrl,
   videoIdOf,
 } from '../../utils/skillTree';
-import { LANE_THEME } from './laneTheme';
+import { ANGLE_LABEL, SkillFigure } from './SkillFigure';
+import { SkillTreeDef, laneThemeOf } from './skillTrees';
 
 const UP_NEXT_LIMIT = 8;
 
 interface SkillPanelProps {
+  tree: SkillTreeDef;
   graph: SkillGraph;
   mastered: ReadonlySet<string>;
   summary: SkillSummary;
-  selected: Exercise | null;
+  selected: TreeSkill | null;
   pathTargetId: string | null;
   /** On small screens the panel is a sheet; this says whether it is showing. */
   open: boolean;
-  /** Level 1–3 exercises not mastered yet. */
+  /** Skills up to the tree's basics level not mastered yet. */
   basicsRemaining: number;
   onGoTo: (id: string) => void;
   onBack: () => void;
@@ -46,20 +48,20 @@ interface SkillPanelProps {
   onToggleMastered: (id: string) => void;
   onTogglePath: (id: string) => void;
   onShowReady: () => void;
-  onLaneFilter: (lane: Swimlane) => void;
+  onLaneFilter: (lane: string) => void;
   onSkipBasics: () => void;
   onReset: () => void;
 }
 
 export const SkillPanel: React.FC<SkillPanelProps> = (props) => {
-  const { selected, open, onClose } = props;
+  const { tree, selected, open, onClose } = props;
 
   return (
     <>
       {open && <div className="lg:hidden fixed inset-0 z-30 bg-black/60" onClick={onClose} aria-hidden />}
 
       <aside
-        aria-label={selected ? 'Exercise details' : 'Your progress'}
+        aria-label={selected ? `${capitalise(tree.noun.one)} details` : 'Your progress'}
         className={`${
           open ? 'flex' : 'hidden'
         } lg:flex flex-col fixed lg:static inset-x-0 bottom-0 z-40 lg:z-auto w-full lg:w-[380px] lg:shrink-0 max-h-[84dvh] lg:max-h-none lg:h-full rounded-t-3xl lg:rounded-none border-t lg:border-t-0 lg:border-l border-slate-800 bg-dark-900 shadow-2xl lg:shadow-none`}
@@ -81,6 +83,7 @@ export const SkillPanel: React.FC<SkillPanelProps> = (props) => {
 /* ------------------------------------------------------------------ */
 
 const ProgressView: React.FC<SkillPanelProps> = ({
+  tree,
   summary,
   basicsRemaining,
   onGoTo,
@@ -93,12 +96,13 @@ const ProgressView: React.FC<SkillPanelProps> = ({
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmSkip, setConfirmSkip] = useState(false);
   const upNext = summary.ready.slice(0, UP_NEXT_LIMIT);
+  const basics = tree.levelRange(tree.rules.bands[0]?.min ?? 0, tree.basicsMax);
 
   return (
     <div className="p-5 space-y-6">
       <header className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Your progress</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Your {tree.label.toLowerCase()} progress</p>
           <h2 className="text-xl font-black text-white tracking-tight">{summary.rank}</h2>
           <p className="text-xs text-slate-400 mt-0.5">
             <span className="font-mono font-bold text-white">{summary.mastered}</span> of {summary.total} mastered ·{' '}
@@ -130,7 +134,7 @@ const ProgressView: React.FC<SkillPanelProps> = ({
       <section aria-label="Branches">
         <ul className="space-y-1.5">
           {summary.lanes.map((lane) => {
-            const theme = LANE_THEME[lane.lane];
+            const theme = laneThemeOf(tree, lane.lane);
             return (
               <li key={lane.lane}>
                 <button
@@ -174,7 +178,7 @@ const ProgressView: React.FC<SkillPanelProps> = ({
           <ul className="space-y-1.5">
             {upNext.map((exercise) => (
               <li key={exercise.id}>
-                <ExerciseRow exercise={exercise} status="ready" onClick={() => onGoTo(exercise.id)} />
+                <ExerciseRow tree={tree} exercise={exercise} status="ready" onClick={() => onGoTo(exercise.id)} />
               </li>
             ))}
           </ul>
@@ -202,7 +206,7 @@ const ProgressView: React.FC<SkillPanelProps> = ({
         {basicsRemaining > 0 &&
           (confirmSkip ? (
             <Confirm
-              message={`Mark all ${basicsRemaining} remaining Level 1–3 exercises as mastered?`}
+              message={`Mark all ${basicsRemaining} remaining ${basics} ${tree.noun.many} as mastered?`}
               confirmLabel="Yes, mark them"
               onConfirm={() => {
                 setConfirmSkip(false);
@@ -216,14 +220,14 @@ const ProgressView: React.FC<SkillPanelProps> = ({
               onClick={() => setConfirmSkip(true)}
               className="w-full h-10 rounded-xl text-xs font-bold text-slate-300 border border-slate-800 hover:border-slate-600 transition cursor-pointer"
             >
-              I already own the basics (Levels 1–3)
+              I already own the basics ({basics})
             </button>
           ))}
 
         {summary.mastered > 0 &&
           (confirmReset ? (
             <Confirm
-              message="Clear every mastered exercise on this device?"
+              message={`Clear every mastered ${tree.noun.one} in this tree on this device?`}
               confirmLabel="Yes, reset"
               danger
               onConfirm={() => {
@@ -250,7 +254,8 @@ const ProgressView: React.FC<SkillPanelProps> = ({
 /* An exercise is selected                                             */
 /* ------------------------------------------------------------------ */
 
-const DetailView: React.FC<SkillPanelProps & { exercise: Exercise }> = ({
+const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
+  tree,
   graph,
   mastered,
   exercise,
@@ -270,14 +275,16 @@ const DetailView: React.FC<SkillPanelProps & { exercise: Exercise }> = ({
   }, []);
 
   const status = statusOf(exercise, mastered);
-  const theme = LANE_THEME[exercise.swimlane];
-  const prerequisites = exercise.prerequisites.map((id) => graph.byId.get(id)).filter((entry): entry is Exercise => Boolean(entry));
-  const unlocks = (graph.children.get(exercise.id) ?? []).map((id) => graph.byId.get(id)).filter((entry): entry is Exercise => Boolean(entry));
+  const theme = laneThemeOf(tree, exercise.swimlane);
+  const prerequisites = exercise.prerequisites.map((id) => graph.byId.get(id)).filter((entry): entry is TreeSkill => Boolean(entry));
+  const unlocks = (graph.children.get(exercise.id) ?? []).map((id) => graph.byId.get(id)).filter((entry): entry is TreeSkill => Boolean(entry));
   const ancestors = ancestorsOf(graph, exercise.id);
   const stepsBefore = [...ancestors].filter((id) => !mastered.has(id)).length;
   const missing = prerequisites.filter((entry) => !mastered.has(entry.id));
   const videoId = videoIdOf(exercise);
   const onPath = pathTargetId === exercise.id;
+  const figure = tree.figureFor?.(exercise.id);
+  const summaryLine = 'summary' in exercise && typeof exercise.summary === 'string' ? exercise.summary : null;
 
   return (
     <div className="p-5 space-y-5">
@@ -309,7 +316,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: Exercise }> = ({
           <span className="text-slate-600">·</span>
           <span className="text-slate-300">{exercise.subCategory}</span>
           <span className="text-slate-600">·</span>
-          <span className="font-mono text-slate-300">Level {exercise.level}</span>
+          <span className="font-mono text-slate-300">{tree.levelName(exercise.level)}</span>
           {exercise.proStatus && (
             <span className="flex items-center gap-1 text-neon-gold">
               <Crown className="w-3 h-3" />
@@ -320,7 +327,22 @@ const DetailView: React.FC<SkillPanelProps & { exercise: Exercise }> = ({
         <h2 ref={heading} tabIndex={-1} className="mt-1.5 text-xl font-black text-white tracking-tight outline-none">
           {exercise.name}
         </h2>
+        {summaryLine && <p className="mt-1.5 text-sm text-slate-300 leading-relaxed">{summaryLine}</p>}
       </header>
+
+      {figure && (
+        <figure className="relative overflow-hidden rounded-2xl border border-slate-800 bg-dark-950 bg-grid-pattern">
+          <SkillFigure
+            spec={figure}
+            accent={theme.hex}
+            title={`Illustration of ${exercise.name}`}
+            className="block mx-auto w-full max-w-[260px] aspect-square"
+          />
+          <figcaption className="absolute left-3 top-2.5 px-2 py-0.5 rounded-md bg-dark-900/90 border border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400">
+            {ANGLE_LABEL[figure.angle]}
+          </figcaption>
+        </figure>
+      )}
 
       {/* Status and the one thing to do about it */}
       {status === 'ready' && (
@@ -349,7 +371,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: Exercise }> = ({
           <ul className="space-y-1.5">
             {missing.map((entry) => (
               <li key={entry.id}>
-                <ExerciseRow exercise={entry} status={statusOf(entry, mastered)} onClick={() => onGoTo(entry.id)} />
+                <ExerciseRow tree={tree} exercise={entry} status={statusOf(entry, mastered)} onClick={() => onGoTo(entry.id)} />
               </li>
             ))}
           </ul>
@@ -397,7 +419,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: Exercise }> = ({
           <span className="flex-1 min-w-0">
             <span className="block text-xs font-bold text-white">{onPath ? 'Showing the path to this' : 'Show the path to this'}</span>
             <span className="block text-[11px] text-slate-400">
-              {ancestors.size} {ancestors.size === 1 ? 'exercise leads' : 'exercises lead'} here
+              {ancestors.size} {ancestors.size === 1 ? `${tree.noun.one} leads` : `${tree.noun.many} lead`} here
               {stepsBefore > 0 ? ` · ${stepsBefore} still to master` : ' · all mastered'}
             </span>
           </span>
@@ -413,7 +435,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: Exercise }> = ({
             <ul className="space-y-1.5">
               {prerequisites.map((entry) => (
                 <li key={entry.id}>
-                  <ExerciseRow exercise={entry} status={statusOf(entry, mastered)} onClick={() => onGoTo(entry.id)} />
+                  <ExerciseRow tree={tree} exercise={entry} status={statusOf(entry, mastered)} onClick={() => onGoTo(entry.id)} />
                 </li>
               ))}
             </ul>
@@ -428,7 +450,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: Exercise }> = ({
           <ul className="space-y-1.5">
             {unlocks.map((entry) => (
               <li key={entry.id}>
-                <ExerciseRow exercise={entry} status={statusOf(entry, mastered)} onClick={() => onGoTo(entry.id)} />
+                <ExerciseRow tree={tree} exercise={entry} status={statusOf(entry, mastered)} onClick={() => onGoTo(entry.id)} />
               </li>
             ))}
           </ul>
@@ -487,7 +509,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: Exercise }> = ({
           )
         ) : (
           <a
-            href={tutorialSearchUrl(exercise)}
+            href={tutorialSearchUrl(exercise, tree.tutorialTopic)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-between gap-3 min-h-11 px-3 py-2 rounded-xl bg-dark-950/60 border border-slate-800 hover:border-slate-600 text-xs font-bold text-slate-200 transition"
@@ -545,7 +567,12 @@ const ROW_STATUS: Record<SkillStatus, { icon: React.ReactNode; tone: string }> =
   locked: { icon: <Lock className="w-3.5 h-3.5" />, tone: 'text-slate-500 border-slate-700 bg-dark-950' },
 };
 
-const ExerciseRow: React.FC<{ exercise: Exercise; status: SkillStatus; onClick: () => void }> = ({ exercise, status, onClick }) => (
+const ExerciseRow: React.FC<{ tree: SkillTreeDef; exercise: TreeSkill; status: SkillStatus; onClick: () => void }> = ({
+  tree,
+  exercise,
+  status,
+  onClick,
+}) => (
   <button
     type="button"
     onClick={onClick}
@@ -557,10 +584,10 @@ const ExerciseRow: React.FC<{ exercise: Exercise; status: SkillStatus; onClick: 
     <span className="flex-1 min-w-0">
       <span className="block text-[13px] font-bold text-white truncate">{exercise.name}</span>
       <span className="block text-[11px] text-slate-400 truncate">
-        Level {exercise.level} · {exercise.subCategory}
+        {tree.levelName(exercise.level)} · {exercise.subCategory}
       </span>
     </span>
-    <span className={`w-1.5 h-6 rounded-full shrink-0 ${LANE_THEME[exercise.swimlane].solid}`} aria-hidden />
+    <span className={`w-1.5 h-6 rounded-full shrink-0 ${laneThemeOf(tree, exercise.swimlane).solid}`} aria-hidden />
     <ChevronRight className="w-4 h-4 text-slate-600 shrink-0" />
   </button>
 );
@@ -598,3 +625,5 @@ const Confirm: React.FC<ConfirmProps> = ({ message, confirmLabel, danger, onConf
     </div>
   </div>
 );
+
+const capitalise = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);

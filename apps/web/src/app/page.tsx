@@ -1,38 +1,89 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Swimlane } from '@aura/types';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '../components/Header';
 import { Toast, ToastStack } from '../components/protocol/Toasts';
 import { FocusRequest, SkillCanvas } from '../components/skilltree/SkillCanvas';
 import { SkillPanel } from '../components/skilltree/SkillPanel';
 import { SkillToolbar } from '../components/skilltree/SkillToolbar';
+import { SKILL_TREES, SkillTreeDef } from '../components/skilltree/skillTrees';
 import { GameEvent } from '../utils/protocolEngine';
-import { setMasteredIds, useExercises, useMasteredIds } from '../utils/skillProgressStore';
 import {
-  LEVEL_BANDS,
-  SkillStatus,
-  ancestorsOf,
-  bandForLevel,
-  buildGraph,
-  statusOf,
-  summarize,
-} from '../utils/skillTree';
+  SkillTreeId,
+  isSkillTreeId,
+  rememberTree,
+  setMasteredIds,
+  useExercises,
+  useMasteredIds,
+  useRememberedTree,
+} from '../utils/skillProgressStore';
+import { SkillStatus, ancestorsOf, bandForLevel, buildGraph, statusOf, summarize } from '../utils/skillTree';
 
 const TOAST_LIMIT = 3;
 const TOAST_MS = 5200;
 
-let reportedDroppedLinks = false;
+const reportedDroppedLinks = new Set<SkillTreeId>();
 
+/**
+ * The skill tree page. Which tree is shown comes from `?tree=` when the link
+ * says so, otherwise from the last one picked on this device. Reading the URL
+ * needs a Suspense boundary: without it the static shell could not be prerendered.
+ */
 export default function SkillTreePage() {
+  return (
+    <Suspense fallback={<PageShell />}>
+      <SkillTreeRoute />
+    </Suspense>
+  );
+}
+
+const PageShell: React.FC = () => (
+  <div className="h-[100dvh] flex flex-col overflow-hidden bg-dark-950 text-slate-100">
+    <Header />
+  </div>
+);
+
+function SkillTreeRoute() {
+  const params = useSearchParams();
+  const remembered = useRememberedTree();
+  const fromUrl = params.get('tree');
+  const treeId: SkillTreeId = isSkillTreeId(fromUrl) ? fromUrl : remembered;
+
+  // Opening a link to a tree counts as picking it.
+  useEffect(() => {
+    if (isSkillTreeId(fromUrl) && fromUrl !== remembered) rememberTree(fromUrl);
+  }, [fromUrl, remembered]);
+
+  const switchTree = (next: SkillTreeId) => {
+    rememberTree(next);
+    const query = new URLSearchParams(window.location.search);
+    if (next === 'calisthenics') query.delete('tree');
+    else query.set('tree', next);
+    const search = query.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${search ? `?${search}` : ''}`);
+  };
+
+  // A new tree starts from a clean view: filters, selection and path belong to the tree they were set on.
+  return <SkillTreeScreen key={treeId} tree={SKILL_TREES[treeId]} onTreeChange={switchTree} />;
+}
+
+interface SkillTreeScreenProps {
+  tree: SkillTreeDef;
+  onTreeChange: (tree: SkillTreeId) => void;
+}
+
+function SkillTreeScreen({ tree, onTreeChange }: SkillTreeScreenProps) {
   const exercises = useExercises();
-  const masteredIds = useMasteredIds();
+  const skills = tree.skills ?? exercises;
+  const masteredIds = useMasteredIds(tree.id);
+  const { noun, rules } = tree;
 
-  const graph = useMemo(() => buildGraph(exercises), [exercises]);
+  const graph = useMemo(() => buildGraph(skills), [skills]);
   const mastered = useMemo(() => new Set(masteredIds), [masteredIds]);
-  const summary = useMemo(() => summarize(graph, mastered), [graph, mastered]);
+  const summary = useMemo(() => summarize(graph, mastered, rules), [graph, mastered, rules]);
 
-  const [lane, setLane] = useState<Swimlane | 'All'>('All');
+  const [lane, setLane] = useState<string>('All');
   const [bandOverride, setBandOverride] = useState<string | null>(null);
   const [status, setStatus] = useState<SkillStatus | 'all'>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -42,9 +93,11 @@ export default function SkillTreePage() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const sequence = useRef(0);
 
-  // Until the athlete picks a range, open on the levels where their next exercise is.
-  const bandId = bandOverride ?? bandForLevel(summary.ready[0]?.level ?? 1).id;
-  const band = LEVEL_BANDS.find((entry) => entry.id === bandId) ?? LEVEL_BANDS[0];
+  const firstLevel = rules.bands[0]?.min ?? 0;
+
+  // Until the athlete picks a range, open on the levels where their next skill is.
+  const bandId = bandOverride ?? bandForLevel(summary.ready[0]?.level ?? firstLevel, rules.bands).id;
+  const band = rules.bands.find((entry) => entry.id === bandId) ?? rules.bands[0];
 
   const selected = selectedId ? graph.byId.get(selectedId) ?? null : null;
   const pathTarget = pathTargetId ? graph.byId.get(pathTargetId) ?? null : null;
@@ -75,8 +128,8 @@ export default function SkillTreePage() {
   }, [graph, pathIds, lane, band, status, mastered]);
 
   const basicsRemaining = useMemo(
-    () => graph.exercises.filter((exercise) => exercise.level <= 3 && !mastered.has(exercise.id)).length,
-    [graph, mastered],
+    () => graph.exercises.filter((exercise) => exercise.level <= tree.basicsMax && !mastered.has(exercise.id)).length,
+    [graph, mastered, tree.basicsMax],
   );
 
   /* ---------------------------------------------------------------- */
@@ -95,7 +148,7 @@ export default function SkillTreePage() {
   /* Navigation                                                        */
   /* ---------------------------------------------------------------- */
 
-  /** Select an exercise and bring it into view, widening the filters if they were hiding it. */
+  /** Select a skill and bring it into view, widening the filters if they were hiding it. */
   const goTo = (id: string) => {
     const exercise = graph.byId.get(id);
     if (!exercise) return;
@@ -111,7 +164,7 @@ export default function SkillTreePage() {
 
     if ((!pathIds || !pathIds.has(id)) && hiddenByFilters) {
       if (lane !== 'All' && exercise.swimlane !== lane) setLane('All');
-      if (exercise.level < band.min || exercise.level > band.max) setBandOverride(bandForLevel(exercise.level).id);
+      if (exercise.level < band.min || exercise.level > band.max) setBandOverride(bandForLevel(exercise.level, rules.bands).id);
       setStatus('all');
     }
 
@@ -120,7 +173,7 @@ export default function SkillTreePage() {
     setFocusRequest({ id, nonce: (sequence.current += 1) });
   };
 
-  /** Narrow the canvas to what leads to one exercise, opening on the athlete's next step along it. */
+  /** Narrow the canvas to what leads to one skill, opening on the athlete's next step along it. */
   const togglePath = (id: string) => {
     if (pathTargetId === id) {
       setPathTargetId(null);
@@ -156,13 +209,13 @@ export default function SkillTreePage() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  // Tell whoever maintains the dataset, once, about links the tree had to ignore.
+  // Tell whoever maintains the dataset, once per tree, about links the tree had to ignore.
   useEffect(() => {
-    if (graph.dropped.length > 0 && process.env.NODE_ENV !== 'production' && !reportedDroppedLinks) {
-      reportedDroppedLinks = true;
-      console.info(`Skill tree ignored ${graph.dropped.length} impossible prerequisite links:`, graph.dropped);
+    if (graph.dropped.length > 0 && process.env.NODE_ENV !== 'production' && !reportedDroppedLinks.has(tree.id)) {
+      reportedDroppedLinks.add(tree.id);
+      console.info(`${tree.label} skill tree ignored ${graph.dropped.length} impossible prerequisite links:`, graph.dropped);
     }
-  }, [graph]);
+  }, [graph, tree]);
 
   /* ---------------------------------------------------------------- */
   /* Progress                                                          */
@@ -173,7 +226,10 @@ export default function SkillTreePage() {
     if (!exercise) return;
 
     if (mastered.has(id)) {
-      setMasteredIds(masteredIds.filter((other) => other !== id));
+      setMasteredIds(
+        tree.id,
+        masteredIds.filter((other) => other !== id),
+      );
       return;
     }
 
@@ -184,8 +240,8 @@ export default function SkillTreePage() {
       (other) => !next.has(other.id) && statusOf(other, mastered) === 'locked' && statusOf(other, next) === 'ready',
     );
     const before = summary.rank;
-    const after = summarize(graph, next);
-    setMasteredIds([...next]);
+    const after = summarize(graph, next, rules);
+    setMasteredIds(tree.id, [...next]);
 
     const details = [`+${added.reduce((sum, other) => sum + (graph.byId.get(other)?.xpReward ?? 0), 0)} XP`];
     if (added.length > 1) details.push(`with the ${added.length - 1} before it`);
@@ -193,23 +249,29 @@ export default function SkillTreePage() {
       details.push(
         unlocked.length <= 2
           ? `unlocked ${unlocked.map((other) => other.name).join(' and ')}`
-          : `unlocked ${unlocked.length} exercises`,
+          : `unlocked ${unlocked.length} ${noun.many}`,
       );
     }
 
     const events: GameEvent[] = [{ kind: 'skill', title: `Mastered — ${exercise.name}`, detail: details.join(' · ') }];
-    if (after.rank !== before) events.push({ kind: 'level', title: after.rank, detail: `${after.mastered} exercises mastered` });
+    if (after.rank !== before) events.push({ kind: 'level', title: after.rank, detail: `${after.mastered} ${noun.many} mastered` });
     announce(events);
   };
 
   const skipBasics = () => {
-    const basics = graph.exercises.filter((exercise) => exercise.level <= 3 && !mastered.has(exercise.id));
-    setMasteredIds([...masteredIds, ...basics.map((exercise) => exercise.id)]);
-    announce([{ kind: 'skill', title: 'Levels 1–3 marked as mastered', detail: `${basics.length} exercises added to your progress` }]);
+    const basics = graph.exercises.filter((exercise) => exercise.level <= tree.basicsMax && !mastered.has(exercise.id));
+    setMasteredIds(tree.id, [...masteredIds, ...basics.map((exercise) => exercise.id)]);
+    announce([
+      {
+        kind: 'skill',
+        title: `${tree.levelRange(firstLevel, tree.basicsMax)} marked as mastered`,
+        detail: `${basics.length} ${noun.many} added to your progress`,
+      },
+    ]);
   };
 
   const reset = () => {
-    setMasteredIds([]);
+    setMasteredIds(tree.id, []);
     setSelectedId(null);
     setPathTargetId(null);
     setBandOverride(null);
@@ -222,6 +284,7 @@ export default function SkillTreePage() {
       <Header />
 
       <SkillToolbar
+        tree={tree}
         graph={graph}
         mastered={mastered}
         lanes={summary.lanes}
@@ -231,6 +294,7 @@ export default function SkillTreePage() {
         pathTarget={pathTarget}
         pathLength={pathIds ? pathIds.size - 1 : 0}
         readyCount={summary.ready.length}
+        onTreeChange={onTreeChange}
         onLaneChange={setLane}
         onBandChange={setBandOverride}
         onStatusChange={setStatus}
@@ -240,8 +304,9 @@ export default function SkillTreePage() {
       />
 
       <div className="flex-1 min-h-0 flex">
-        <main className="flex-1 min-w-0 min-h-0" aria-label="Skill tree">
+        <main className="flex-1 min-w-0 min-h-0" aria-label={`${tree.label} skill tree`}>
           <SkillCanvas
+            tree={tree}
             graph={graph}
             visible={visible}
             mastered={mastered}
@@ -256,7 +321,8 @@ export default function SkillTreePage() {
               <div className="p-5 rounded-2xl bg-dark-900 border border-slate-800">
                 <p className="text-sm font-bold text-white">Nothing matches these filters</p>
                 <p className="mt-1 text-xs text-slate-400">
-                  No {status === 'all' ? '' : `${status} `}exercises in this branch and level range.
+                  No {status === 'all' ? '' : `${status} `}
+                  {noun.many} in this branch and {tree.levelWord} range.
                 </p>
                 <button
                   type="button"
@@ -274,6 +340,7 @@ export default function SkillTreePage() {
         </main>
 
         <SkillPanel
+          tree={tree}
           graph={graph}
           mastered={mastered}
           summary={summary}

@@ -14,16 +14,17 @@ import {
   ReactFlowProvider,
   useReactFlow,
 } from '@xyflow/react';
-import { Exercise } from '@aura/types';
 import {
   LAYOUT,
   LaneSummary,
   SkillGraph,
+  TreeSkill,
   ancestorsOf,
   descendantsOf,
   layoutTree,
   statusOf,
 } from '../../utils/skillTree';
+import { SkillTreeDef, laneThemeOf } from './skillTrees';
 import { LaneHeaderNode, LevelHeaderNode, LineLabelNode, SkillNode } from './SkillNodes';
 
 const nodeTypes: NodeTypes = {
@@ -57,8 +58,9 @@ export interface FocusRequest {
 }
 
 interface SkillCanvasProps {
+  tree: SkillTreeDef;
   graph: SkillGraph;
-  visible: Exercise[];
+  visible: TreeSkill[];
   mastered: ReadonlySet<string>;
   /** The level columns to draw, in order. */
   levels: number[];
@@ -73,6 +75,7 @@ interface SkillCanvasProps {
 }
 
 const Canvas: React.FC<SkillCanvasProps> = ({
+  tree,
   graph,
   visible,
   mastered,
@@ -91,7 +94,10 @@ const Canvas: React.FC<SkillCanvasProps> = ({
   // The camera can only be moved once React Flow has set itself up.
   const [ready, setReady] = useState(false);
 
-  const layout = useMemo(() => layoutTree(visible, graph, mastered, levels), [visible, graph, mastered, levels]);
+  const layout = useMemo(
+    () => layoutTree(visible, graph, mastered, levels, tree.rules.lanes),
+    [visible, graph, mastered, levels, tree],
+  );
 
   /** The selected exercise plus everything that leads to it and everything it leads to. */
   const chain = useMemo(() => {
@@ -113,7 +119,7 @@ const Canvas: React.FC<SkillCanvasProps> = ({
         position: { x, y: -LAYOUT.levelHeaderHeight },
         width: LAYOUT.cardWidth,
         height: 28,
-        data: { level },
+        data: { label: tree.levelName(level) },
         ...SCENERY,
       });
     }
@@ -126,7 +132,12 @@ const Canvas: React.FC<SkillCanvasProps> = ({
         position: { x: 0, y },
         width: layout.width,
         height: LAYOUT.laneHeaderHeight - 12,
-        data: { lane, mastered: summary?.mastered ?? 0, total: summary?.total ?? 0, ready: summary?.ready ?? 0 },
+        data: {
+          theme: laneThemeOf(tree, lane),
+          mastered: summary?.mastered ?? 0,
+          total: summary?.total ?? 0,
+          ready: summary?.ready ?? 0,
+        },
         ...SCENERY,
       });
     }
@@ -158,6 +169,11 @@ const Canvas: React.FC<SkillCanvasProps> = ({
         focusable: false,
         data: {
           exercise,
+          lane: laneThemeOf(tree, exercise.swimlane),
+          levelTag: tree.levelTag(exercise.level),
+          levelName: tree.levelName(exercise.level),
+          hiddenHint: `Needs ${tree.noun.one === 'exercise' ? 'an' : 'a'} ${tree.noun.one} from an easier ${tree.levelWord} that is filtered out`,
+          figure: tree.figureFor?.(exercise.id),
           status: statusOf(exercise, mastered),
           selected: card.id === selectedId,
           dimmed: chain !== null && !chain.has(card.id),
@@ -168,7 +184,7 @@ const Canvas: React.FC<SkillCanvasProps> = ({
     }
 
     return list;
-  }, [layout, lanes, graph, visible, mastered, selectedId, chain, onSelect]);
+  }, [layout, lanes, graph, visible, mastered, selectedId, chain, onSelect, tree]);
 
   const edges = useMemo(() => {
     const visibleIds = new Set(visible.map((exercise) => exercise.id));

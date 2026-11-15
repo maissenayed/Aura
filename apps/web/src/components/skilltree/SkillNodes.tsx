@@ -3,16 +3,24 @@
 import React, { memo } from 'react';
 import { Handle, Node, NodeProps, Position } from '@xyflow/react';
 import { Check, Crown, Lock, Sparkles } from 'lucide-react';
-import { Exercise, Swimlane } from '@aura/types';
-import { SkillStatus } from '../../utils/skillTree';
-import { LANE_THEME } from './laneTheme';
+import { SkillStatus, TreeSkill } from '../../utils/skillTree';
+import { SkillFigure, FigureSpec } from './SkillFigure';
+import { LaneTheme } from './laneTheme';
 
 /* ------------------------------------------------------------------ */
 /* Exercise card                                                       */
 /* ------------------------------------------------------------------ */
 
 export interface SkillNodeData extends Record<string, unknown> {
-  exercise: Exercise;
+  exercise: TreeSkill;
+  lane: LaneTheme;
+  /** Short level tag for the corner ("L4", "V4") and the spoken one ("Level 4"). */
+  levelTag: string;
+  levelName: string;
+  /** Hidden-prerequisite hint, in the tree's own words. */
+  hiddenHint: string;
+  /** Thumbnail drawing, for trees that have them. */
+  figure?: FigureSpec;
   status: SkillStatus;
   selected: boolean;
   dimmed: boolean;
@@ -51,9 +59,8 @@ const STATUS: Record<SkillStatus, { label: string; icon: React.ReactNode; chip: 
 const HANDLE = '!w-px !h-px !min-w-0 !min-h-0 !border-0 !bg-transparent !pointer-events-none';
 
 export const SkillNode = memo(({ data }: NodeProps<Node<SkillNodeData>>) => {
-  const { exercise, status, selected, dimmed, hiddenPrerequisites, onSelect } = data;
+  const { exercise, lane, levelTag, levelName, hiddenHint, figure, status, selected, dimmed, hiddenPrerequisites, onSelect } = data;
   const look = STATUS[status];
-  const lane = LANE_THEME[exercise.swimlane];
 
   return (
     <>
@@ -62,28 +69,40 @@ export const SkillNode = memo(({ data }: NodeProps<Node<SkillNodeData>>) => {
         type="button"
         onClick={() => onSelect(exercise.id)}
         aria-pressed={selected}
-        aria-label={`${exercise.name}, level ${exercise.level}, ${look.label.toLowerCase()}`}
-        className={`nodrag pointer-events-auto relative flex flex-col justify-between w-full h-full pl-4 pr-3 py-2.5 rounded-xl border text-left cursor-pointer transition-[opacity,box-shadow,border-color] duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white hover:border-slate-400 ${look.card} ${
+        aria-label={`${exercise.name}, ${levelName}, ${look.label.toLowerCase()}`}
+        className={`nodrag pointer-events-auto relative flex items-center gap-2.5 w-full h-full ${figure ? 'pl-3' : 'pl-4'} pr-3 py-2.5 rounded-xl border text-left cursor-pointer transition-[opacity,box-shadow,border-color] duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white hover:border-slate-400 ${look.card} ${
           selected ? 'ring-2 ring-white' : ''
         } ${dimmed ? 'opacity-40' : ''}`}
       >
         <span aria-hidden className={`absolute left-0 top-2.5 bottom-2.5 w-1 rounded-full ${lane.solid} ${status === 'locked' ? 'opacity-30' : ''}`} />
 
-        <span className="flex items-center justify-between gap-2">
-          <span className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-wider ${look.chip}`}>
-            {look.icon}
-            {look.label}
+        {figure && (
+          <SkillFigure
+            spec={figure}
+            accent={lane.hex}
+            framed
+            compact
+            className={`w-[54px] h-[54px] shrink-0 ${status === 'locked' ? 'opacity-50 grayscale' : ''}`}
+          />
+        )}
+
+        <span className="flex flex-col justify-between self-stretch flex-1 min-w-0">
+          <span className="flex items-center justify-between gap-2">
+            <span className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-wider ${look.chip}`}>
+              {look.icon}
+              {look.label}
+            </span>
+            <span className="flex items-center gap-1 text-[10px] font-mono font-bold text-slate-500">
+              {exercise.proStatus && <Crown className="w-3 h-3 text-neon-gold" aria-label="Pro hold" />}
+              {levelTag}
+            </span>
           </span>
-          <span className="flex items-center gap-1 text-[10px] font-mono font-bold text-slate-500">
-            {exercise.proStatus && <Crown className="w-3 h-3 text-neon-gold" aria-label="Pro hold" />}
-            L{exercise.level}
-          </span>
+
+          <span className={`text-[13px] font-bold leading-tight line-clamp-2 ${look.name}`}>{exercise.name}</span>
         </span>
 
-        <span className={`text-[13px] font-bold leading-tight line-clamp-2 ${look.name}`}>{exercise.name}</span>
-
         {hiddenPrerequisites > 0 && (
-          <span className="absolute -left-2 top-1/2 -translate-y-1/2 px-1 rounded bg-dark-950 border border-slate-700 text-[9px] font-mono font-bold text-slate-400" title="Needs an exercise from an earlier level that is filtered out">
+          <span className="absolute -left-2 top-1/2 -translate-y-1/2 px-1 rounded bg-dark-950 border border-slate-700 text-[9px] font-mono font-bold text-slate-400" title={hiddenHint}>
             +{hiddenPrerequisites}
           </span>
         )}
@@ -99,14 +118,14 @@ SkillNode.displayName = 'SkillNode';
 /* ------------------------------------------------------------------ */
 
 export interface LaneHeaderData extends Record<string, unknown> {
-  lane: Swimlane;
+  theme: LaneTheme;
   mastered: number;
   total: number;
   ready: number;
 }
 
 export const LaneHeaderNode = memo(({ data }: NodeProps<Node<LaneHeaderData>>) => {
-  const lane = LANE_THEME[data.lane];
+  const lane = data.theme;
   return (
     <div className={`flex items-center gap-3 w-full h-full px-3 rounded-xl border ${lane.border} ${lane.tint} pointer-events-none`}>
       <span className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest ${lane.text}`}>
@@ -140,12 +159,12 @@ export const LineLabelNode = memo(({ data }: NodeProps<Node<LineLabelData>>) => 
 LineLabelNode.displayName = 'LineLabelNode';
 
 export interface LevelHeaderData extends Record<string, unknown> {
-  level: number;
+  label: string;
 }
 
 export const LevelHeaderNode = memo(({ data }: NodeProps<Node<LevelHeaderData>>) => (
   <div className="flex items-center gap-2 w-full h-full pointer-events-none">
-    <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Level {data.level}</span>
+    <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap">{data.label}</span>
     <span className="flex-1 h-px bg-slate-800" />
   </div>
 ));
