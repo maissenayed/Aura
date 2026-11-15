@@ -194,7 +194,16 @@ Each person signs in with their own account (email + password, via [Better Auth]
 
 Every account has its own **plan**, edited on the Campaign page's *Plan* tab. It starts as the Master Workout & Progression Blueprint (`apps/web/src/data/blueprintPlan.ts`).
 
-A plan only holds choices from the catalog in `apps/web/src/data/campaignCatalog.ts` (exercises, lifts, bosses, milestones, skill trees, tendon armor). Players can't invent items. What they set themselves:
+A plan only holds choices from the catalog in `apps/web/src/data/campaignCatalog.ts` (exercises, lifts, bosses, milestones, skill trees, tendon armor). Players can't invent items.
+
+Exercises are grouped by skill set, and the Plan tab's exercise picker has a tab for each:
+
+- **Calisthenics:** the curated campaign moves plus every exercise on the Skill Tree page, under the same ids.
+- **Gym**
+- **Bouldering**
+- **Warm-up & recovery**
+
+What players set themselves:
 
 - which exercises go on which day, with sets and reps from dropdowns (the reps options follow the exercise: reps, seconds, minutes or "continuous");
 - which lifts they track, with their own starting and end-game numbers;

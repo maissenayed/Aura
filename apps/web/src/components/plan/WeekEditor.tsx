@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Moon } from 'lucide-react';
-import { ARMOR_BY_ID, EXERCISE_BY_ID } from '../../data/campaignCatalog';
+import { ARMOR_BY_ID, DISCIPLINES, EXERCISE_BY_ID } from '../../data/campaignCatalog';
 import {
   CampaignPlan,
   DAY_IDS,
@@ -20,7 +20,8 @@ import {
   normalizeSpec,
 } from '../../utils/campaignPlan';
 import { themeFor } from '../protocol/primitives';
-import { armorGroups, exerciseGroups, repsChoices, setOptions } from './catalogOptions';
+import { ExercisePicker } from './ExercisePicker';
+import { armorGroups, repsChoices, setOptions } from './catalogOptions';
 import {
   DeleteButton,
   EditCard,
@@ -41,12 +42,6 @@ interface Props {
   plan: CampaignPlan;
   onChange: (spec: PlanSpec) => void;
 }
-
-/** Warm-up and prep moves first in the warm-up picker. */
-const warmUpGroups = () => {
-  const groups = exerciseGroups();
-  return [...groups.filter((group) => group.label.startsWith('Warm-up')), ...groups.filter((group) => !group.label.startsWith('Warm-up'))];
-};
 
 export const WeekEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
   const [dayId, setDayId] = useState<DayId>('mon');
@@ -144,20 +139,17 @@ export const WeekEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
               <DoseFields
                 className="flex-1 min-w-[240px]"
                 choice={warmUp}
-                groups={warmUpGroups()}
+                pickerLabel="Change warm-up"
                 onChange={(next) => setDay({ ...day, warmUps: setAt(day.warmUps, index, next) })}
               />
               <DeleteButton compact label={`warm-up ${index + 1}`} onDelete={() => setDay({ ...day, warmUps: removeAt(day.warmUps, index) })} />
             </div>
           ))}
           {day.warmUps.length < 10 && (
-            <GroupedSelect
+            <ExercisePicker
               label="Add a warm-up"
-              hideLabel
-              value=""
-              placeholder="+ Add a warm-up…"
-              groups={warmUpGroups()}
-              onChange={(id) => setDay({ ...day, warmUps: [...day.warmUps, choiceFor(id)] })}
+              startOn="prep"
+              onPick={(id) => setDay({ ...day, warmUps: [...day.warmUps, choiceFor(id)] })}
             />
           )}
         </fieldset>
@@ -201,13 +193,10 @@ export const WeekEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
             ))}
           </ul>
           {day.exercises.length < 20 && (
-            <GroupedSelect
+            <ExercisePicker
               label={`Add an exercise to ${DAY_NAMES[day.id]}`}
-              hideLabel
-              value=""
-              placeholder={`+ Add an exercise to ${DAY_NAMES[day.id]}…`}
-              groups={exerciseGroups()}
-              onChange={addExercise}
+              startOn={day.kind === 'recovery' ? 'prep' : 'calisthenics'}
+              onPick={addExercise}
             />
           )}
         </Group>
@@ -220,23 +209,20 @@ export const WeekEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
 
 /* ------------------------------------------------------------------ */
 
-/** Exercise, sets and reps — three dropdowns. */
+/** Exercise (from the library), sets and reps. */
 const DoseFields: React.FC<{
   choice: DoseChoice;
-  groups: ReturnType<typeof exerciseGroups>;
+  pickerLabel: string;
   onChange: (choice: DoseChoice, structural: boolean) => void;
   className?: string;
-}> = ({ choice, groups, onChange, className }) => {
+}> = ({ choice, pickerLabel, onChange, className }) => {
   const reps = repsChoices(choice.exercise);
   return (
-    <div className={`grid gap-2 grid-cols-2 sm:grid-cols-[3fr_1fr_1.4fr] ${className ?? ''}`}>
-      <GroupedSelect
-        className="col-span-2 sm:col-span-1"
-        label="Exercise"
-        value={choice.exercise}
-        groups={groups}
-        onChange={(id) => onChange(choiceFor(id), true)}
-      />
+    <div className={`grid gap-2 grid-cols-2 sm:grid-cols-[3fr_1fr_1.4fr] items-end ${className ?? ''}`}>
+      <div className="col-span-2 sm:col-span-1">
+        <span className="block mb-1 text-[10px] font-black uppercase tracking-widest text-slate-500">Exercise</span>
+        <ExercisePicker label={pickerLabel} value={choice.exercise} onPick={(id) => onChange(choiceFor(id), true)} />
+      </div>
       {reps.length > 0 && (
         <>
           <SelectField
@@ -300,11 +286,12 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
       open={open}
       onToggle={onToggle}
     >
-      <DoseFields choice={choice} groups={exerciseGroups()} onChange={(next, structural) => onChange({ ...choice, ...next }, structural)} />
+      <DoseFields choice={choice} pickerLabel="Change exercise" onChange={(next, structural) => onChange({ ...choice, ...next }, structural)} />
 
       <Facts
         items={[
-          { label: 'Focus', value: catalog?.focus ?? '—' },
+          { label: 'Skill set', value: DISCIPLINES.find((d) => d.id === catalog?.discipline)?.label ?? '—' },
+          { label: 'Focus', value: `${catalog?.focus ?? '—'}${catalog?.level !== undefined ? ` · Skill Tree level ${catalog.level}` : ''}` },
           { label: 'Logs', value: logs },
           { label: 'Builds', value: builds },
           ...(feeds ? [{ label: 'Feeds', value: feeds }] : []),

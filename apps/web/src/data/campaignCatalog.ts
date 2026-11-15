@@ -7,17 +7,22 @@
  * item *is* — its name, what it logs, what it builds, what it requires — lives
  * here, so a correction made here reaches every plan.
  *
+ * Exercises come from three skill sets — calisthenics, gym and bouldering —
+ * plus warm-up and recovery work. The calisthenics set includes every
+ * exercise on the Skill Tree page, under the same ids.
+ *
  * Ids are permanent: plans and saves refer to them.
  */
 
 import type { Branch, StatUnit, TrainableAttribute } from '../utils/campaignPlan';
+import { EXERCISES as SKILL_TREE_EXERCISES } from './exercisesData';
 
 /* ------------------------------------------------------------------ */
 /* Sets & reps                                                         */
 /* ------------------------------------------------------------------ */
 
 /** How an exercise is dosed, which decides the reps dropdown. */
-export type DoseKind = 'reps' | 'seconds' | 'minutes' | 'continuous' | 'none';
+export type DoseKind = 'reps' | 'seconds' | 'minutes' | 'continuous' | 'problems' | 'none';
 
 export const SET_OPTIONS = [1, 2, 3, 4, 5, 6];
 
@@ -26,6 +31,7 @@ export const DOSE_OPTIONS: Record<Exclude<DoseKind, 'none'>, string[]> = {
   seconds: ['5', '10', '10–15', '15', '20', '30', '45', '60'],
   minutes: ['5', '10', '15', '20', '30', '45', '60', '60–90'],
   continuous: ['50', '100'],
+  problems: ['3', '5', '8', '10', '15', '20'],
 };
 
 /** How one dropdown option reads, e.g. "8–12 reps", "max reps (AMRAP)", "15 secs". */
@@ -34,6 +40,7 @@ export function doseOptionLabel(kind: DoseKind, option: string): string {
   if (kind === 'seconds') return `${option} secs`;
   if (kind === 'minutes') return `${option} mins`;
   if (kind === 'continuous') return `${option} continuous`;
+  if (kind === 'problems') return `${option} problems`;
   return '';
 }
 
@@ -46,6 +53,7 @@ export function formatDose(exercise: CatalogExercise, sets: number, reps: string
   if (dose === 'none') return '';
   if (dose === 'minutes') return sets === 1 ? `${reps} mins` : `${sets} x ${reps} mins`;
   if (dose === 'continuous') return sets === 1 ? `${reps} continuous` : `${sets} x ${reps} continuous`;
+  if (dose === 'problems') return sets === 1 ? `${reps} problems` : `${sets} x ${reps} problems`;
   if (dose === 'seconds') return `${sets} x ${reps}${short ? 's' : ' secs'}${side ? ` per ${side}` : ''}`;
   if (reps === 'max') return `${sets} x max reps (AMRAP)`;
   if (side) return `${sets} x ${reps} per ${side}`;
@@ -112,10 +120,23 @@ export const EXERCISE_CATEGORIES: { id: ExerciseCategory; label: string }[] = [
   { id: 'warmup', label: 'Warm-up & prep' },
 ];
 
+/** The skill set an exercise belongs to — the tabs of the exercise picker. */
+export type Discipline = 'calisthenics' | 'gym' | 'bouldering' | 'prep';
+
+export const DISCIPLINES: { id: Discipline; label: string }[] = [
+  { id: 'calisthenics', label: 'Calisthenics' },
+  { id: 'gym', label: 'Gym' },
+  { id: 'bouldering', label: 'Bouldering' },
+  { id: 'prep', label: 'Warm-up & recovery' },
+];
+
 export interface CatalogExercise {
   id: string;
   name: string;
+  discipline: Discipline;
   category: ExerciseCategory;
+  /** Its level on the Skill Tree page, for exercises that come from there. */
+  level?: number;
   focus: string;
   dose: DoseKind;
   /** Dosed per leg / side / arm. */
@@ -138,7 +159,7 @@ export interface CatalogExercise {
 
 const BW = 'Bodyweight';
 
-export const EXERCISE_CATALOG: CatalogExercise[] = [
+const CURATED: Omit<CatalogExercise, 'discipline'>[] = [
   /* Push */
   { id: 'weighted_dips', name: 'Weighted Dips', category: 'push', focus: 'Lower Chest & Triceps', dose: 'reps', lift: 'dips', trains: ['push', 'straight', 'power'], sets: 4, reps: '5–8' },
   { id: 'incline_bench', name: 'Barbell Incline Bench', category: 'push', focus: 'Upper Chest', dose: 'reps', lift: 'inclineBench', trains: ['push', 'straight'], sets: 4, reps: '8–12' },
@@ -213,6 +234,14 @@ export const EXERCISE_CATALOG: CatalogExercise[] = [
   { id: 'zone2_cardio', name: 'Zone-2 Cardio', category: 'recovery', focus: 'Aerobic Base', dose: 'minutes', note: 'Easy pace', trains: ['endurance'], sets: 1, reps: '30' },
   { id: 'mobility_flow', name: 'Mobility Flow', category: 'recovery', focus: 'Joints & Range', dose: 'minutes', note: BW, trains: ['tendon'], sets: 1, reps: '15' },
 
+  /* Bouldering sessions */
+  { id: 'boulder_limit', name: 'Limit Bouldering', category: 'recovery', focus: 'Hardest problems, full rests', dose: 'minutes', note: 'Max effort', trains: ['grip', 'power'], sets: 1, reps: '45' },
+  { id: 'boulder_volume', name: 'Volume Bouldering', category: 'recovery', focus: 'Many problems below your max', dose: 'problems', note: '2–3 grades under max', trains: ['grip', 'endurance'], sets: 1, reps: '15' },
+  { id: 'boulder_flash', name: 'Flash Attempts', category: 'recovery', focus: 'Read it, send it first go', dose: 'problems', note: 'New problems', trains: ['grip', 'power'], sets: 1, reps: '5' },
+  { id: 'boulder_technique', name: 'Silent Feet Drill', category: 'recovery', focus: 'Precise, quiet footwork', dose: 'minutes', note: 'Easy problems', trains: ['balance'], sets: 1, reps: '15' },
+  { id: 'boulder_hangboard', name: 'Hangboard Repeaters', category: 'recovery', focus: 'Finger strength', dose: 'seconds', note: '20 mm edge', trains: ['grip', 'tendon'], sets: 6, reps: '10' },
+  { id: 'boulder_campus', name: 'Campus Board Ladders', category: 'recovery', focus: 'Contact strength', dose: 'reps', note: 'Feet off', trains: ['power', 'grip'], sets: 4, reps: '3' },
+
   /* Warm-up & prep */
   { id: 'bw_squats', name: 'Bodyweight Squats', category: 'warmup', focus: 'Warm-up', dose: 'reps', note: BW, trains: [], sets: 2, reps: '10' },
   { id: 'scap_pullups', name: 'Scapular Pull-ups', category: 'warmup', focus: 'Scapula Control', dose: 'reps', note: BW, trains: [], sets: 2, reps: '10' },
@@ -221,6 +250,58 @@ export const EXERCISE_CATALOG: CatalogExercise[] = [
   { id: 'wrist_prep', name: 'Wrist Prep', category: 'warmup', focus: 'Wrist Mobility', dose: 'minutes', note: BW, trains: [], sets: 1, reps: '5' },
   { id: 'easy_routes', name: 'Easy V0–V1 Routes', category: 'warmup', focus: 'Warm-up climbing', dose: 'none', note: 'V0–V1', trains: [], sets: 1, reps: '' },
   { id: 'jump_rope', name: 'Jump Rope', category: 'warmup', focus: 'Heart Rate Up', dose: 'minutes', note: BW, trains: [], sets: 1, reps: '5' },
+];
+
+const GYM_IDS = new Set([
+  'incline_bench', 'db_press', 'bench_press', 'overhead_press', 'tricep_pushdown', 'lateral_raise', 'overhead_extension',
+  'cable_row', 'barbell_row', 'lat_pulldown', 'reverse_pec_deck', 'cable_curl', 'hammer_curl', 'face_pulls',
+  'split_squat', 'leg_curl', 'back_squat', 'deadlift', 'walking_lunges', 'calf_raises',
+  'feeder_curls', 'pushdown_flush', 'wrist_curls', 'farmers_carry',
+]);
+const BOULDERING_IDS = new Set(['bouldering', 'easy_routes']);
+const PREP_IDS = new Set(['zone2_cardio', 'mobility_flow']);
+
+function disciplineOf(exercise: Omit<CatalogExercise, 'discipline'>): Discipline {
+  if (GYM_IDS.has(exercise.id)) return 'gym';
+  if (BOULDERING_IDS.has(exercise.id) || exercise.id.startsWith('boulder_')) return 'bouldering';
+  if (PREP_IDS.has(exercise.id) || exercise.category === 'warmup') return 'prep';
+  return 'calisthenics';
+}
+
+/* Skill Tree exercises: sets and reps follow the level, holds are timed. */
+const MOVING = /push|pull|dip|raise|row|press|squat|curl|muscle|\bmu\b|kip|felge|jump|shrimp|pistol|lunge|thrust|walk|clap|eccentric|neg|rep|swing|roll/i;
+const STATIC = /hold|plank|lever|planche|l-sit|v-sit|manna|flag|hang|handstand|cross|maltese|statics|support|sup\b|headstand|hollow|sit\b/i;
+
+function fromSkillTree(exercise: (typeof SKILL_TREE_EXERCISES)[number]): CatalogExercise {
+  const text = `${exercise.name} ${exercise.subCategory}`;
+  const timed = STATIC.test(exercise.name) && !MOVING.test(exercise.name);
+  const level = exercise.level;
+  const trains = new Set<TrainableAttribute>([exercise.swimlane.toLowerCase() as TrainableAttribute]);
+  if (/planche|lever|cross|maltese|victorian|elbow lever/i.test(text)) trains.add('straight');
+  if (/l-sit|v-sit|manna|straddle-l|pike|toes to bar|leg raise|compression/i.test(text)) trains.add('compression');
+  if (/handstand|headstand/i.test(text)) trains.add('balance');
+  if (/muscle|\bmu\b|clap|explosive|jump|kip/i.test(text)) trains.add('power');
+  if (/hang|towel|grip/i.test(text)) trains.add('grip');
+  return {
+    id: exercise.id,
+    name: exercise.name,
+    discipline: 'calisthenics',
+    category: exercise.swimlane.toLowerCase() as ExerciseCategory,
+    level,
+    focus: exercise.subCategory,
+    dose: timed ? 'seconds' : 'reps',
+    note: BW,
+    trains: [...trains],
+    sets: level <= 6 ? 3 : 4,
+    reps: timed
+      ? level <= 3 ? '30' : level <= 6 ? '20' : level <= 10 ? '10' : '5'
+      : level <= 3 ? '10–15' : level <= 6 ? '8–12' : level <= 10 ? '5–8' : '3',
+  };
+}
+
+export const EXERCISE_CATALOG: CatalogExercise[] = [
+  ...CURATED.map((exercise) => ({ ...exercise, discipline: disciplineOf(exercise) })),
+  ...SKILL_TREE_EXERCISES.map(fromSkillTree),
 ];
 
 /* ------------------------------------------------------------------ */

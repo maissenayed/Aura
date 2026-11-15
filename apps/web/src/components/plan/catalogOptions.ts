@@ -4,8 +4,6 @@ import {
   ARMOR_CATALOG,
   BOSS_CATALOG,
   EXERCISE_BY_ID,
-  EXERCISE_CATALOG,
-  EXERCISE_CATEGORIES,
   LIFT_CATALOG,
   SET_OPTIONS,
   TREE_CATALOG,
@@ -14,17 +12,6 @@ import {
 import { BRANCHES, repsOptions } from '../../utils/campaignPlan';
 
 type Group = { label: string; options: { id: string; label: string }[] };
-
-/** Every catalog exercise, grouped by category. `except` hides ids already used where that matters. */
-export function exerciseGroups(except: Set<string> = new Set()): Group[] {
-  return EXERCISE_CATEGORIES.map((category) => ({
-    label: category.label,
-    options: EXERCISE_CATALOG.filter((exercise) => exercise.category === category.id && !except.has(exercise.id)).map((exercise) => ({
-      id: exercise.id,
-      label: `${exercise.name} — ${exercise.focus}`,
-    })),
-  }));
-}
 
 export function liftGroups(except: Set<string>): Group[] {
   return BRANCHES.map((branch) => ({
