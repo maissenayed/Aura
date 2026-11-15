@@ -8,14 +8,17 @@
  * here, so a correction made here reaches every plan.
  *
  * Exercises come from three skill sets — calisthenics, gym and bouldering —
- * plus warm-up and recovery work. The calisthenics set includes every
- * exercise on the Skill Tree page, under the same ids.
+ * plus warm-up and recovery work. Every skill on the Skill Tree page's three
+ * trees is here under the same id, so a mission and its skill-tree node are
+ * the same exercise.
  *
  * Ids are permanent: plans and saves refer to them.
  */
 
 import type { Branch, StatUnit, TrainableAttribute } from '../utils/campaignPlan';
+import { BOULDERING_SKILLS } from './boulderingTree';
 import { EXERCISES as SKILL_TREE_EXERCISES } from './exercisesData';
+import { GYM_SKILLS } from './gymTree';
 
 /* ------------------------------------------------------------------ */
 /* Sets & reps                                                         */
@@ -108,7 +111,7 @@ export const LIFT_CATALOG: CatalogLift[] = [
 /* Exercises                                                           */
 /* ------------------------------------------------------------------ */
 
-export type ExerciseCategory = 'push' | 'pull' | 'legs' | 'core' | 'skill' | 'recovery' | 'warmup';
+export type ExerciseCategory = 'push' | 'pull' | 'legs' | 'core' | 'skill' | 'climb' | 'recovery' | 'warmup';
 
 export const EXERCISE_CATEGORIES: { id: ExerciseCategory; label: string }[] = [
   { id: 'push', label: 'Push' },
@@ -116,6 +119,7 @@ export const EXERCISE_CATEGORIES: { id: ExerciseCategory; label: string }[] = [
   { id: 'legs', label: 'Legs' },
   { id: 'core', label: 'Core & compression' },
   { id: 'skill', label: 'Skills & holds' },
+  { id: 'climb', label: 'Climbing' },
   { id: 'recovery', label: 'Grip, tendons & recovery' },
   { id: 'warmup', label: 'Warm-up & prep' },
 ];
@@ -137,6 +141,10 @@ export interface CatalogExercise {
   category: ExerciseCategory;
   /** Its level on the Skill Tree page, for exercises that come from there. */
   level?: number;
+  /** The level as its tree says it: "V4 · 6B+", "Intermediate". Defaults to "Lv N". */
+  levelLabel?: string;
+  /** The heading it sits under in the exercise picker; defaults to its category. */
+  group?: string;
   focus: string;
   dose: DoseKind;
   /** Dosed per leg / side / arm. */
@@ -227,7 +235,7 @@ const CURATED: Omit<CatalogExercise, 'discipline'>[] = [
   /* Grip, tendons & recovery */
   { id: 'feeder_curls', name: 'Cable Feeder Curls', category: 'recovery', focus: 'Tendon flushing', dose: 'continuous', note: 'Lowest weight', armor: true, trains: ['endurance', 'tendon'], sets: 1, reps: '100' },
   { id: 'pushdown_flush', name: 'Cable Tricep Pushdowns (Tendon Flush)', category: 'recovery', focus: 'Zero muscle damage', dose: 'continuous', note: 'Lowest weight', armor: true, trains: ['endurance', 'tendon'], sets: 1, reps: '100' },
-  { id: 'bouldering', name: 'Bouldering', category: 'recovery', focus: 'Dynamic Pulling & Grip', dose: 'minutes', note: 'V0–V1 routes', trains: ['grip'], sets: 1, reps: '60–90' },
+  { id: 'bouldering', name: 'Bouldering', category: 'climb', group: 'Sessions', focus: 'Dynamic Pulling & Grip', dose: 'minutes', note: 'V0–V1 routes', trains: ['grip'], sets: 1, reps: '60–90' },
   { id: 'wrist_curls', name: 'DB Reverse Wrist Curls', category: 'recovery', focus: 'Wrist Tendon Armor', dose: 'reps', load: { start: null, step: 1 }, armor: true, trains: ['grip', 'tendon'], sets: 3, reps: '15–20' },
   { id: 'dead_hang', name: 'Dead Hangs', category: 'recovery', focus: 'Grip & Shoulders', dose: 'seconds', lift: 'hangTime', trains: ['grip', 'tendon'], sets: 3, reps: '30' },
   { id: 'farmers_carry', name: "Farmer's Carry", category: 'recovery', focus: 'Grip & Trunk', dose: 'seconds', load: { start: null, step: 2 }, trains: ['grip', 'core'], sets: 3, reps: '30' },
@@ -235,12 +243,12 @@ const CURATED: Omit<CatalogExercise, 'discipline'>[] = [
   { id: 'mobility_flow', name: 'Mobility Flow', category: 'recovery', focus: 'Joints & Range', dose: 'minutes', note: BW, trains: ['tendon'], sets: 1, reps: '15' },
 
   /* Bouldering sessions */
-  { id: 'boulder_limit', name: 'Limit Bouldering', category: 'recovery', focus: 'Hardest problems, full rests', dose: 'minutes', note: 'Max effort', trains: ['grip', 'power'], sets: 1, reps: '45' },
-  { id: 'boulder_volume', name: 'Volume Bouldering', category: 'recovery', focus: 'Many problems below your max', dose: 'problems', note: '2–3 grades under max', trains: ['grip', 'endurance'], sets: 1, reps: '15' },
-  { id: 'boulder_flash', name: 'Flash Attempts', category: 'recovery', focus: 'Read it, send it first go', dose: 'problems', note: 'New problems', trains: ['grip', 'power'], sets: 1, reps: '5' },
-  { id: 'boulder_technique', name: 'Silent Feet Drill', category: 'recovery', focus: 'Precise, quiet footwork', dose: 'minutes', note: 'Easy problems', trains: ['balance'], sets: 1, reps: '15' },
-  { id: 'boulder_hangboard', name: 'Hangboard Repeaters', category: 'recovery', focus: 'Finger strength', dose: 'seconds', note: '20 mm edge', trains: ['grip', 'tendon'], sets: 6, reps: '10' },
-  { id: 'boulder_campus', name: 'Campus Board Ladders', category: 'recovery', focus: 'Contact strength', dose: 'reps', note: 'Feet off', trains: ['power', 'grip'], sets: 4, reps: '3' },
+  { id: 'boulder_limit', name: 'Limit Bouldering', category: 'climb', group: 'Sessions', focus: 'Hardest problems, full rests', dose: 'minutes', note: 'Max effort', trains: ['grip', 'power'], sets: 1, reps: '45' },
+  { id: 'boulder_volume', name: 'Volume Bouldering', category: 'climb', group: 'Sessions', focus: 'Many problems below your max', dose: 'problems', note: '2–3 grades under max', trains: ['grip', 'endurance'], sets: 1, reps: '15' },
+  { id: 'boulder_flash', name: 'Flash Attempts', category: 'climb', group: 'Sessions', focus: 'Read it, send it first go', dose: 'problems', note: 'New problems', trains: ['grip', 'power'], sets: 1, reps: '5' },
+  { id: 'boulder_technique', name: 'Silent Feet Drill', category: 'climb', group: 'Sessions', focus: 'Precise, quiet footwork', dose: 'minutes', note: 'Easy problems', trains: ['balance'], sets: 1, reps: '15' },
+  { id: 'boulder_hangboard', name: 'Hangboard Repeaters', category: 'climb', group: 'Sessions', focus: 'Finger strength', dose: 'seconds', note: '20 mm edge', trains: ['grip', 'tendon'], sets: 6, reps: '10' },
+  { id: 'boulder_campus', name: 'Campus Board Ladders', category: 'climb', group: 'Sessions', focus: 'Contact strength', dose: 'reps', note: 'Feet off', trains: ['power', 'grip'], sets: 4, reps: '3' },
 
   /* Warm-up & prep */
   { id: 'bw_squats', name: 'Bodyweight Squats', category: 'warmup', focus: 'Warm-up', dose: 'reps', note: BW, trains: [], sets: 2, reps: '10' },
@@ -299,9 +307,98 @@ function fromSkillTree(exercise: (typeof SKILL_TREE_EXERCISES)[number]): Catalog
   };
 }
 
+/* Gym tree skills. Strength standards on a lift the campaign tracks log that lift. */
+const GYM_LIFTS: Record<string, string> = {
+  gym_pushup: 'pushUpReps',
+  gym_pullup: 'pullUpReps',
+  gym_bench_bodyweight: 'benchPress',
+  gym_bench_1_5x: 'benchPress',
+  gym_ohp_bodyweight: 'overheadPress',
+  gym_weighted_pullup: 'weightedPullUps',
+  gym_pullup_half_bw: 'weightedPullUps',
+  gym_pendlay_row: 'barbellRow',
+  gym_row_bodyweight: 'barbellRow',
+  gym_squat_1_5x: 'backSquat',
+  gym_squat_2x: 'backSquat',
+  gym_deadlift_2x: 'deadlift',
+  gym_deadlift_2_5x: 'deadlift',
+};
+const GYM_BODYWEIGHT = new Set(['gym_pushup', 'gym_pullup', 'gym_plank', 'gym_hanging_leg_raise', 'gym_ab_wheel']);
+const laneGroup = (lane: string) => (lane === 'Core' ? 'Core & Grip' : lane);
+
+function fromGymTree(skill: (typeof GYM_SKILLS)[number]): CatalogExercise {
+  const timed = /plank|hold|hang\b|carry/i.test(skill.name);
+  const lift = GYM_LIFTS[skill.id];
+  const lane = skill.lane.toLowerCase() as ExerciseCategory;
+  const trains = new Set<TrainableAttribute>([lane as TrainableAttribute]);
+  if (/leg raise|ab wheel/i.test(skill.name)) trains.add('compression');
+  if (/pull-up|pullup/i.test(skill.name)) trains.add('power');
+  return {
+    id: skill.id,
+    name: skill.name,
+    discipline: 'gym',
+    category: lane,
+    level: skill.level,
+    levelLabel: skill.levelLabel,
+    group: laneGroup(skill.lane),
+    focus: skill.focus,
+    dose: timed ? 'seconds' : 'reps',
+    ...(lift ? { lift } : GYM_BODYWEIGHT.has(skill.id) ? { note: BW } : { load: { start: null, step: 2.5 } }),
+    trains: [...trains],
+    sets: skill.level <= 2 ? 3 : 4,
+    reps: timed ? '30' : skill.level <= 2 ? '8–12' : skill.level === 3 ? '6–10' : '5',
+  };
+}
+
+/* Bouldering tree skills: practised on a number of problems, or timed and repped on the board. */
+const BOULDERING_TIMED = new Set(['bld_hangboard', 'bld_one_arm_hang', 'bld_lock_off', 'bld_one_arm_lock']);
+const BOULDERING_REPPED = new Set(['bld_campus_move', 'bld_campus_ladder', 'bld_campus_skip']);
+const BOULDERING_TRAINS: Record<string, TrainableAttribute[]> = {
+  Technique: ['balance', 'grip'],
+  Body: ['core', 'balance', 'grip'],
+  Movement: ['power', 'grip'],
+  Strength: ['grip', 'pull', 'tendon'],
+};
+
+function fromBoulderingTree(skill: (typeof BOULDERING_SKILLS)[number]): CatalogExercise {
+  const timed = BOULDERING_TIMED.has(skill.id);
+  const repped = BOULDERING_REPPED.has(skill.id);
+  const trains = new Set<TrainableAttribute>(BOULDERING_TRAINS[skill.lane] ?? ['grip']);
+  if (/compression/i.test(skill.name)) trains.add('compression');
+  if (/iron cross|lock/i.test(skill.name)) trains.add('straight');
+  return {
+    id: skill.id,
+    name: skill.name,
+    discipline: 'bouldering',
+    category: 'climb',
+    level: skill.level,
+    levelLabel: skill.levelLabel,
+    group: skill.lane,
+    focus: skill.focus,
+    dose: timed ? 'seconds' : repped ? 'reps' : skill.id === 'bld_projecting' ? 'minutes' : 'problems',
+    note: skill.subCategory,
+    trains: [...trains],
+    sets: timed ? 5 : repped ? 4 : 1,
+    reps: timed ? '10' : repped ? '3' : skill.id === 'bld_projecting' ? '30' : '5',
+  };
+}
+
+const curatedIds = new Set(CURATED.map((exercise) => exercise.id));
+const gymById = new Map(GYM_SKILLS.map((skill) => [skill.id, skill]));
+
 export const EXERCISE_CATALOG: CatalogExercise[] = [
-  ...CURATED.map((exercise) => ({ ...exercise, discipline: disciplineOf(exercise) })),
+  ...CURATED.map((exercise) => {
+    // Curated exercises that are also on the gym tree take its level.
+    const tree = gymById.get(exercise.id);
+    return {
+      ...exercise,
+      discipline: disciplineOf(exercise),
+      ...(tree ? { level: tree.level, levelLabel: tree.levelLabel, group: laneGroup(tree.lane) } : {}),
+    };
+  }),
   ...SKILL_TREE_EXERCISES.map(fromSkillTree),
+  ...GYM_SKILLS.filter((skill) => !curatedIds.has(skill.id)).map(fromGymTree),
+  ...BOULDERING_SKILLS.map(fromBoulderingTree),
 ];
 
 /* ------------------------------------------------------------------ */

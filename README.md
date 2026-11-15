@@ -198,10 +198,12 @@ A plan only holds choices from the catalog in `apps/web/src/data/campaignCatalog
 
 Exercises are grouped by skill set, and the Plan tab's exercise picker has a tab for each:
 
-- **Calisthenics:** the curated campaign moves plus every exercise on the Skill Tree page, under the same ids.
-- **Gym**
-- **Bouldering**
+- **Calisthenics:** the curated campaign moves plus every exercise on the Skill Tree page's Calisthenics tree.
+- **Gym:** every skill on the Gym tree (`data/gymTree.ts`). Strength standards such as "Squat 2× Bodyweight" log the lift they measure.
+- **Bouldering:** session types plus every skill on the Bouldering tree (`data/boulderingTree.ts`), practised over a number of problems.
 - **Warm-up & recovery**
+
+Every tree skill keeps its tree id and level, so a mission and its skill-tree node are the same exercise.
 
 What players set themselves:
 

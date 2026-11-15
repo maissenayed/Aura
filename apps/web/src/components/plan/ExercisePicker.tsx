@@ -16,6 +16,28 @@ const RESULT_LIMIT = 60;
 
 const CATEGORY_LABEL = new Map(EXERCISE_CATEGORIES.map((category) => [category.id, category.label]));
 
+/** Headings in the order the trees use; anything else follows. */
+const GROUP_ORDER = [
+  'Sessions',
+  'Push',
+  'Pull',
+  'Legs',
+  'Core',
+  'Core & Grip',
+  'Core & compression',
+  'Skills & holds',
+  'Technique',
+  'Body',
+  'Movement',
+  'Strength',
+  'Grip, tendons & recovery',
+  'Warm-up & prep',
+];
+const groupRank = (group: string) => {
+  const index = GROUP_ORDER.indexOf(group);
+  return index === -1 ? GROUP_ORDER.length : index;
+};
+
 /** Exercises that log a lift or keep a working weight come first — they feed the campaign's numbers. */
 const tracked = (exercise: CatalogExercise) => Boolean(exercise.lift || exercise.load);
 
@@ -66,10 +88,10 @@ export const ExercisePicker: React.FC<{
       .slice(0, RESULT_LIMIT);
     const byCategory = new Map<string, CatalogExercise[]>();
     for (const exercise of found) {
-      const key = tab === 'bouldering' ? 'Bouldering' : (CATEGORY_LABEL.get(exercise.category) ?? 'Other');
+      const key = exercise.group ?? CATEGORY_LABEL.get(exercise.category) ?? 'Other';
       byCategory.set(key, [...(byCategory.get(key) ?? []), exercise]);
     }
-    return [...byCategory.entries()];
+    return [...byCategory.entries()].sort(([a], [b]) => groupRank(a) - groupRank(b));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, query]);
 
@@ -186,7 +208,9 @@ export const ExercisePicker: React.FC<{
                       <span className="flex items-center justify-between gap-2">
                         <span className="text-sm font-bold text-white truncate">{exercise.name}</span>
                         {exercise.level !== undefined && (
-                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 shrink-0">Lv {exercise.level}</span>
+                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 shrink-0">
+                            {exercise.levelLabel ?? `Lv ${exercise.level}`}
+                          </span>
                         )}
                       </span>
                       <span className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5 text-[10px]">

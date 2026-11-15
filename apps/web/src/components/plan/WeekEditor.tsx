@@ -291,7 +291,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
       <Facts
         items={[
           { label: 'Skill set', value: DISCIPLINES.find((d) => d.id === catalog?.discipline)?.label ?? '—' },
-          { label: 'Focus', value: `${catalog?.focus ?? '—'}${catalog?.level !== undefined ? ` · Skill Tree level ${catalog.level}` : ''}` },
+          {
+            label: 'Focus',
+            value: `${catalog?.focus ?? '—'}${catalog?.level !== undefined ? ` · Skill Tree ${catalog.levelLabel ?? `level ${catalog.level}`}` : ''}`,
+          },
           { label: 'Logs', value: logs },
           { label: 'Builds', value: builds },
           ...(feeds ? [{ label: 'Feeds', value: feeds }] : []),
