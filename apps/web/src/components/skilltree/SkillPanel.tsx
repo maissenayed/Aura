@@ -26,7 +26,7 @@ import {
   tutorialSearchUrl,
   videoIdOf,
 } from '../../utils/skillTree';
-import { ANGLE_LABEL, SkillFigure } from './SkillFigure';
+import { SCENE_LABEL, SkillFigure } from './SkillFigure';
 import { SkillTreeDef, laneThemeOf } from './skillTrees';
 
 const UP_NEXT_LIMIT = 8;
@@ -331,15 +331,17 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
       </header>
 
       {figure && (
-        <figure className="relative overflow-hidden rounded-2xl border border-slate-800 bg-dark-950 bg-grid-pattern">
+        <figure className="relative mx-auto w-full max-w-[280px]">
           <SkillFigure
             spec={figure}
             accent={theme.hex}
+            framed
+            animate
             title={`Illustration of ${exercise.name}`}
-            className="block mx-auto w-full max-w-[260px] aspect-square"
+            className="block w-full aspect-square"
           />
-          <figcaption className="absolute left-3 top-2.5 px-2 py-0.5 rounded-md bg-dark-900/90 border border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400">
-            {ANGLE_LABEL[figure.angle]}
+          <figcaption className="absolute left-3 top-3 px-2 py-0.5 rounded-md bg-dark-900/90 border border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400">
+            {SCENE_LABEL[figure.scene]}
           </figcaption>
         </figure>
       )}

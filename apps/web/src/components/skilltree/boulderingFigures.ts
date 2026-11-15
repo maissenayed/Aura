@@ -1,154 +1,16 @@
-import { Arrow, Disc, FigureSpec, Hold, Pt, Stroke, Tone, WallAngle } from './SkillFigure';
+import { FigureSpec, Pt, Stroke } from './SkillFigure';
+import { ALL, climber, figure, hold, scaled } from './figureKit';
 
 /**
- * One illustration per bouldering skill, drawn by `SkillFigure`.
- *
- * A climber is described by where its hands, feet, neck and pelvis are; the
- * elbows and knees are worked out from limb lengths (two-bone IK), with `bend`
- * saying which way they fold. Front views look at the climber's back (the
- * wall is behind the figure); side views put the wall on the left.
+ * One illustration per bouldering skill, drawn by `SkillFigure`. Front views
+ * look at the climber's back (the wall is behind the figure); side views put
+ * the wall on the left.
  */
-
-type Limb = 'lArm' | 'rArm' | 'lLeg' | 'rLeg';
-type Part = Limb | 'torso' | 'head';
-type Bend = 'out' | 'in' | 'up' | 'down' | 'left' | 'right';
-
-interface Pose {
-  neck: Pt;
-  pelvis: Pt;
-  lHand: Pt;
-  rHand: Pt;
-  lFoot: Pt;
-  rFoot: Pt;
-  bend?: Partial<Record<Limb, Bend>>;
-  /** Set an elbow or knee directly instead of solving it. */
-  joints?: Partial<Record<Limb, Pt>>;
-  /** 0 = square to the wall, 1 = side-on. Narrows the shoulders and hips. */
-  turn?: number;
-  head?: Pt;
-  /** Direction the shoe points, when the foot itself matters. */
-  lToe?: Pt;
-  rToe?: Pt;
-}
-
-interface Drawn {
-  strokes: Stroke[];
-  discs: Disc[];
-}
-
-const UPPER_ARM = 11.5;
-const FOREARM = 11;
-const THIGH = 15;
-const SHIN = 14.5;
-
-const ALL: Part[] = ['lArm', 'rArm', 'lLeg', 'rLeg', 'torso', 'head'];
-
-const sub = (a: Pt, b: Pt): Pt => [a[0] - b[0], a[1] - b[1]];
-const add = (a: Pt, b: Pt): Pt => [a[0] + b[0], a[1] + b[1]];
-const mul = (a: Pt, k: number): Pt => [a[0] * k, a[1] * k];
-const len = (a: Pt) => Math.hypot(a[0], a[1]);
-const unit = (a: Pt): Pt => {
-  const l = len(a) || 1;
-  return [a[0] / l, a[1] / l];
-};
-
-/** Where the elbow or knee goes so both bones keep their length, folded towards `bend`. */
-function solveJoint(root: Pt, tip: Pt, first: number, second: number, bend: Bend, centreX: number): Pt {
-  const span = sub(tip, root);
-  const d = len(span);
-  if (d < 1e-6) return root;
-  if (d >= first + second) return add(root, mul(span, first / (first + second)));
-  const along = (first * first - second * second + d * d) / (2 * d);
-  const off = Math.sqrt(Math.max(0, first * first - along * along));
-  const base = add(root, mul(span, along / d));
-  const normal: Pt = [(-span[1] / d) * off, (span[0] / d) * off];
-  const a = add(base, normal);
-  const b = sub(base, normal);
-  const score = (p: Pt) => {
-    switch (bend) {
-      case 'out':
-        return Math.abs(p[0] - centreX);
-      case 'in':
-        return -Math.abs(p[0] - centreX);
-      case 'up':
-        return -p[1];
-      case 'down':
-        return p[1];
-      case 'left':
-        return -p[0];
-      case 'right':
-        return p[0];
-    }
-  };
-  return score(a) >= score(b) ? a : b;
-}
-
-function climber(pose: Pose, focus: Part[] = [], ghost = false): Drawn {
-  const axis = unit(sub(pose.neck, pose.pelvis));
-  const across: Pt = [-axis[1], axis[0]];
-  const turn = pose.turn ?? 0;
-  const shoulderHalf = 6.5 * (1 - 0.65 * turn);
-  const hipHalf = 4.2 * (1 - 0.55 * turn);
-  // `across` points to screen-right for an upright climber.
-  const lShoulder = sub(pose.neck, mul(across, shoulderHalf));
-  const rShoulder = add(pose.neck, mul(across, shoulderHalf));
-  const lHip = sub(pose.pelvis, mul(across, hipHalf));
-  const rHip = add(pose.pelvis, mul(across, hipHalf));
-  const centreX = (pose.neck[0] + pose.pelvis[0]) / 2;
-  const bend = pose.bend ?? {};
-  const joints = pose.joints ?? {};
-
-  const joint = (limb: Limb, root: Pt, tip: Pt, a: number, b: number) =>
-    joints[limb] ?? solveJoint(root, tip, a, b, bend[limb] ?? 'out', centreX);
-
-  const tone = (part: Part): Tone => (ghost ? 'ghost' : focus.includes(part) ? 'focus' : 'body');
-  const foot = (at: Pt, toe?: Pt): Pt[] => (toe ? [at, add(at, mul(unit(toe), 4.6))] : [at]);
-
-  const strokes: Stroke[] = [
-    { pts: [lShoulder, rShoulder, rHip, lHip], width: 3.4, tone: tone('torso'), closed: true },
-    { pts: [lShoulder, joint('lArm', lShoulder, pose.lHand, UPPER_ARM, FOREARM), pose.lHand], width: 3.6, tone: tone('lArm') },
-    { pts: [rShoulder, joint('rArm', rShoulder, pose.rHand, UPPER_ARM, FOREARM), pose.rHand], width: 3.6, tone: tone('rArm') },
-    { pts: [lHip, joint('lLeg', lHip, pose.lFoot, THIGH, SHIN), ...foot(pose.lFoot, pose.lToe)], width: 4.2, tone: tone('lLeg') },
-    { pts: [rHip, joint('rLeg', rHip, pose.rFoot, THIGH, SHIN), ...foot(pose.rFoot, pose.rToe)], width: 4.2, tone: tone('rLeg') },
-  ];
-  const head = pose.head ?? add(pose.neck, mul(axis, 6.4));
-  strokes.push({ pts: [pose.neck, add(pose.neck, mul(sub(head, pose.neck), 0.5))], width: 2.6, tone: tone('head') });
-
-  return { strokes, discs: [{ at: head, r: 4.4, tone: tone('head') }] };
-}
-
-interface FigureInput {
-  angle: WallAngle;
-  wall?: string;
-  holds?: Hold[];
-  people?: Drawn[];
-  /** Hands drawn close up, and other one-off lines. */
-  extra?: Stroke[];
-  arrows?: Arrow[];
-  rings?: Pt[];
-  labels?: { at: Pt; text: string }[];
-}
-
-const figure = ({ people = [], extra = [], ...rest }: FigureInput): FigureSpec => ({
-  ...rest,
-  strokes: [...people.flatMap((person) => person.strokes), ...extra],
-  discs: people.flatMap((person) => person.discs),
-});
-
-/** Shrinks a drawn climber towards `origin`, for scenes that need more room around the body. */
-function scaled(drawn: Drawn, k: number, origin: Pt): Drawn {
-  const move = (p: Pt) => add(origin, mul(sub(p, origin), k));
-  return {
-    strokes: drawn.strokes.map((stroke) => ({ ...stroke, pts: stroke.pts.map(move), width: stroke.width * Math.max(k, 0.85) })),
-    discs: drawn.discs.map((disc) => ({ ...disc, at: move(disc.at), r: disc.r * k })),
-  };
-}
 
 /* ------------------------------------------------------------------ */
 /* Scenery                                                             */
 /* ------------------------------------------------------------------ */
 
-const hold = (x: number, y: number, shape: Hold['shape'], extra: Partial<Hold> = {}): Hold => ({ at: [x, y], shape, ...extra });
 
 /** Overhanging wall seen from the side: x of the surface at height y. */
 const steep = (y: number) => 70 - 0.5 * y;
@@ -189,7 +51,7 @@ const FIGURES: Record<string, FigureSpec> = {
   /* Technique ------------------------------------------------------- */
 
   'silent-feet': figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(41, 15, 'jug'), hold(60, 18, 'jug'), hold(43, 88.5, 'foot'), hold(63, 76, 'foot', { key: true })],
     people: [
       climber(
@@ -202,7 +64,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   edging: figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(41, 15, 'jug'), hold(59, 15, 'jug'), hold(37, 87, 'edge', { size: 0.8 }), hold(65, 80, 'edge', { key: true, size: 0.8 })],
     people: [
       climber(
@@ -214,7 +76,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   smearing: figure({
-    angle: 'slab',
+    scene: 'slab',
     wall: SLAB_WALL,
     people: [
       climber(
@@ -238,7 +100,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'high-step': figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(42, 17, 'jug'), hold(58, 13, 'jug'), hold(43, 87.5, 'foot'), hold(65, 61, 'foot', { key: true })],
     people: [
       climber(
@@ -250,7 +112,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'slab-friction': figure({
-    angle: 'slab',
+    scene: 'slab',
     wall: SLAB_WALL,
     people: [
       climber(
@@ -273,7 +135,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'toe-in': figure({
-    angle: 'overhang',
+    scene: 'overhang',
     wall: STEEP_WALL,
     holds: [
       hold(steep(15) + 2, 15, 'jug', { rotate: -63 }),
@@ -303,7 +165,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'heel-hook': figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(40, 20, 'jug'), hold(60, 9, 'jug'), hold(44, 86.5, 'foot'), hold(70, 41.5, 'jug', { key: true })],
     people: [
       climber(
@@ -325,7 +187,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'toe-hook': figure({
-    angle: 'roof',
+    scene: 'roof',
     wall: 'M0,0 L100,0 L100,18 L0,18 Z',
     holds: [hold(30, 20.5, 'jug', { rotate: 180 }), hold(44, 20.5, 'jug', { rotate: 180 }), hold(80, 20, 'edge', { key: true, rotate: 180 })],
     people: [
@@ -349,7 +211,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   bicycle: figure({
-    angle: 'overhang',
+    scene: 'overhang',
     wall: STEEP_WALL,
     holds: [hold(steep(15) + 2, 15, 'jug', { rotate: -63 }), hold(steep(26) + 2, 26, 'jug', { rotate: -63 }), hold(steep(72) + 3.5, 72, 'jug', { key: true, rotate: -63, size: 1.25 })],
     people: [
@@ -377,7 +239,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'knee-bar': figure({
-    angle: 'overhang',
+    scene: 'overhang',
     wall: 'M0,0 L70,0 L44,52 L58,54 L57,60 L40,60 L20,100 L0,100 Z',
     holds: [hold(steep(28) + 2, 28, 'jug', { rotate: -63 }), hold(steep(76) + 2, 76, 'foot', { key: true })],
     people: [
@@ -402,7 +264,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   falling: figure({
-    angle: 'ground',
+    scene: 'ground',
     wall: `M0,8 L24,8 L24,86 L0,86 Z ${PAD}`,
     people: [
       climber(
@@ -428,7 +290,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'route-reading': figure({
-    angle: 'ground',
+    scene: 'ground',
     wall: FLOOR,
     holds: [hold(26, 52, 'jug'), hold(36, 33, 'edge'), hold(56, 22, 'sloper', { key: true }), hold(74, 8, 'jug')],
     people: [
@@ -456,7 +318,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   projecting: figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(40, 41, 'jug'), hold(50, 13, 'edge', { key: true }), hold(70, 7, 'jug'), hold(44, 87.5, 'foot'), hold(58, 81.5, 'foot')],
     people: [
       climber(
@@ -479,7 +341,7 @@ const FIGURES: Record<string, FigureSpec> = {
   /* Body ------------------------------------------------------------ */
 
   'straight-arms': figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(40, 14, 'jug'), hold(60, 14, 'jug'), hold(36, 82, 'foot'), hold(64, 82, 'foot')],
     people: [
       climber({ neck: [50, 36], pelvis: [50, 58], lHand: [40.5, 14.5], rHand: [59.5, 14.5], lFoot: [36, 80], rFoot: [64, 80] }, ['lArm', 'rArm']),
@@ -488,7 +350,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'hips-over-feet': figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(60, 15, 'jug'), hold(57, 88, 'foot', { key: true }), hold(43, 76, 'foot')],
     people: [
       climber(
@@ -501,7 +363,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   flagging: figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(42, 26, 'jug'), hold(63, 8, 'jug', { key: true }), hold(59, 84, 'foot')],
     people: [
       climber(
@@ -513,7 +375,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   stemming: figure({
-    angle: 'vertical',
+    scene: 'vertical',
     wall: 'M50,0 L100,0 L100,100 L50,100 Z',
     people: [
       climber(
@@ -538,7 +400,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   mantle: figure({
-    angle: 'vertical',
+    scene: 'vertical',
     wall: 'M4,50 L96,50 L96,100 L4,100 Z',
     people: [
       climber(
@@ -561,7 +423,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'hip-turn': figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(28, 44, 'jug'), hold(60, 9, 'jug', { key: true }), hold(42, 87.5, 'foot'), hold(59, 82, 'foot')],
     people: [
       climber(
@@ -583,7 +445,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   backstep: figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(35, 8, 'jug', { key: true }), hold(60, 27, 'jug'), hold(33, 78, 'foot', { key: true }), hold(58, 87.5, 'foot')],
     people: [
       climber(
@@ -605,7 +467,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'drop-knee': figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(38, 28, 'jug'), hold(58, 8, 'jug', { key: true }), hold(40, 81.5, 'foot'), hold(70, 62, 'foot', { key: true })],
     people: [
       climber(
@@ -627,7 +489,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   gaston: figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [
       hold(33, 30, 'edge', { key: true, rotate: 90 }),
       hold(67, 30, 'edge', { key: true, rotate: 90 }),
@@ -647,7 +509,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'body-tension': figure({
-    angle: 'overhang',
+    scene: 'overhang',
     wall: STEEPER_WALL,
     holds: [
       hold(steeper(14) + 2, 14, 'jug', { rotate: -55 }),
@@ -676,7 +538,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   compression: figure({
-    angle: 'overhang',
+    scene: 'overhang',
     wall: 'M12,8 L30,4 L33,74 L16,78 Z M70,4 L88,8 L84,78 L67,74 Z',
     people: [
       climber(
@@ -699,7 +561,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   roof: figure({
-    angle: 'roof',
+    scene: 'roof',
     wall: 'M0,0 L100,0 L100,22 L0,22 Z',
     holds: [
       hold(22, 24.5, 'jug', { rotate: 180 }),
@@ -728,7 +590,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'iron-cross': figure({
-    angle: 'overhang',
+    scene: 'overhang',
     holds: [hold(22, 30, 'pinch', { key: true }), hold(78, 30, 'pinch', { key: true }), hold(43, 76, 'foot'), hold(58, 72, 'foot')],
     people: [
       climber(
@@ -745,7 +607,7 @@ const FIGURES: Record<string, FigureSpec> = {
   /* Movement -------------------------------------------------------- */
 
   deadpoint: figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(42, 24, 'jug'), hold(58, 26, 'jug'), hold(59, 6, 'edge', { key: true }), hold(42, 86, 'foot'), hold(58, 84, 'foot')],
     people: [
       climber({ neck: [50, 44], pelvis: [50, 66], lHand: [42, 25], rHand: [58, 27], lFoot: [42, 84], rFoot: [58, 82] }, [], true),
@@ -759,7 +621,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   dyno: figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(42, 40, 'jug'), hold(58, 40, 'jug'), hold(50, 7, 'jug', { key: true }), hold(40, 90, 'foot'), hold(60, 90, 'foot')],
     people: [
       climber(
@@ -774,7 +636,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'double-dyno': figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(30, 36, 'jug', { key: true }), hold(70, 11, 'jug', { key: true })],
     people: [
       climber(
@@ -793,7 +655,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'paddle-dyno': figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(20, 24, 'sloper'), hold(50, 20, 'sloper', { key: true }), hold(80, 24, 'sloper')],
     people: [
       climber(
@@ -821,7 +683,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'cut-loose': figure({
-    angle: 'overhang',
+    scene: 'overhang',
     wall: STEEP_WALL,
     holds: [hold(steep(15) + 2, 15, 'jug', { rotate: -63 }), hold(steep(70) + 1.5, 70, 'foot'), hold(steep(82) + 1.5, 82, 'foot')],
     people: [
@@ -848,7 +710,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'swing-catch': figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(67, 11, 'jug', { key: true }), hold(30, 38, 'jug')],
     people: [
       climber(
@@ -861,7 +723,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   pogo: figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(42, 28, 'jug'), hold(58, 26, 'jug'), hold(60, 86.5, 'foot'), hold(22, 7, 'jug', { key: true })],
     people: [
       climber({ neck: [50, 40], pelvis: [52, 62], lHand: [42, 29], rHand: [58, 27], lFoot: [44, 92], rFoot: [60, 84.5] }, [], true),
@@ -875,7 +737,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'run-jump': figure({
-    angle: 'ground',
+    scene: 'ground',
     wall: FLOOR,
     holds: [hold(74, 12, 'jug', { key: true }), hold(86, 22, 'jug', { key: true })],
     people: [
@@ -896,7 +758,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'double-clutch': figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(34, 30, 'jug', { key: true }), hold(72, 10, 'jug', { key: true })],
     people: [
       climber(
@@ -914,7 +776,7 @@ const FIGURES: Record<string, FigureSpec> = {
   /* Strength -------------------------------------------------------- */
 
   'open-hand': figure({
-    angle: 'close-up',
+    scene: 'close-up',
     wall: 'M0,0 L24,0 L24,40 Q44,40 44,50 Q44,58 24,58 L24,100 L0,100 Z',
     extra: handInProfile(
       [
@@ -934,7 +796,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'half-crimp': figure({
-    angle: 'close-up',
+    scene: 'close-up',
     wall: 'M0,0 L24,0 L24,48 L40,48 L40,53 L24,53 L24,100 L0,100 Z',
     extra: handInProfile(
       [
@@ -955,7 +817,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   slopers: figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(40, 18, 'sloper', { key: true, size: 1.3 }), hold(60, 18, 'sloper', { key: true, size: 1.3 }), hold(40, 88, 'foot'), hold(60, 88, 'foot')],
     people: [
       climber(
@@ -967,7 +829,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   pinches: figure({
-    angle: 'close-up',
+    scene: 'close-up',
     wall: 'M43,10 L57,10 L59,90 L41,90 Z',
     extra: [
       { pts: [[50, 104], [50, 64]], width: 10, tone: 'body' },
@@ -984,7 +846,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'full-crimp': figure({
-    angle: 'close-up',
+    scene: 'close-up',
     wall: 'M0,0 L24,0 L24,49 L36,49 L36,52.5 L24,52.5 L24,100 L0,100 Z',
     extra: handInProfile(
       [
@@ -1005,7 +867,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   monos: figure({
-    angle: 'close-up',
+    scene: 'close-up',
     wall: 'M0,0 L30,0 L30,44 L20,44 L20,51 L30,51 L30,100 L0,100 Z',
 
     extra: [
@@ -1019,7 +881,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'lock-off': figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(41, 36, 'jug'), hold(60, 6, 'jug', { key: true }), hold(42, 82, 'foot'), hold(58, 80, 'foot')],
     people: [
       climber(
@@ -1031,7 +893,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'one-arm-lock': figure({
-    angle: 'vertical',
+    scene: 'vertical',
     holds: [hold(44, 36, 'jug', { key: true }), hold(62, 6, 'jug')],
     people: [
       climber(
@@ -1052,7 +914,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   hangboard: figure({
-    angle: 'board',
+    scene: 'board',
     wall: 'M16,6 L84,6 L84,20 L16,20 Z',
     holds: [hold(37, 20, 'edge', { key: true }), hold(63, 20, 'edge', { key: true })],
     people: [
@@ -1065,7 +927,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'campus-move': figure({
-    angle: 'overhang',
+    scene: 'overhang',
     holds: [hold(40, 34, 'jug'), hold(60, 7, 'jug', { key: true })],
     people: [
       climber(
@@ -1078,7 +940,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'campus-ladder': figure({
-    angle: 'board',
+    scene: 'board',
     wall: 'M28,0 L72,0 L72,100 L28,100 Z',
     holds: [
       hold(50, 46, 'rung'),
@@ -1104,7 +966,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'campus-skip': figure({
-    angle: 'board',
+    scene: 'board',
     wall: 'M30,0 L70,0 L70,100 L30,100 Z',
     holds: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((rung) => hold(50, 94 - (rung - 1) * 10.5, 'rung', { key: rung === 1 || rung === 5 || rung === 9, size: 0.75 })),
     people: [
@@ -1126,7 +988,7 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 
   'one-arm-hang': figure({
-    angle: 'board',
+    scene: 'board',
     wall: 'M16,6 L84,6 L84,20 L16,20 Z',
     holds: [hold(40, 20, 'edge'), hold(60, 20, 'edge', { key: true })],
     people: [

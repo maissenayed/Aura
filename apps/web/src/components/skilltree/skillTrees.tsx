@@ -6,6 +6,7 @@ import { CALISTHENICS_RULES, TreeRules, TreeSkill } from '../../utils/skillTree'
 import { FigureSpec } from './SkillFigure';
 import { BOULDERING_LANE_THEME, FALLBACK_LANE_THEME, LANE_THEME, LaneTheme } from './laneTheme';
 import { boulderingFigure } from './boulderingFigures';
+import { calisthenicsFigure } from './calisthenicsFigures';
 
 /**
  * Everything that makes one skill tree look and read differently from another:
@@ -54,6 +55,7 @@ export const CALISTHENICS_TREE: SkillTreeDef = {
   basicsMax: 3,
   searchPlaceholder: 'Find an exercise — muscle-up, planche, pistol…',
   tutorialTopic: 'calisthenics tutorial',
+  figureFor: calisthenicsFigure,
 };
 
 export const BOULDERING_TREE: SkillTreeDef = {
