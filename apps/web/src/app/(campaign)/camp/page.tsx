@@ -1,21 +1,17 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { ArrowRight, Flame, Hammer, Map, Moon, Repeat, Skull, Star, Swords } from 'lucide-react';
+import { ArrowRight, Check, Flame, Hammer, Map, Moon, Repeat, Skull, Star, Swords } from 'lucide-react';
 import { useGame } from '../../../components/game/GameProvider';
 import { figureForBoss, figureForExercise } from '../../../components/game/figures';
-import { bossHp, closestKill } from '../../../components/game/helpers';
-import { Figure, HexLevel, Meter, SkillNode } from '../../../components/game/kit';
+import { bossForDay, bossHp, splitTarget } from '../../../components/game/helpers';
+import { Figure, HexLevel, Meter } from '../../../components/game/kit';
 import { RadarWeb } from '../../../components/game/RadarWeb';
 import { useSignature } from '../../../components/game/useSignature';
-import { CALISTHENICS_TREE } from '../../../components/skilltree/skillTrees';
-import { calisthenicsFigure } from '../../../components/skilltree/calisthenicsFigures';
 import { questKey, restKey } from '../../../utils/protocolEngine';
-import { useExercises, useMasteredIds } from '../../../utils/skillProgressStore';
-import { buildGraph, summarize } from '../../../utils/skillTree';
 
-/** Camp: who you are, what today asks, and what is closest to falling. */
+/** Camp: who you are, what today asks, and the boss today's training hits. */
 export default function CampPage() {
   const { derived, streak } = useGame();
   const { level } = derived;
@@ -53,7 +49,6 @@ export default function CampPage() {
         <BossTile className="lg:col-span-4" />
         <ActTile className="lg:col-span-4" />
         <WebTile className="hidden lg:flex lg:col-span-4" />
-        <ReadySkills className="lg:col-span-12" />
       </div>
     </main>
   );
@@ -166,22 +161,46 @@ const TodayCard: React.FC<{ className?: string }> = ({ className = '' }) => {
           <span className="text-fg-5 text-base">/{items.length}</span>
         </span>
       </div>
-      <div className="flex flex-wrap gap-2">
-        {items.map((item) => (
-          <span
-            key={item.id}
-            className={`relative w-[46px] h-[46px] rounded-[14px] border flex items-center justify-center ${
-              item.done ? 'bg-earned/10 border-earned/45' : 'bg-ink-800 border-ink-700'
-            }`}
-          >
-            {item.exercise ? (
-              <Figure spec={figureForExercise(item.exercise.exercise, day.kind)} state={item.done ? 'mastered' : 'locked'} className="w-10 h-10" />
-            ) : (
-              <Moon className="w-5 h-5 text-fg-3" />
-            )}
-          </span>
-        ))}
-      </div>
+      <ul className="flex flex-col gap-1.5" aria-label={`${day.title}: ${items.length} missions`}>
+        {items.map((item) => {
+          const dose = item.exercise ? splitTarget(item.exercise.target) : null;
+          return (
+            <li
+              key={item.id}
+              className={`flex items-center gap-3 p-1.5 pr-3 rounded-2xl border ${item.done ? 'bg-earned/10 border-earned/35' : 'bg-ink-850 border-ink-700'}`}
+            >
+              <span className={`w-11 h-11 shrink-0 rounded-xl bg-ink-950 border flex items-center justify-center ${item.done ? 'border-[#5c4a22]' : 'border-ink-700'}`}>
+                {item.exercise ? (
+                  <Figure spec={figureForExercise(item.exercise.exercise, day.kind)} state={item.done ? 'mastered' : 'ready'} className="w-10 h-10" />
+                ) : (
+                  <Moon className="w-5 h-5 text-fg-3" />
+                )}
+              </span>
+              <span className={`flex-1 min-w-0 text-[14px] font-semibold truncate ${item.done ? 'text-[#d9c38f]' : 'text-fg-2'}`}>
+                {item.exercise ? item.exercise.name : 'Claim your rest'}
+              </span>
+              {dose && (
+                <span className={`shrink-0 font-display font-bold text-[15px] ${item.done ? 'text-earned' : 'text-fg'}`}>
+                  {dose.sets ? (
+                    <>
+                      {dose.sets}
+                      <span className="text-fg-5"> × </span>
+                      {dose.reps}
+                    </>
+                  ) : (
+                    dose.reps
+                  )}
+                </span>
+              )}
+              {item.done && (
+                <span className="w-5 h-5 shrink-0 rounded-full bg-earned flex items-center justify-center" aria-label="Done">
+                  <Check className="w-3 h-3 text-earned-deep" strokeWidth={4} />
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
       <Link
         href="/quest"
         className="h-[54px] rounded-2xl bg-act text-act-deep flex items-center justify-center gap-2.5 font-display font-bold text-lg tracking-[0.04em] shadow-[0_10px_28px_rgba(62,232,255,0.25)] active:scale-[.98] transition"
@@ -194,8 +213,10 @@ const TodayCard: React.FC<{ className?: string }> = ({ className = '' }) => {
 };
 
 const BossTile: React.FC<{ className?: string }> = ({ className = '' }) => {
-  const { derived } = useGame();
-  const target = closestKill(derived.bosses);
+  const { derived, todayDayId } = useGame();
+  // The boss today's training hits — a leg day fights a leg boss.
+  const today = derived.week.days.find((entry) => entry.day.id === todayDayId)?.day;
+  const target = bossForDay(derived.bosses, today);
   if (!target) {
     return (
       <Link href="/bosses" className={`flex items-center gap-3 p-4 rounded-[20px] bg-[#14100a] border border-[#3a2c12] ${className}`}>
@@ -208,18 +229,19 @@ const BossTile: React.FC<{ className?: string }> = ({ className = '' }) => {
   return (
     <Link
       href={`/bosses/${target.boss.id}`}
-      aria-label={`Next boss: ${target.boss.name}, ${hp} HP`}
+      aria-label={`Today's boss: ${target.boss.name}, ${target.sealed ? 'sealed' : `${hp} HP`}`}
       className={`flex items-center gap-3 p-4 rounded-[20px] bg-[radial-gradient(circle_at_80%_50%,#2a0c15,#0d070a_65%)] border border-[#3a1624] active:scale-[.98] transition ${className}`}
     >
       <span className="flex-1 min-w-0 flex flex-col gap-2.5">
         <span className="flex items-center gap-2 text-boss-soft font-display font-bold text-[13px]">
           <Skull className="w-[18px] h-[18px] text-boss" />
-          {Math.round(hp / 10)}% HP
+          <span className="tracking-[0.08em]">TODAY&apos;S BOSS</span>
+          <span className="ml-auto">{target.sealed ? 'SEALED' : `${Math.round(hp / 10)}%`}</span>
         </span>
         <span className="font-display font-bold text-base leading-tight truncate">{target.boss.name.replace(/^The /, '')}</span>
         <Meter value={hp / 1000} tone="boss" />
       </span>
-      <Figure spec={figureForBoss(target.boss)} state="boss" className="w-[88px] h-[88px] shrink-0" />
+      <Figure spec={figureForBoss(target.boss)} state={target.sealed ? 'sealed' : 'boss'} className="w-[88px] h-[88px] shrink-0" />
     </Link>
   );
 };
@@ -265,37 +287,5 @@ const WebTile: React.FC<{ className?: string }> = ({ className = '' }) => {
         ))}
       </span>
     </Link>
-  );
-};
-
-const ReadySkills: React.FC<{ className?: string }> = ({ className = '' }) => {
-  const exercises = useExercises();
-  const mastered = useMasteredIds('calisthenics');
-  const ready = useMemo(
-    () => summarize(buildGraph(exercises), new Set(mastered), CALISTHENICS_TREE.rules).ready.slice(0, 8),
-    [exercises, mastered],
-  );
-  if (ready.length === 0) return null;
-  return (
-    <section className={`flex flex-col gap-3 p-4 rounded-[20px] bg-ink-900 border border-ink-700 ${className}`} aria-label="Skills ready to master">
-      <div className="flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-act shadow-[0_0_8px_#3ee8ff]" />
-        <h2 className="flex-1 font-display font-bold text-base">Ready to master</h2>
-        <Link href="/?tree=calisthenics" className="text-[13px] font-bold text-act">
-          Skill tree
-        </Link>
-      </div>
-      <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 pt-2">
-        {ready.map((skill) => {
-          const spec = calisthenicsFigure(skill.id) ?? figureForExercise(skill.id);
-          return (
-            <Link key={skill.id} href={`/?tree=calisthenics&skill=${skill.id}`} className="w-[96px] shrink-0 flex flex-col items-center gap-2 text-center">
-              <SkillNode spec={spec} state="ready" size={64} label={skill.name} className="pointer-events-none" />
-              <span className="text-xs font-semibold text-fg-2 leading-tight line-clamp-2">{skill.name}</span>
-            </Link>
-          );
-        })}
-      </div>
-    </section>
   );
 };

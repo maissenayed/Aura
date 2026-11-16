@@ -7,7 +7,7 @@ import { ScreenHeader } from '../../../components/game/AppShell';
 import { useGame } from '../../../components/game/GameProvider';
 import { figureForExercise } from '../../../components/game/figures';
 import { BossHpChip } from '../../../components/game/BossHpChip';
-import { bossesOfLift, prToday, shortDay, splitTarget } from '../../../components/game/helpers';
+import { bossesOfExercise, prToday, shortDay, splitTarget } from '../../../components/game/helpers';
 import { Chip, Figure, Label, Ring, SegmentBar, Stepper, TickButton } from '../../../components/game/kit';
 import { EVENT_VISUAL } from '../../../components/protocol/Toasts';
 import { DAY_NAMES, DayId, PlanExercise, formatStatValue, liftOf, unitLabel } from '../../../utils/campaignPlan';
@@ -211,7 +211,7 @@ const MissionCard: React.FC<{ exercise: PlanExercise; dayKind: string; done: boo
   const [xpFloat, setXpFloat] = useState(0);
   const stat = liftOf(plan, exercise.lift);
   const { sets, reps } = splitTarget(exercise.target);
-  const bosses = bossesOfLift(derived.bosses, exercise.lift);
+  const bosses = bossesOfExercise(derived.bosses, exercise);
   const pr = prToday(save, stat ? stat.id : exercise.id, todayIso);
 
   useEffect(() => {
