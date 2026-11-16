@@ -177,7 +177,12 @@ body {
   background: #00f0ff;
 }
 
-/* Body Muscles Interactive Styling Overrides */
+/*
+ * The anatomy body map (body-muscles). The library paints each muscle from an
+ * intensity scale and sets the colour as a fill attribute, so these rules
+ * repaint the three intensities BodyMap uses onto the game palette:
+ * 0 = resting, 3 = to train today (cyan), 6 = trained today (gold), 10 = picked (violet).
+ */
 .body-chart-wrapper {
   display: flex;
   justify-content: center;
@@ -187,31 +192,24 @@ body {
 }
 
 .body-chart-wrapper svg {
-  max-height: 520px;
+  height: min(54dvh, 560px);
   width: auto;
-  filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.15));
-  transition: all 0.3s ease;
+  max-width: 100%;
 }
 
 .body-chart-wrapper path {
-  cursor: pointer;
-  stroke: rgba(255, 255, 255, 0.15);
-  stroke-width: 0.5px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  stroke: var(--color-ink-950);
+  stroke-width: 0.25px;
+  transition: fill 0.25s ease, fill-opacity 0.25s ease, stroke 0.25s ease;
 }
 
-.body-chart-wrapper path:hover {
-  filter: drop-shadow(0 0 10px #00f0ff);
-  stroke: #00f0ff !important;
-  stroke-width: 1.2px !important;
-  opacity: 0.95 !important;
-}
-
-.body-chart-wrapper path[data-selected="true"] {
-  stroke: #00ff9d !important;
-  stroke-width: 1.5px !important;
-  filter: drop-shadow(0 0 14px rgba(0, 255, 157, 0.8));
-}
+.body-chart-wrapper path[fill='#94a3b8'] { fill: #4a5674; }
+.body-chart-wrapper path[fill='#eab308'] { fill: var(--color-act); }
+.body-chart-wrapper path[fill='#ea580c'] { fill: var(--color-earned); }
+.body-chart-wrapper path[fill='#7f1d1d'] { fill: var(--color-aura); }
+.body-chart-wrapper path[stroke='#ffffff'] { stroke: #f4efff; stroke-width: 0.4px; }
+.body-chart-wrapper path:hover { fill-opacity: 1 !important; }
+.body-chart-wrapper path:focus-visible { stroke: var(--color-act); stroke-width: 0.6px; }
 
 
 /* Campaign game feedback */
