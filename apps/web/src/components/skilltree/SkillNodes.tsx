@@ -1,6 +1,6 @@
 'use client';
 
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import { Handle, Node, NodeProps, Position } from '@xyflow/react';
 import { Check, Crown, Lock, Sparkles } from 'lucide-react';
 import { SkillStatus, TreeSkill } from '../../utils/skillTree';
@@ -61,6 +61,8 @@ const HANDLE = '!w-px !h-px !min-w-0 !min-h-0 !border-0 !bg-transparent !pointer
 export const SkillNode = memo(({ data }: NodeProps<Node<SkillNodeData>>) => {
   const { exercise, lane, levelTag, levelName, hiddenHint, figure, status, selected, dimmed, hiddenPrerequisites, onSelect } = data;
   const look = STATUS[status];
+  // Thumbnails stay still on the canvas; only the one being pointed at or picked moves.
+  const [hovered, setHovered] = useState(false);
 
   return (
     <>
@@ -68,6 +70,8 @@ export const SkillNode = memo(({ data }: NodeProps<Node<SkillNodeData>>) => {
       <button
         type="button"
         onClick={() => onSelect(exercise.id)}
+        onPointerEnter={() => setHovered(true)}
+        onPointerLeave={() => setHovered(false)}
         aria-pressed={selected}
         aria-label={`${exercise.name}, ${levelName}, ${look.label.toLowerCase()}`}
         className={`nodrag pointer-events-auto relative flex items-center gap-2.5 w-full h-full ${figure ? 'pl-3' : 'pl-4'} pr-3 py-2.5 rounded-xl border text-left cursor-pointer transition-[opacity,box-shadow,border-color] duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white hover:border-slate-400 ${look.card} ${
@@ -82,7 +86,8 @@ export const SkillNode = memo(({ data }: NodeProps<Node<SkillNodeData>>) => {
             accent={lane.hex}
             framed
             compact
-            className={`w-[54px] h-[54px] shrink-0 ${status === 'locked' ? 'opacity-50 grayscale' : ''}`}
+            animate={hovered || selected}
+            className={`w-[54px] h-[54px] shrink-0 ${status === 'locked' ? 'opacity-50' : ''}`}
           />
         )}
 

@@ -24,14 +24,16 @@ export interface Stroke {
   tone: Tone;
   /** Closed and filled, for the torso and palms. */
   closed?: boolean;
+  /** On the far side of the body: drawn first and darker, so the figure reads in depth. */
+  far?: boolean;
 }
 
 export interface Disc {
   at: Pt;
   r: number;
   tone: Tone;
-  /** A weight plate or dumbbell end, drawn in front of the figure. */
-  kind?: 'plate';
+  /** plate: a weight plate or dumbbell end · ring: a gymnastic ring. Both are drawn in front of the figure. */
+  kind?: 'plate' | 'ring';
 }
 
 export type HoldShape = 'jug' | 'edge' | 'sloper' | 'pinch' | 'pocket' | 'foot' | 'volume' | 'rung' | 'bar';
@@ -62,7 +64,8 @@ export type Scene =
   | 'close-up'
   | 'floor'
   | 'bar'
-  | 'bars';
+  | 'bars'
+  | 'rings';
 
 /**
  * A second pose with exactly the same strokes and discs, in the same order.
@@ -101,6 +104,7 @@ export const SCENE_LABEL: Record<Scene, string> = {
   floor: 'On the floor',
   bar: 'On a bar',
   bars: 'Parallel bars',
+  rings: 'On rings',
 };
 
 const INK = {
@@ -114,6 +118,7 @@ const INK = {
   body: '#cbd5e1',
   ghost: '#64748b',
   gear: '#64748b',
+  far: '#7b8aa1',
   plate: '#94a3b8',
   arrow: '#f8fafc',
   label: '#f8fafc',
@@ -173,9 +178,10 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
   const reducedMotion = useReducedMotion();
   const arrowHead = `${uid}-arrow`;
   const clip = `${uid}-clip`;
-  const order: Tone[] = ['gear', 'ghost', 'body', 'focus'];
-  const toneColour = (tone: Tone) =>
-    tone === 'focus' ? accent : tone === 'ghost' ? INK.ghost : tone === 'gear' ? INK.gear : INK.body;
+  const colourOf = (tone: Tone, far = false) =>
+    tone === 'focus' ? accent : tone === 'ghost' ? INK.ghost : tone === 'gear' ? INK.gear : far ? INK.far : INK.body;
+  // The glow is for the large drawing; thumbnails stay cheap to paint.
+  const glowOf = (tone: Tone) => (tone === 'focus' && !compact ? { filter: `drop-shadow(0 0 1.8px ${accent})` } : undefined);
   const arrowWidth = compact ? 2.6 : 1.5;
 
   const motion = animate && !reducedMotion ? spec.motion : undefined;
@@ -193,7 +199,6 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
 
   const strokes = spec.strokes.map((stroke, index) => ({ stroke, target: motion?.strokes[index] }));
   const discs = (spec.discs ?? []).map((disc, index) => ({ disc, target: motion?.discs[index] }));
-  const plates = discs.filter(({ disc }) => disc.kind === 'plate');
   /** cx and cy animations for a disc that moves with the motion. */
   const follow = (disc: Disc, target?: Disc) =>
     timing &&
@@ -203,6 +208,28 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
         <animate attributeName="cy" values={loop(String(disc.at[1]), String(target.at[1]))} {...timing} />
       </>
     );
+
+  /**
+   * Back to front: cables, ghosts, the far arm and leg, heads, the near body,
+   * then plates and rings held in the hands. Within a layer, shapes keep the
+   * order the figure listed them in.
+   */
+  const isGear = (disc: Disc) => disc.kind === 'plate' || disc.kind === 'ring';
+  const layers = [
+    { key: 'gear', strokes: strokes.filter(({ stroke }) => stroke.tone === 'gear'), discs: [] },
+    {
+      key: 'ghost',
+      strokes: strokes.filter(({ stroke }) => stroke.tone === 'ghost'),
+      discs: discs.filter(({ disc }) => disc.tone === 'ghost' && !isGear(disc)),
+    },
+    { key: 'far', strokes: strokes.filter(({ stroke }) => stroke.far && stroke.tone !== 'gear' && stroke.tone !== 'ghost'), discs: [] },
+    {
+      key: 'near',
+      strokes: strokes.filter(({ stroke }) => !stroke.far && stroke.tone !== 'gear' && stroke.tone !== 'ghost'),
+      discs: discs.filter(({ disc }) => disc.tone !== 'ghost' && !isGear(disc)),
+    },
+  ];
+  const equipment = discs.filter(({ disc }) => isGear(disc));
 
   return (
     <svg
@@ -237,61 +264,61 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
           <HoldMark key={index} hold={hold} accent={accent} />
         ))}
 
-        {order.map((tone) => {
-          const lines = strokes.filter(({ stroke }) => stroke.tone === tone);
-          const dots = discs.filter(({ disc }) => disc.tone === tone && disc.kind !== 'plate');
-          if (lines.length === 0 && dots.length === 0) return null;
-          const colour = toneColour(tone);
-          return (
-            <g
-              key={tone}
-              opacity={tone === 'ghost' ? 0.55 : 1}
-              style={tone === 'focus' ? { filter: `drop-shadow(0 0 ${compact ? 1.2 : 1.8}px ${accent})` } : undefined}
-            >
-              {lines.map(({ stroke, target }, index) => {
-                const d = toPath(stroke.pts, stroke.closed);
-                return (
-                  <path
-                    key={index}
-                    d={d}
-                    fill={stroke.closed ? colour : 'none'}
-                    stroke={colour}
-                    strokeWidth={stroke.width}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeDasharray={tone === 'ghost' && !stroke.closed ? '2.4 2.2' : undefined}
-                  >
-                    {timing && target && <animate attributeName="d" values={loop(d, toPath(target.pts, target.closed))} {...timing} />}
-                  </path>
-                );
-              })}
-              {dots.map(({ disc, target }, index) => (
-                <circle
-                  key={index}
-                  cx={disc.at[0]}
-                  cy={disc.at[1]}
-                  r={disc.r}
-                  fill={tone === 'ghost' ? 'none' : colour}
+        {layers.map((layer) => (
+          <g key={layer.key} opacity={layer.key === 'ghost' ? 0.55 : undefined}>
+            {layer.discs.map(({ disc, target }, index) => (
+              <circle
+                key={`d${index}`}
+                cx={disc.at[0]}
+                cy={disc.at[1]}
+                r={disc.r}
+                fill={disc.tone === 'ghost' ? 'none' : colourOf(disc.tone)}
+                stroke={colourOf(disc.tone)}
+                strokeWidth={disc.tone === 'ghost' ? 1.2 : 0}
+                style={glowOf(disc.tone)}
+              >
+                {follow(disc, target)}
+              </circle>
+            ))}
+            {layer.strokes.map(({ stroke, target }, index) => {
+              const d = toPath(stroke.pts, stroke.closed);
+              const colour = colourOf(stroke.tone, stroke.far);
+              return (
+                <path
+                  key={`s${index}`}
+                  d={d}
+                  fill={stroke.closed ? colour : 'none'}
                   stroke={colour}
-                  strokeWidth={tone === 'ghost' ? 1.2 : 0}
+                  strokeWidth={stroke.width}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray={stroke.tone === 'ghost' && !stroke.closed ? '2.4 2.2' : undefined}
+                  opacity={stroke.far && stroke.tone === 'focus' ? 0.55 : undefined}
+                  style={stroke.far ? undefined : glowOf(stroke.tone)}
                 >
-                  {follow(disc, target)}
-                </circle>
-              ))}
-            </g>
-          );
-        })}
-
-        {plates.map(({ disc, target }, index) => (
-          <g key={index}>
-            <circle cx={disc.at[0]} cy={disc.at[1]} r={disc.r} fill={INK.wall} stroke={INK.plate} strokeWidth={compact ? 1.8 : 1.4}>
-              {follow(disc, target)}
-            </circle>
-            <circle cx={disc.at[0]} cy={disc.at[1]} r={Math.max(0.9, disc.r * 0.22)} fill={INK.plate}>
-              {follow(disc, target)}
-            </circle>
+                  {timing && target && <animate attributeName="d" values={loop(d, toPath(target.pts, target.closed))} {...timing} />}
+                </path>
+              );
+            })}
           </g>
         ))}
+
+        {equipment.map(({ disc, target }, index) =>
+          disc.kind === 'ring' ? (
+            <circle key={index} cx={disc.at[0]} cy={disc.at[1]} r={disc.r} fill="none" stroke={INK.plate} strokeWidth={compact ? 2 : 1.6}>
+              {follow(disc, target)}
+            </circle>
+          ) : (
+            <g key={index}>
+              <circle cx={disc.at[0]} cy={disc.at[1]} r={disc.r} fill={INK.wall} stroke={INK.plate} strokeWidth={compact ? 1.8 : 1.4}>
+                {follow(disc, target)}
+              </circle>
+              <circle cx={disc.at[0]} cy={disc.at[1]} r={Math.max(0.9, disc.r * 0.22)} fill={INK.plate}>
+                {follow(disc, target)}
+              </circle>
+            </g>
+          ),
+        )}
 
         {spec.rings?.map(([x, y], index) => (
           <circle key={index} cx={x} cy={y} r={compact ? 5 : 5.5} fill="none" stroke={accent} strokeWidth={compact ? 1.6 : 1.1} strokeDasharray="2 1.6" />

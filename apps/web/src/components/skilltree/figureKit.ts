@@ -117,6 +117,102 @@ export function climber(pose: Pose, focus: Part[] = [], ghost = false): Drawn {
   return { strokes, discs: [{ at: head, r: 4.4, tone: tone('head') }] };
 }
 
+/* ------------------------------------------------------------------ */
+/* Silhouettes                                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Chunky, solid proportions that still read when the drawing is the size of a
+ * thumbnail: a tapered torso, a separate round head, thick limbs.
+ */
+const SILHOUETTE = {
+  chest: 4.2,
+  hip: 3.4,
+  chestFront: 5.4,
+  hipFront: 4.2,
+  shoulderFront: 5.6,
+  hipJointFront: 3.2,
+  upperArm: 5.2,
+  forearm: 4.4,
+  thigh: 6.8,
+  shin: 5.4,
+  foot: 4,
+  head: 5.2,
+  headOffset: 8.6,
+};
+
+export interface SilhouettePose extends Pose {
+  /** side (default): in profile, right-hand limbs behind the body · front: facing or backing the viewer. */
+  view?: 'side' | 'front';
+}
+
+/**
+ * A solid figure. In side view the far arm and leg are drawn first and darker,
+ * so the pose reads in depth; every part is its own shape, so one can be lit
+ * in the accent colour. Always returns the same strokes in the same order, so
+ * two poses can be animated into each other.
+ */
+export function silhouette(pose: SilhouettePose, focus: Part[] = []): Drawn {
+  const front = pose.view === 'front';
+  const axis = unit(sub(pose.neck, pose.pelvis));
+  const across: Pt = [-axis[1], axis[0]];
+  const bend = pose.bend ?? {};
+  const joints = pose.joints ?? {};
+  const centreX = (pose.neck[0] + pose.pelvis[0]) / 2;
+
+  const shoulderAt = add(pose.neck, mul(axis, -1.2));
+  const lShoulder = front ? sub(shoulderAt, mul(across, SILHOUETTE.shoulderFront)) : shoulderAt;
+  const rShoulder = front ? add(shoulderAt, mul(across, SILHOUETTE.shoulderFront)) : shoulderAt;
+  const lHip = front ? sub(pose.pelvis, mul(across, SILHOUETTE.hipJointFront)) : pose.pelvis;
+  const rHip = front ? add(pose.pelvis, mul(across, SILHOUETTE.hipJointFront)) : pose.pelvis;
+
+  const tone = (part: Part): Tone => (focus.includes(part) ? 'focus' : 'body');
+  // In profile (facing right) knees fold forwards and elbows backwards unless a pose says otherwise.
+  const fallback = (limb: Limb): Bend => (front ? 'out' : limb === 'lLeg' || limb === 'rLeg' ? 'right' : 'left');
+  const joint = (limb: Limb, root: Pt, tip: Pt, a: number, b: number) =>
+    joints[limb] ?? solveJoint(root, tip, a, b, bend[limb] ?? fallback(limb), centreX);
+
+  const arm = (limb: 'lArm' | 'rArm', shoulder: Pt, hand: Pt, far: boolean): Stroke[] => {
+    const elbow = joint(limb, shoulder, hand, UPPER_ARM, FOREARM);
+    return [
+      { pts: [shoulder, elbow], width: SILHOUETTE.upperArm, tone: tone(limb), far },
+      { pts: [elbow, hand], width: SILHOUETTE.forearm, tone: tone(limb), far },
+    ];
+  };
+  const leg = (limb: 'lLeg' | 'rLeg', hip: Pt, ankle: Pt, toe: Pt | undefined, far: boolean): Stroke[] => {
+    const knee = joint(limb, hip, ankle, THIGH, SHIN);
+    // A foot is always drawn (as a dot at the ankle when no direction is given) so poses keep the same shape list.
+    const tip = toe ? add(ankle, mul(unit(toe), 4.2)) : ankle;
+    return [
+      { pts: [hip, knee], width: SILHOUETTE.thigh, tone: tone(limb), far },
+      { pts: [knee, ankle], width: SILHOUETTE.shin, tone: tone(limb), far },
+      { pts: [ankle, tip], width: toe ? SILHOUETTE.foot : SILHOUETTE.shin, tone: tone(limb), far },
+    ];
+  };
+
+  const chest = front ? SILHOUETTE.chestFront : SILHOUETTE.chest;
+  const hips = front ? SILHOUETTE.hipFront : SILHOUETTE.hip;
+  const top = add(pose.neck, mul(axis, 1.2));
+  const bottom = add(pose.pelvis, mul(axis, -1.6));
+  const torso: Stroke = {
+    pts: [sub(top, mul(across, chest)), add(top, mul(across, chest)), add(bottom, mul(across, hips)), sub(bottom, mul(across, hips))],
+    width: 3,
+    tone: tone('torso'),
+    closed: true,
+  };
+
+  const farSide = !front;
+  const strokes: Stroke[] = [
+    ...arm('rArm', rShoulder, pose.rHand, farSide),
+    ...leg('rLeg', rHip, pose.rFoot, pose.rToe, farSide),
+    torso,
+    ...leg('lLeg', lHip, pose.lFoot, pose.lToe, false),
+    ...arm('lArm', lShoulder, pose.lHand, false),
+  ];
+  const head = pose.head ?? add(pose.neck, mul(axis, SILHOUETTE.headOffset));
+  return { strokes, discs: [{ at: head, r: SILHOUETTE.head, tone: tone('head') }] };
+}
+
 export interface FigureInput {
   scene: Scene;
   wall?: string;

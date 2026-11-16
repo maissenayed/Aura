@@ -1,6 +1,5 @@
 import { Disc, FigureSpec, Pt, Scene, Stroke } from './SkillFigure';
 import { Drawn, Part, Pose, climber, figure, hold, pelvisToward } from './figureKit';
-import { calisthenicsFigure } from './calisthenicsFigures';
 
 /**
  * One animated drawing per gym skill. Most lifts are seen side-on, facing
@@ -53,6 +52,18 @@ const lift = ({ start, end, seconds = 2.6, tempo, ...scene }: Lift): FigureSpec 
 /* ------------------------------------------------------------------ */
 /* Presses                                                             */
 /* ------------------------------------------------------------------ */
+
+/** A rigid plank pivoting on the toes. */
+function pushUp(): FigureSpec {
+  const feet: Pt = [17, GROUND];
+  const hands: Pt = [64, GROUND];
+  const pose = (neck: Pt) =>
+    climber(
+      side({ neck, pelvis: pelvisToward(neck, feet), lHand: hands, rHand: behind(hands), lFoot: feet, rFoot: behind(feet, 1.5), bend: { lArm: 'up', rArm: 'up' } }),
+      PUSH,
+    );
+  return lift({ scene: 'floor', wall: FLOOR, start: pose([63.3, 61.5]), end: pose([67.9, 76]), seconds: 2.4 });
+}
 
 const FLAT_BENCH = `M18,64 L64,64 L64,69 L18,69 Z M22,69 L25,69 L25,86 L22,86 Z M56,69 L59,69 L59,86 L56,86 Z ${FLOOR}`;
 
@@ -503,7 +514,7 @@ function farmersCarry(r: number): FigureSpec {
 
 const FIGURES: Record<string, FigureSpec | undefined> = {
   // Push
-  gym_pushup: calisthenicsFigure('ex_7'),
+  gym_pushup: pushUp(),
   gym_db_bench: benchPress('dumbbells'),
   lateral_raise: lateralRaise(),
   tricep_pushdown: tricepPushdown(),
