@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GameProvider } from '../components/game/GameProvider';
+import { SignInWall } from '../components/account/SignInWall';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -19,7 +20,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GameProvider>{children}</GameProvider>
+      <GameProvider>
+        <SignInWall>{children}</SignInWall>
+      </GameProvider>
     </QueryClientProvider>
   );
 }

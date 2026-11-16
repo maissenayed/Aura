@@ -1,8 +1,11 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { AdminGuard } from '../auth/account.js';
 import { ExercisesService } from '../services/exercises.service.js';
 import { rawExercises } from '../data/rawExercisesData.js';
 
+/** The dataset tools are the owner's alone. */
 @Controller('api/v1/admin')
+@UseGuards(AdminGuard)
 export class AdminController {
   constructor(private readonly exercisesService: ExercisesService) {}
 
