@@ -29,6 +29,7 @@ import {
   TREE_BY_ID,
   formatDose,
 } from '../data/campaignCatalog';
+import { resolveExerciseId } from '../data/exerciseAliases';
 
 /* ------------------------------------------------------------------ */
 /* Shared types                                                        */
@@ -389,7 +390,8 @@ const unique = <T,>(items: T[], key: (item: T) => string) => {
 
 function dose(raw: unknown): DoseChoice | null {
   if (!isRecord(raw) || typeof raw.exercise !== 'string') return null;
-  const exercise = EXERCISE_BY_ID.get(raw.exercise);
+  // A plan saved before the calisthenics tree was rebuilt may name a skill that was merged into another.
+  const exercise = EXERCISE_BY_ID.get(resolveExerciseId(raw.exercise));
   if (!exercise) return null;
   const options = exercise.dose === 'none' ? [''] : DOSE_OPTIONS[exercise.dose];
   return {

@@ -42,7 +42,6 @@ import {
   pushUp,
   reversePlank,
   reverseHyper,
-  ringLPull,
   ringsHandstand,
   ringsFlow,
   ringsHandstandPushUp,
@@ -70,7 +69,7 @@ import {
  * Which drawing each calisthenics exercise gets: a movement family from
  * `calisthenicsFamilies.ts` with the options that make it this exercise.
  * Keyed by exercise id from the built-in dataset; an exercise without an
- * entry has no drawing. Covers every level, 1 to 16 (Beginner through Elite).
+ * entry has no drawing. Covers every level, 1 to 20 (Beginner through World class).
  */
 
 /* ------------------------------------------------------------------ */
@@ -80,22 +79,17 @@ import {
 const BEGINNER: Record<string, () => FigureSpec> = {
   // Push-ups
   ex_7: () => pushUp(),
-  ex_429: () => pushUp({ grip: 'diamond' }),
   ex_26: () => pushUp({ grip: 'diamond' }),
   ex_430: () => pushUp({ grip: 'pseudo' }),
   ex_49: () => pushUp({ rings: true }),
   ex_431: () => archerPushUp(),
 
   // Pike and headstand presses
-  ex_427: () => pikePress(),
   ex_428: () => pikePress({ box: true }),
   ex_18: () => pikePress({ box: true, toHead: true }),
-  ex_1: () => pikePress({ toHead: true }),
+  ex_1: () => pikePress(),
 
   // Upside down at the wall
-  ex_0: () => wallPress(),
-  ex_426: () => wallPress(),
-  ex_423: () => wallPress('slow-return'),
   ex_40: () => wallPress('slow-return'),
   ex_17: () => wallHandstand(false),
   ex_39: () => wallHandstand(true),
@@ -107,26 +101,18 @@ const BEGINNER: Record<string, () => FigureSpec> = {
   ex_8: () => dip({ extra: 'floor' }),
   ex_27: () => dip({ tempo: 'slow-return' }),
   ex_50: () => dip(),
-  ex_29: () => dip({ extra: 'band' }),
   ex_52: () => dip({ extra: 'plate' }),
-  ex_402: () => dip({ rings: true }),
   ex_51: () => dip({ rings: true, tempo: 'slow-return' }),
-  ex_396: () => dip({ rings: true, tempo: 'slow-return' }),
-  ex_403: () => dip({ rings: true, depth: 'partial' }),
 
   // Supports
   ex_9: () => support(),
   ex_28: () => support({ turnedOut: true }),
-  ex_395: () => support({ turnedOut: true }),
   ex_385: () => support({ rings: false, press: true }),
 
   // Pull-ups
-  ex_5: () => pullUp({ extra: 'jump' }),
   ex_23: () => pullUp({ tempo: 'slow-return' }),
-  ex_381: () => pullUp({ tempo: 'slow-return' }),
   ex_45: () => pullUp(),
   ex_24: () => pullUp({ extra: 'band' }),
-  ex_46: () => pullUp({ extra: 'plate' }),
   ex_47: () => pullUp({ kind: 'explosive' }),
   ex_380: () => pullUp({ kind: 'scapular' }),
 
@@ -134,35 +120,25 @@ const BEGINNER: Record<string, () => FigureSpec> = {
   ex_383: archHang,
   ex_384: chestToBar,
   ex_25: () => kipPullUp(),
-  ex_382: () => muscleUp(),
   ex_53: () => muscleUp('slow-return'),
 
   // Hanging leg work
   ex_367: () => hangingRaise('l-hang'),
   ex_37: () => hangingRaise('straight-raise'),
   ex_60: () => hangingRaise('knees-to-bar'),
-  ex_375: ringLPull,
 
   // Rotations on rings
   ex_3: () => rotation('german-hang'),
   ex_21: () => rotation('skin-the-cat'),
   ex_366: () => rotation('full-turn'),
-  ex_31: () => rotation('backward-roll'),
-  ex_362: () => rotation('tuck-levers'),
-  ex_374: () => rotation('cross-to-back-lever'),
 
   // Levers
-  ex_365: () => frontLever('tuck'),
-  ex_363: () => frontLever('one-leg'),
   ex_43: () => backLever('tuck'),
-  ex_359: () => backLever('one-leg'),
 
   // Rows
-  ex_4: () => row({ tempo: 'slow-return' }),
   ex_22: () => row({ rings: true }),
   ex_44: () => row(),
   ex_368: () => row({ angle: 'upright', rings: true }),
-  ex_369: () => row({ angle: 'incline', rings: true }),
 
   // Squats and single leg
   ex_11: () => squat('parallel'),
@@ -176,7 +152,6 @@ const BEGINNER: Record<string, () => FigureSpec> = {
   ex_12: () => gluteBridge('two-legs'),
   ex_33: () => gluteBridge('shoulders-raised'),
   ex_56: () => gluteBridge('one-leg'),
-  ex_407: () => gluteBridge('hands-under'),
   ex_13: () => hamstringSlide(false),
   ex_34: () => hamstringSlide(true, 'slow-return'),
   ex_57: () => hamstringSlide(true),
@@ -185,8 +160,6 @@ const BEGINNER: Record<string, () => FigureSpec> = {
 
   // Core on the floor
   ex_15: () => floorCore('tuck-raise'),
-  ex_16: () => floorCore('post-tuck'),
-  ex_38: () => floorCore('post-leg-raise'),
   ex_61: () => floorCore('tuck-lowering'),
   ex_2: () => lSit('tuck'),
   ex_20: () => lSit('one-leg'),
@@ -213,9 +186,7 @@ const INTERMEDIATE: Record<string, () => FigureSpec> = {
   // Push-ups
   ex_75: () => pushUp({ rings: true }),
   ex_107: () => pushUp({ rings: true, turnedOut: true }),
-  ex_432: () => archerPushUp({ rings: true }),
   ex_145: () => archerPushUp({ rings: true, turnedOut: true }),
-  ex_433: () => oneArmPushUp('bench'),
   ex_108: () => oneArmPushUp('box'),
   ex_146: () => oneArmPushUp('straddle'),
 
@@ -235,9 +206,7 @@ const INTERMEDIATE: Record<string, () => FigureSpec> = {
   ex_89: () => dip({ depth: 'forearms', shoulders: 'front-of-wrist' }),
   ex_77: () => dip({ rings: true }),
   ex_110: () => dip({ rings: true, legs: 'l-sit' }),
-  ex_397: () => dip({ rings: true, turnedOut: true }),
   ex_148: () => frontRingDip('wide'),
-  ex_398: () => frontRingDip('bulgarian'),
   ex_78: () => dip({ extra: 'plate', plate: 6 }),
   ex_111: () => dip({ extra: 'plate', plate: 7 }),
   ex_149: () => dip({ extra: 'plate', plate: 8 }),
@@ -272,7 +241,6 @@ const INTERMEDIATE: Record<string, () => FigureSpec> = {
   ex_67: () => frontLever('tuck'),
   ex_98: () => frontLever('advanced-tuck'),
   ex_136: () => frontLever('straddle'),
-  ex_364: () => frontLever('straddle'),
   ex_99: () => frontLever('tuck', { rows: true }),
   ex_137: () => frontLever('advanced-tuck', { rows: true }),
   ex_66: () => backLever('advanced-tuck'),
@@ -283,8 +251,6 @@ const INTERMEDIATE: Record<string, () => FigureSpec> = {
   ex_68: () => row({ rings: true, arms: 'archer' }),
   ex_100: () => row({ angle: 'incline', rings: true, arms: 'archer' }),
   ex_138: () => row({ rings: true, arms: 'one' }),
-  ex_370: () => row({ angle: 'upright', rings: true, arms: 'archer' }),
-  ex_371: () => row({ angle: 'upright', rings: true, arms: 'one' }),
 
   // Arms
   ex_125: () => pelicanCurl(true),
@@ -294,15 +260,11 @@ const INTERMEDIATE: Record<string, () => FigureSpec> = {
   ex_62: () => handstand('kick'),
   ex_90: () => handstand('hold'),
   ex_127: () => handstand('one-arm-prep'),
-  ex_424: () => ringsHandstand('shoulder-stand'),
   ex_91: () => ringsHandstand('shoulder-stand'),
-  ex_425: () => ringsHandstand('handstand'),
   ex_128: () => ringsHandstand('strap'),
   ex_63: () => wallPress(),
   ex_92: () => wallPress(),
   ex_129: freeHeadstandPushUp,
-  ex_421: () => ringsHandstandPushUp('wide'),
-  ex_422: () => ringsHandstandPushUp('strap'),
   ex_94: () => pressToHandstand('bent-arm'),
   ex_131: () => pressToHandstand('l-sit'),
   ex_95: () => pressToHandstand('wall-straddle'),
@@ -321,7 +283,6 @@ const INTERMEDIATE: Record<string, () => FigureSpec> = {
   ex_160: () => hangingRaise('toes-to-bar', { ankleWeights: true }),
   ex_65: () => straddleLSit(),
   ex_96: () => lSit('straight', { rings: true, turnedOut: true }),
-  ex_116: () => lSit('straight', { rings: true, turnedOut: true }),
   ex_154: () => straddleLSit({ rings: true }),
   ex_134: () => lSit('v-sit'),
   ex_113: () => elbowLever(),
@@ -360,11 +321,8 @@ const INTERMEDIATE: Record<string, () => FigureSpec> = {
 
 const ADVANCED: Record<string, () => FigureSpec> = {
   // Push-ups
-  ex_435: () => oneArmPushUp('floor'),
   ex_215: () => oneArmPushUp('floor'),
-  ex_436: () => oneArmPushUp('floor', { rings: true }),
   ex_246: () => oneArmPushUp('floor', { rings: true }),
-  ex_434: () => oneArmPushUp('straddle', { rings: true }),
   ex_180: () => oneArmPushUp('straddle', { rings: true }),
   ex_179: () => pushUp({ grip: 'pseudo', lean: 0.4, rings: true, turnedOut: true }),
   ex_214: () => pushUp({ grip: 'pseudo', lean: 0.65, rings: true, turnedOut: true }),
@@ -389,12 +347,9 @@ const ADVANCED: Record<string, () => FigureSpec> = {
   ex_230: () => dip({ depth: 'forearms', shoulders: 'above-elbow' }),
   ex_287: () => dip({ depth: 'forearms', shoulders: 'behind-elbow' }),
   ex_182: () => dip({ rings: true, turnedOut: true, lean: 45 }),
-  ex_400: () => dip({ rings: true, turnedOut: true, lean: 45 }),
   ex_217: () => dip({ rings: true, turnedOut: true, lean: 75 }),
   ex_248: () => dip({ rings: true, turnedOut: true, lean: 90 }),
-  ex_401: () => dip({ rings: true, turnedOut: true, lean: 90 }),
   ex_276: () => dip({ rings: true, turnedOut: true, lean: 120 }),
-  ex_399: () => frontRingDip('wide'),
   ex_183: () => dip({ extra: 'plate', plate: 9 }),
   ex_218: () => dip({ extra: 'plate', plate: 10 }),
   ex_249: () => dip({ extra: 'plate', plate: 11 }),
@@ -438,7 +393,6 @@ const ADVANCED: Record<string, () => FigureSpec> = {
   ex_223: () => frontLever('full', { rings: true }),
   ex_238: () => frontLever('full', { toInverted: 'from-lever' }),
   ex_266: () => frontLever('full', { toInverted: 'from-hang' }),
-  ex_360: () => frontLever('full', { toInverted: 'from-hang' }),
   ex_206: () => frontLever('straddle', { rows: true }),
   ex_239: () => frontLever('straddle', { rows: true }),
   ex_267: () => frontLever('full', { rows: true }),
@@ -449,12 +403,10 @@ const ADVANCED: Record<string, () => FigureSpec> = {
   ex_204: () => backLever('full', { from: 'pullout' }),
   ex_237: () => backLever('full', { from: 'german-pullout' }),
   ex_265: () => backLever('full', { from: 'pull-up' }),
-  ex_361: () => backLever('tuck', { from: 'pull-up' }),
 
   // Rings statics
   ex_243: () => ironCross({ partial: true }),
   ex_271: () => ironCross(),
-  ex_280: () => ironCross(),
   ex_257: () => victorian('hold'),
   ex_285: () => victorian('press'),
 
@@ -493,9 +445,7 @@ const ADVANCED: Record<string, () => FigureSpec> = {
   ex_220: () => elbowLever({ oneArm: true }),
   ex_186: () => humanFlag('straddle'),
   ex_221: () => humanFlag('full'),
-  ex_389: () => vSit(45),
   ex_171: () => vSit(75),
-  ex_390: () => vSit(90),
   ex_252: () => vSit(90, { rings: true }),
   ex_203: () => vSit(100),
   ex_236: () => vSit(120),
@@ -534,7 +484,6 @@ const ELITE: Record<string, () => FigureSpec> = {
   ex_299: () => planche({ legs: 'full' }),
   ex_314: () => planche({ legs: 'half-lay', rings: true }),
   ex_333: () => planche({ legs: 'full', rings: true }),
-  ex_338: () => planche({ legs: 'full', rings: true }),
   ex_358: () => planche({ legs: 'full', oneArm: true }),
   ex_315: () => planche({ legs: 'half-lay', press: true }),
   ex_334: () => planche({ legs: 'full', press: true }),
@@ -581,7 +530,6 @@ const ELITE: Record<string, () => FigureSpec> = {
   // Levers
   ex_293: () => frontLever('full', { toInverted: 'from-lever' }),
   ex_294: () => frontLever('full', { rows: true }),
-  ex_373: () => frontLever('full', { rows: true }),
   ex_322: () => frontLever('full', { oneArm: true }),
   ex_331: () => backLever('full', { from: 'pull-up', rings: true }),
 
@@ -597,10 +545,7 @@ const ELITE: Record<string, () => FigureSpec> = {
   ex_330: () => victorian('press', { oneArm: true }),
 
   // Handstands and presses
-  ex_415: () => handstand('one-arm-prep'),
   ex_416: () => handstand('one-arm'),
-  ex_417: () => handstand('one-arm-straight'),
-  ex_418: () => handstand('hold'),
   ex_289: () => pressToHandstand('elbow-lever', { rings: true }),
   ex_310: () => pressToHandstand('bars-dip', { rings: true }),
   ex_290: () => pressToHandstand('l-sit', { rings: true }),
@@ -608,12 +553,8 @@ const ELITE: Record<string, () => FigureSpec> = {
   ex_288: () => overheadPress(12),
 
   // V-sit to manna
-  ex_391: () => vSit(120),
-  ex_392: () => vSit(140),
   ex_291: () => vSit(155),
-  ex_393: () => vSit(155),
   ex_312: () => vSit(170),
-  ex_394: () => vSit(170),
   ex_323: () => vSit(178),
 
   // Legs
@@ -621,7 +562,16 @@ const ELITE: Record<string, () => FigureSpec> = {
   ex_309: () => kneelingQuad('matrix', { oneLeg: true }),
 };
 
-const FIGURES: Record<string, () => FigureSpec> = { ...BEGINNER, ...INTERMEDIATE, ...ADVANCED, ...ELITE };
+/* Steps added when the tree was rebuilt: they borrow the closest existing drawing. */
+const ADDED: Record<string, () => FigureSpec> = {
+  ex_437: () => pushUp(), // Knee Push-up
+  ex_438: () => pushUp({ grip: 'pseudo', lean: 0.5 }), // Planche Lean
+  ex_439: () => pullUp({ kind: 'scapular' }), // Dead Hang
+  ex_440: () => pelicanCurl(true), // Rings Bicep Curl
+  ex_441: () => floorCore('post-tuck'), // Hollow Body Hold
+};
+
+const FIGURES: Record<string, () => FigureSpec> = { ...BEGINNER, ...INTERMEDIATE, ...ADVANCED, ...ELITE, ...ADDED };
 
 /** Built on first use: over three hundred figures, most of which a visit never shows. */
 const built = new Map<string, FigureSpec>();

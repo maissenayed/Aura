@@ -1,4 +1,5 @@
 import type { Boss, Lift } from '../../utils/campaignPlan';
+import { resolveExerciseId } from '../../data/exerciseAliases';
 import { boulderingFigure } from '../skilltree/boulderingFigures';
 import { calisthenicsFigure } from '../skilltree/calisthenicsFigures';
 import { gymFigure } from '../skilltree/gymFigures';
@@ -20,8 +21,8 @@ const CALISTHENICS_LOOKALIKE: Record<string, string> = {
   dipReps: 'ex_27',
   hspu: 'ex_92',
   hspuReps: 'ex_92',
-  pike_pushups: 'ex_427',
-  diamond_pushups: 'ex_429',
+  pike_pushups: 'ex_1',
+  diamond_pushups: 'ex_26',
   archer_pushups: 'ex_431',
   pseudo_planche_pushups: 'ex_430',
   planche_leans: 'ex_430',
@@ -57,7 +58,7 @@ const CALISTHENICS_LOOKALIKE: Record<string, string> = {
   lsit_holds: 'ex_42',
   lsit_max: 'ex_42',
   lsitHold: 'ex_42',
-  hollow_hold: 'ex_16',
+  hollow_hold: 'ex_441',
   side_plank: 'ex_386',
   // Skills
   tuck_planche: 'ex_105',
@@ -115,7 +116,7 @@ const BOSS_LOOKALIKE: Record<string, string> = {
   boss_handstand: 'ex_62',
   boss_handstand_walk: 'ex_62',
   boss_backlever: 'ex_172',
-  boss_oap_pushup: 'ex_435',
+  boss_oap_pushup: 'ex_215',
   boss_lsit: 'ex_42',
   boss_dead_hang: 'ex_383',
 };
@@ -130,7 +131,8 @@ const BRANCH_FALLBACK: Record<string, string> = { push: 'ex_7', pull: 'ex_23', l
 
 const cache = new Map<string, FigureSpec | undefined>();
 
-function lookup(id: string): FigureSpec | undefined {
+function lookup(given: string): FigureSpec | undefined {
+  const id = resolveExerciseId(given);
   if (cache.has(id)) return cache.get(id);
   const spec =
     calisthenicsFigure(id) ??

@@ -8,6 +8,10 @@ export interface RawExercise {
   category: string;
   subCategory: string;
   prerequisites?: string[];
+  /** The lane it is drawn in; worked out from the category and branch name when absent. */
+  swimlane?: Swimlane;
+  /** What mastering it looks like ("3×10", "10 s hold"). */
+  standard?: string;
   steps?: string[];
   expertTip?: string;
   youtubeQuery?: string;

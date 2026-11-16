@@ -4,6 +4,7 @@ import { useCallback, useSyncExternalStore } from 'react';
 import { Exercise } from '@aura/types';
 import { EXERCISES } from '../data/exercisesData';
 import { getStoredExercises } from './exerciseStorage';
+import { resolveExerciseId } from '../data/exerciseAliases';
 
 /**
  * Which skills are mastered, kept in localStorage — one entry per skill tree —
@@ -32,7 +33,10 @@ function read(tree: SkillTreeId): readonly string[] {
     const raw = window.localStorage.getItem(PROGRESS_KEYS[tree]);
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as { masteredIds?: unknown };
-    return Array.isArray(parsed.masteredIds) ? parsed.masteredIds.filter((id): id is string => typeof id === 'string') : EMPTY;
+    if (!Array.isArray(parsed.masteredIds)) return EMPTY;
+    const ids = parsed.masteredIds.filter((id): id is string => typeof id === 'string');
+    // Calisthenics skills merged in the rebuild count for the skill they were merged into.
+    return tree === 'calisthenics' ? [...new Set(ids.map(resolveExerciseId))] : ids;
   } catch (error) {
     console.error('Could not read skill tree progress on this device:', error);
     return EMPTY;
