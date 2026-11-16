@@ -43,6 +43,36 @@ function handInProfile(fingers: Pt[], wrist: Pt, knuckle: Pt, thumb?: Pt[], focu
   return strokes;
 }
 
+/**
+ * The back of a right hand seen from behind, fingers up, thumb on screen-left.
+ * `fingers` runs index to little finger: 'in' reaches up into a pocket, 'off' is curled away from it,
+ * 'free' is left out so the figure can draw that finger itself.
+ */
+function handFromBehind(cx: number, fingers: ('in' | 'off' | 'free')[], k = 1): Stroke[] {
+  const knuckleY = 55;
+  const s = (dx: number, y: number): Pt => [cx + dx * k, knuckleY + (y - knuckleY) * k];
+  const strokes: Stroke[] = [
+    { pts: [s(1.5, 104), s(0, 74)], width: 11 * k, tone: 'body' },
+    { pts: [s(-10, 74), s(10, 74), s(10.5, knuckleY), s(-10.5, knuckleY)], width: 3, tone: 'body', closed: true },
+    { pts: [s(-9.5, 70), s(-15, 62), s(-15.5, 56.5)], width: 3.4, tone: 'body' },
+  ];
+  fingers.forEach((state, i) => {
+    if (state === 'free') return;
+    const x = -7.5 + 5 * i;
+    const out = i < 2 ? -1 : 1;
+    strokes.push(
+      state === 'in'
+        ? { pts: [s(x, knuckleY), s(x, 34)], width: 3.6, tone: 'focus' }
+        : { pts: [s(x, knuckleY), s(x + out, 48), s(x + 2.6 * out, 51.5)], width: 3.4, tone: 'body' },
+    );
+  });
+  return strokes;
+}
+
+/** A rounded hole in the rock (path drawn against the rock's winding, so it cuts through). */
+const hole = (cx: number, cy: number, rx: number, ry: number) =>
+  `M${cx - rx},${cy} A${rx},${ry} 0 1 0 ${cx + rx},${cy} A${rx},${ry} 0 1 0 ${cx - rx},${cy} Z`;
+
 /* ------------------------------------------------------------------ */
 /* The figures                                                         */
 /* ------------------------------------------------------------------ */
@@ -338,6 +368,153 @@ const FIGURES: Record<string, FigureSpec> = {
     ],
   }),
 
+  bld_outside_edge: figure({
+    scene: 'vertical',
+    holds: [hold(41, 15, 'jug'), hold(59, 15, 'jug'), hold(43, 87, 'edge', { size: 0.8 }), hold(64.5, 80, 'edge', { key: true, size: 0.8 })],
+    people: [
+      climber(
+        { neck: [52, 36], pelvis: [56, 58], lHand: [41, 16], rHand: [59, 16], lFoot: [44, 85], rFoot: [67.5, 78], rToe: [-1, 0.08], turn: 0.85, bend: { rLeg: 'in', lLeg: 'out' } },
+        ['rLeg'],
+      ),
+    ],
+    rings: [[64.5, 79]],
+  }),
+
+  bld_rock_over: figure({
+    scene: 'vertical',
+    holds: [hold(34, 26, 'jug'), hold(50, 18, 'jug'), hold(78, 12, 'jug'), hold(40, 88, 'foot'), hold(75, 60.5, 'foot', { key: true })],
+    people: [
+      climber({ neck: [41, 40], pelvis: [42, 62], lHand: [34, 27], rHand: [50, 19], lFoot: [40, 86], rFoot: [74, 58.5], bend: { rLeg: 'up' } }, [], true),
+      climber(
+        { neck: [72, 28], pelvis: [70, 49], lHand: [50, 19], rHand: [78, 13], lFoot: [62, 75], rFoot: [74, 58.5], bend: { rLeg: 'right', lLeg: 'in' } },
+        ['rLeg'],
+      ),
+    ],
+    arrows: [{ d: 'M40,70 Q58,78 64,58' }],
+    rings: [[75, 60.5]],
+  }),
+
+  bld_good_samaritan: figure({
+    scene: 'vertical',
+    holds: [hold(42, 25, 'jug'), hold(42, 88, 'foot'), hold(80, 48, 'foot', { key: true })],
+    people: [
+      climber(
+        {
+          neck: [56, 46],
+          pelvis: [52, 66],
+          lHand: [42, 26],
+          rHand: [69.5, 65.5],
+          lFoot: [43, 86],
+          rFoot: [70, 64],
+          rToe: [1, -0.2],
+          joints: { rLeg: [60, 52.5] },
+          bend: { rArm: 'right' },
+        },
+        ['rArm'],
+      ),
+    ],
+    arrows: [{ d: 'M78,72 Q87,66 82,53' }],
+    rings: [[69.5, 65]],
+  }),
+
+  bld_heel_toe_cam: figure({
+    scene: 'roof',
+    wall: 'M0,0 L100,0 L100,20 L76,20 L76,5 L65,5 L65,20 L0,20 Z',
+    holds: [hold(28, 22.5, 'jug', { rotate: 180 }), hold(42, 22.5, 'jug', { rotate: 180 })],
+    people: [
+      climber(
+        {
+          neck: [44, 40],
+          pelvis: [62, 41],
+          lHand: [28, 23],
+          rHand: [42, 23],
+          lFoot: [74, 65],
+          rFoot: [67.4, 15.5],
+          rToe: [1, -0.5],
+          turn: 1,
+          bend: { lArm: 'right', rArm: 'right', rLeg: 'left', lLeg: 'right' },
+        },
+        ['rLeg'],
+      ),
+    ],
+    rings: [[70.5, 12.5]],
+  }),
+
+  bld_frog_pinch: figure({
+    scene: 'overhang',
+    wall: 'M50,44 L58,98 L42,98 Z',
+    holds: [hold(40, 16, 'jug'), hold(60, 16, 'jug')],
+    people: [
+      climber(
+        { neck: [50, 36], pelvis: [50, 58], lHand: [40, 17], rHand: [60, 17], lFoot: [44.5, 76], rFoot: [55.5, 76], lToe: [-1, 0.25], rToe: [1, 0.25], bend: { lLeg: 'out', rLeg: 'out' } },
+        ['lLeg', 'rLeg'],
+      ),
+    ],
+    arrows: [
+      { d: 'M24,80 L33,80', kind: 'force' },
+      { d: 'M76,80 L67,80', kind: 'force' },
+    ],
+  }),
+
+  bld_bat_hang: figure({
+    scene: 'roof',
+    wall: 'M0,0 L100,0 L100,18 L0,18 Z',
+    holds: [hold(18, 20.5, 'jug', { rotate: 180 }), hold(30, 20.5, 'jug', { rotate: 180 }), hold(48, 20.5, 'jug', { key: true, rotate: 180 }), hold(66, 20.5, 'jug', { key: true, rotate: 180 })],
+    people: [
+      climber(
+        {
+          neck: [57, 64],
+          pelvis: [57, 42],
+          lHand: [63, 85],
+          rHand: [51, 85],
+          lFoot: [65, 25],
+          rFoot: [49, 25],
+          lToe: [-0.15, -1],
+          rToe: [0.15, -1],
+          turn: 0.2,
+          bend: { lLeg: 'out', rLeg: 'out', lArm: 'out', rArm: 'out' },
+        },
+        ['lLeg', 'rLeg'],
+      ),
+    ],
+    rings: [[48, 22], [66, 22]],
+  }),
+
+  bld_alpine_knee: figure({
+    scene: 'vertical',
+    wall: 'M14,43 L86,43 L92,49 L8,49 Z M8,49 L92,49 L92,54 L8,54 Z',
+    holds: [hold(40, 16, 'jug'), hold(58, 12, 'jug'), hold(43, 88, 'foot')],
+    people: [
+      climber(
+        {
+          neck: [50, 34],
+          pelvis: [51, 57],
+          lHand: [40, 17],
+          rHand: [58, 13],
+          lFoot: [43, 86],
+          rFoot: [75, 45],
+          joints: { rLeg: [60.5, 45] },
+        },
+        ['rLeg'],
+      ),
+    ],
+    rings: [[60.5, 45]],
+  }),
+
+  bld_knee_press: figure({
+    scene: 'vertical',
+    wall: 'M67,44 L94,36 L94,92 L73,84 Z',
+    holds: [hold(40, 16, 'jug'), hold(58, 12, 'jug'), hold(42, 86, 'foot'), hold(63, 82.5, 'foot', { key: true })],
+    people: [
+      climber(
+        { neck: [50, 36], pelvis: [52, 58], lHand: [40, 17], rHand: [58, 13], lFoot: [42, 84], rFoot: [63, 80.5], joints: { rLeg: [67.5, 66] } },
+        ['rLeg'],
+      ),
+    ],
+    arrows: [{ d: 'M74,66 L83,66', kind: 'force' }],
+    rings: [[68, 66]],
+  }),
+
   /* Body ------------------------------------------------------------ */
 
   bld_straight_arms: figure({
@@ -604,6 +781,324 @@ const FIGURES: Record<string, FigureSpec> = {
     ],
   }),
 
+  bld_perching: figure({
+    scene: 'vertical',
+    wall: 'M0,0 L20,0 L20,100 L0,100 Z M20,58 L54,64 L20,86 Z',
+    people: [
+      climber(
+        {
+          neck: [37, 30],
+          pelvis: [41, 51],
+          lHand: [22, 31],
+          rHand: [22, 39],
+          lFoot: [33, 58.6],
+          rFoot: [38, 59.5],
+          lToe: [-1, -0.17],
+          rToe: [-1, -0.17],
+          joints: { lLeg: [26, 47], rLeg: [29, 49] },
+          turn: 1,
+          bend: { lArm: 'down', rArm: 'down' },
+        },
+        ['lLeg', 'rLeg'],
+      ),
+    ],
+    rings: [[36, 61]],
+  }),
+
+  bld_frogging: figure({
+    scene: 'vertical',
+    holds: [hold(40, 18, 'jug'), hold(60, 18, 'jug'), hold(37, 74, 'edge', { key: true, size: 0.8 }), hold(63, 74, 'edge', { key: true, size: 0.8 })],
+    people: [
+      climber(
+        { neck: [50, 40], pelvis: [50, 62], lHand: [40, 19], rHand: [60, 19], lFoot: [39, 72], rFoot: [61, 72], lToe: [-1, 0.1], rToe: [1, 0.1], bend: { lLeg: 'out', rLeg: 'out' } },
+        ['lLeg', 'rLeg'],
+      ),
+    ],
+    arrows: [{ d: 'M50,94 L50,78' }],
+  }),
+
+  bld_outward_facing: figure({
+    scene: 'vertical',
+    wall: 'M0,0 L26,0 L26,100 L0,100 Z M64,0 L100,0 L100,100 L64,100 Z',
+    people: [
+      climber(
+        {
+          neck: [30.5, 38],
+          pelvis: [38, 58],
+          lHand: [28, 60],
+          rHand: [28, 60],
+          lFoot: [62, 51],
+          rFoot: [62, 68],
+          lToe: [0.15, -1],
+          rToe: [0.15, -1],
+          head: [33, 31.5],
+          joints: { lArm: [28.5, 49], rArm: [28.5, 49] },
+          turn: 1,
+          bend: { lLeg: 'up', rLeg: 'up' },
+        },
+        ['lArm', 'rArm'],
+      ),
+    ],
+    arrows: [{ d: 'M48,32 L48,14' }],
+  }),
+
+  bld_back_flag: figure({
+    scene: 'vertical',
+    holds: [hold(40, 24, 'jug'), hold(65, 8, 'jug', { key: true }), hold(44, 87.5, 'foot')],
+    people: [
+      climber(
+        { neck: [49, 37], pelvis: [48, 59], lHand: [40, 25], rHand: [64, 10], lFoot: [44, 85.5], rFoot: [30, 77], rToe: [-1, 0.25] },
+        ['rLeg'],
+      ),
+    ],
+    rings: [[29, 77.5]],
+  }),
+
+  bld_inside_flag: figure({
+    scene: 'vertical',
+    holds: [hold(60, 24, 'jug'), hold(38, 10, 'jug', { key: true }), hold(56, 88.5, 'foot')],
+    people: [
+      climber(
+        { neck: [49, 34], pelvis: [52, 57], lHand: [38, 12], rHand: [60, 25], lFoot: [70, 76], rFoot: [56, 86.5], lToe: [1, 0.25] },
+        ['lLeg'],
+      ),
+    ],
+    rings: [[71, 76.5]],
+  }),
+
+  bld_arm_flag: figure({
+    scene: 'vertical',
+    holds: [hold(62, 11, 'jug', { key: true }), hold(44, 84.5, 'foot'), hold(58, 88.5, 'foot')],
+    people: [
+      climber(
+        { neck: [52, 36], pelvis: [53, 58], lHand: [24, 42], rHand: [62, 13], lFoot: [44, 82.5], rFoot: [58, 86.5] },
+        ['lArm'],
+      ),
+    ],
+    arrows: [{ d: 'M22,48 L22,58', kind: 'force' }],
+  }),
+
+  bld_peter_pan: figure({
+    scene: 'vertical',
+    holds: [hold(60, 13, 'jug', { key: true })],
+    people: [
+      climber(
+        { neck: [60, 32], pelvis: [44, 48], lHand: [58, 14], rHand: [62, 14], lFoot: [14, 44], rFoot: [18, 54], bend: { lArm: 'up' } },
+        ['lLeg', 'rLeg', 'torso'],
+      ),
+    ],
+    arrows: [{ d: 'M50,74 Q30,78 18,64' }],
+  }),
+
+  bld_janja: figure({
+    scene: 'overhang',
+    wall: STEEP_WALL,
+    holds: [hold(steep(14) + 2, 14, 'jug', { key: true, rotate: -63 })],
+    people: [
+      climber(
+        {
+          neck: [70, 34],
+          pelvis: [60, 54],
+          lHand: [steep(14) + 2, 14],
+          rHand: [steep(14) + 2.5, 15],
+          lFoot: [82, 55],
+          rFoot: [80, 59],
+          joints: { lLeg: [70, 64], rLeg: [68, 66] },
+          turn: 1,
+          bend: { lArm: 'down', rArm: 'down' },
+        },
+        ['torso', 'lLeg', 'rLeg'],
+      ),
+    ],
+    arrows: [{ d: 'M88,74 Q94,64 88,54' }],
+  }),
+
+  bld_side_pull: figure({
+    scene: 'vertical',
+    holds: [hold(26, 34, 'edge', { key: true, rotate: 90 }), hold(64, 16, 'jug'), hold(40, 84, 'foot'), hold(50, 90, 'foot')],
+    people: [
+      climber(
+        { neck: [53, 42], pelvis: [59, 63], lHand: [27.5, 34.5], rHand: [63, 19], lFoot: [41, 82], rFoot: [51, 88] },
+        ['lArm'],
+      ),
+    ],
+    arrows: [
+      { d: 'M33,26 L42,26', kind: 'force' },
+      { d: 'M44,95 L34,95', kind: 'force' },
+    ],
+  }),
+
+  bld_undercling: figure({
+    scene: 'vertical',
+    wall: 'M0,0 L28,0 L28,100 L0,100 Z',
+    holds: [hold(31, 49, 'edge', { key: true, size: 0.7 }), hold(30, 10, 'jug', { rotate: 90 })],
+    people: [
+      climber(
+        {
+          neck: [41, 30],
+          pelvis: [45, 52],
+          lHand: [32, 52],
+          rHand: [31, 11],
+          lFoot: [29.5, 66],
+          rFoot: [29.5, 75],
+          lToe: [-0.3, -1],
+          rToe: [-0.3, -1],
+          turn: 1,
+          bend: { lLeg: 'up', rLeg: 'up', lArm: 'right', rArm: 'right' },
+        },
+        ['lArm'],
+      ),
+    ],
+    arrows: [{ d: 'M36,62 L36,55', kind: 'force' }],
+    rings: [[32, 51]],
+  }),
+
+  bld_lay_back: figure({
+    scene: 'vertical',
+    wall: 'M14,0 L32,0 L32,100 L14,100 Z',
+    people: [
+      climber(
+        {
+          neck: [54, 30],
+          pelvis: [60, 51],
+          lHand: [33, 24],
+          rHand: [33, 34],
+          lFoot: [34, 58],
+          rFoot: [34, 70],
+          lToe: [-0.3, -1],
+          rToe: [-0.3, -1],
+          turn: 0.8,
+          bend: { lLeg: 'up', rLeg: 'up' },
+        },
+        ['lArm', 'rArm', 'lLeg', 'rLeg'],
+      ),
+    ],
+    arrows: [{ d: 'M80,70 L80,40' }],
+  }),
+
+  bld_elevator_door: figure({
+    scene: 'vertical',
+    wall: 'M12,0 L45,0 L45,100 L12,100 Z M55,0 L88,0 L88,100 L55,100 Z',
+    people: [
+      climber(
+        { neck: [50, 30], pelvis: [50, 52], lHand: [45.5, 41], rHand: [54.5, 41], lFoot: [40, 78], rFoot: [60, 78], lToe: [-1, 0.3], rToe: [1, 0.3] },
+        ['lArm', 'rArm'],
+      ),
+    ],
+    arrows: [
+      { d: 'M28,50 L18,50', kind: 'force' },
+      { d: 'M72,50 L82,50', kind: 'force' },
+    ],
+  }),
+
+  bld_gastondercling: figure({
+    scene: 'vertical',
+    holds: [hold(61, 56, 'jug', { key: true, rotate: -45 }), hold(40, 16, 'jug'), hold(42, 82, 'foot'), hold(58, 80, 'foot')],
+    people: [
+      climber(
+        { neck: [50, 40], pelvis: [51, 62], lHand: [41, 18], rHand: [63, 58.5], lFoot: [42, 80], rFoot: [58, 78], turn: 0.3 },
+        ['rArm'],
+      ),
+    ],
+    arrows: [{ d: 'M70,56 L78,48', kind: 'force' }],
+  }),
+
+  bld_inverted: figure({
+    scene: 'overhang',
+    wall: STEEPER_WALL,
+    holds: [
+      hold(steeper(50) + 2, 50, 'jug', { rotate: -55 }),
+      hold(steeper(58) + 2, 58, 'jug', { rotate: -55 }),
+      hold(steeper(26) + 2, 26, 'jug', { key: true, rotate: -55 }),
+      hold(steeper(34) + 2, 34, 'jug', { key: true, rotate: -55 }),
+    ],
+    people: [
+      climber(
+        {
+          neck: [56, 66],
+          pelvis: [71, 50],
+          lHand: [steeper(50) + 2, 50],
+          rHand: [steeper(58) + 2, 58],
+          lFoot: [steeper(26) + 4, 25],
+          rFoot: [steeper(34) + 4, 33],
+          lToe: [-0.6, -0.8],
+          rToe: [-0.6, -0.8],
+          turn: 1,
+          bend: { lLeg: 'up', rLeg: 'up', lArm: 'down', rArm: 'down' },
+        },
+        ['lLeg', 'rLeg'],
+      ),
+    ],
+    rings: [[steeper(26) + 2, 26]],
+  }),
+
+  bld_inside_figure_four: figure({
+    scene: 'overhang',
+    holds: [hold(67, 47, 'jug', { key: true, size: 1.2 }), hold(36, 7, 'jug')],
+    people: [
+      climber(
+        {
+          neck: [51, 30],
+          pelvis: [49, 52],
+          lHand: [37, 8.5],
+          rHand: [66, 46],
+          lFoot: [70, 60],
+          rFoot: [50, 82],
+          joints: { lLeg: [63, 45.5], rArm: [63, 36] },
+          bend: { rLeg: 'left' },
+        },
+        ['lLeg'],
+      ),
+    ],
+    arrows: [{ d: 'M24,40 L24,20' }],
+    rings: [[64, 45]],
+  }),
+
+  bld_outside_figure_four: figure({
+    scene: 'overhang',
+    wall: STEEP_WALL,
+    holds: [hold(steep(50) + 2, 50, 'jug', { key: true, rotate: -63, size: 1.2 }), hold(steep(12) + 2, 12, 'jug', { rotate: -63 })],
+    people: [
+      climber(
+        {
+          neck: [62, 32],
+          pelvis: [66, 54],
+          lHand: [steep(12) + 3, 13],
+          rHand: [49, 50],
+          lFoot: [44, 59],
+          rFoot: [70, 84],
+          joints: { lLeg: [52, 47] },
+          turn: 0.8,
+          bend: { rArm: 'down', rLeg: 'left' },
+        },
+        ['lLeg', 'rArm'],
+      ),
+    ],
+    rings: [[51, 47]],
+  }),
+
+  bld_figure_nine: figure({
+    scene: 'overhang',
+    holds: [hold(74, 51, 'jug', { key: true, size: 1.2 }), hold(18, 30, 'jug')],
+    people: [
+      climber(
+        {
+          neck: [52, 34],
+          pelvis: [52, 56],
+          lHand: [19, 31],
+          rHand: [73, 50],
+          lFoot: [48, 86],
+          rFoot: [79, 59],
+          joints: { rLeg: [69, 45.5] },
+          bend: { lArm: 'down', rArm: 'down' },
+        },
+        ['rLeg', 'rArm'],
+      ),
+    ],
+    arrows: [{ d: 'M30,22 L16,22' }],
+    rings: [[70, 47]],
+  }),
+
   /* Movement -------------------------------------------------------- */
 
   bld_deadpoint: figure({
@@ -771,6 +1266,415 @@ const FIGURES: Record<string, FigureSpec> = {
       { at: [24, 26], text: '1' },
       { at: [82, 10], text: '2' },
     ],
+  }),
+
+  bld_hip_swing: figure({
+    scene: 'vertical',
+    wall: 'M0,0 L22,0 L22,100 L0,100 Z',
+    holds: [hold(24, 36, 'jug', { rotate: -90 }), hold(24, 15, 'jug', { key: true, rotate: -90 }), hold(23.8, 88, 'foot')],
+    people: [
+      climber(
+        {
+          neck: [39, 53],
+          pelvis: [50, 74],
+          lHand: [25, 36],
+          rHand: [25, 36],
+          lFoot: [25, 87],
+          rFoot: [25, 87],
+          turn: 1,
+          bend: { lLeg: 'up', rLeg: 'up', lArm: 'down', rArm: 'down' },
+        },
+        [],
+        true,
+      ),
+      climber(
+        {
+          neck: [31, 37],
+          pelvis: [33, 59],
+          lHand: [25, 36],
+          rHand: [25.5, 15],
+          lFoot: [25, 87],
+          rFoot: [25, 87],
+          head: [33.5, 30.5],
+          joints: { lArm: [29, 47] },
+          turn: 1,
+          bend: { lLeg: 'left', rLeg: 'left', rArm: 'down' },
+        },
+        ['torso'],
+      ),
+    ],
+    arrows: [{ d: 'M60,80 Q52,64 40,60' }],
+    rings: [[24, 15]],
+  }),
+
+  bld_arm_swing: figure({
+    scene: 'vertical',
+    holds: [hold(38, 33, 'jug'), hold(72, 9, 'jug', { key: true }), hold(44, 81.5, 'foot'), hold(58, 79.5, 'foot')],
+    people: [
+      climber(
+        { neck: [55, 30], pelvis: [54, 52], lHand: [38, 34], rHand: [66, 52], lFoot: [44, 80], rFoot: [58, 78], bend: { lArm: 'down', rArm: 'right' } },
+        [],
+        true,
+      ),
+      climber(
+        { neck: [55, 30], pelvis: [54, 52], lHand: [38, 34], rHand: [71.5, 10], lFoot: [44, 80], rFoot: [58, 78], bend: { lArm: 'down' } },
+        ['rArm'],
+      ),
+    ],
+    arrows: [{ d: 'M72,58 Q90,40 77,18' }],
+    rings: [[72, 9]],
+  }),
+
+  bld_headbutt: figure({
+    scene: 'vertical',
+    holds: [hold(34, 34, 'jug'), hold(78, 19, 'jug', { key: true }), hold(42, 85.5, 'foot'), hold(57, 83.5, 'foot')],
+    people: [
+      climber(
+        { neck: [45, 46], pelvis: [48, 68], lHand: [34, 35], rHand: [50, 64], lFoot: [42, 84], rFoot: [57, 82], head: [39.5, 42], bend: { lArm: 'down' } },
+        [],
+        true,
+      ),
+      climber(
+        { neck: [56, 37], pelvis: [52, 59], lHand: [34, 35], rHand: [76, 20], lFoot: [42, 84], rFoot: [57, 82], head: [62, 31.5], bend: { lArm: 'down' } },
+        ['head', 'torso'],
+      ),
+    ],
+    arrows: [{ d: 'M36,35 Q44,18 57,24' }],
+    rings: [[78, 19]],
+  }),
+
+  bld_step_up_dyno: figure({
+    scene: 'vertical',
+    holds: [hold(40, 52, 'jug'), hold(58, 52, 'jug'), hold(68.5, 74, 'foot', { key: true }), hold(42, 95, 'foot'), hold(55, 6, 'jug', { key: true, size: 1.3 })],
+    people: [
+      climber(
+        { neck: [49, 62], pelvis: [50, 82], lHand: [40, 53], rHand: [58, 53], lFoot: [42, 93], rFoot: [68, 72], bend: { lArm: 'down', rArm: 'down', rLeg: 'up' } },
+        [],
+        true,
+      ),
+      climber(
+        { neck: [58, 22], pelvis: [61, 44], lHand: [51, 7], rHand: [59, 7], lFoot: [54, 73], rFoot: [68, 72], bend: { lLeg: 'in' } },
+        ['rLeg', 'lArm', 'rArm'],
+      ),
+    ],
+    arrows: [{ d: 'M82,76 Q90,42 70,12' }],
+    rings: [[68.5, 74]],
+  }),
+
+  bld_one_arm_dyno: figure({
+    scene: 'vertical',
+    holds: [hold(40, 47, 'jug'), hold(56, 47, 'jug'), hold(68, 8, 'jug', { key: true }), hold(38, 91, 'foot'), hold(58, 91, 'foot')],
+    people: [
+      climber(
+        { neck: [48, 61], pelvis: [48, 78], lHand: [40, 48], rHand: [56, 48], lFoot: [38, 89], rFoot: [58, 89], bend: { lLeg: 'out', rLeg: 'out' } },
+        [],
+        true,
+      ),
+      climber(
+        { neck: [62, 30], pelvis: [60, 52], lHand: [47, 50], rHand: [67.5, 9], lFoot: [55, 80], rFoot: [62, 81], bend: { lArm: 'out' } },
+        ['rArm'],
+      ),
+    ],
+    arrows: [{ d: 'M28,76 Q26,30 56,12' }],
+    rings: [[68, 8]],
+  }),
+
+  bld_swing_jump: figure({
+    scene: 'vertical',
+    holds: [hold(28, 13, 'jug'), hold(76, 22, 'jug', { key: true })],
+    people: [
+      climber(
+        { neck: [36, 34], pelvis: [48, 52], lHand: [26, 14], rHand: [30, 14], lFoot: [62, 74], rFoot: [67, 70], bend: { lLeg: 'down', rLeg: 'down' } },
+        [],
+        true,
+      ),
+      climber(
+        { neck: [64, 40], pelvis: [61, 62], lHand: [49, 27], rHand: [75, 23], lFoot: [55, 90], rFoot: [61, 91], bend: { lArm: 'down', lLeg: 'right', rLeg: 'right' } },
+        ['rArm', 'torso'],
+      ),
+    ],
+    arrows: [{ d: 'M40,24 Q55,6 70,15' }],
+    rings: [[76, 22]],
+  }),
+
+  bld_hand_match: figure({
+    scene: 'vertical',
+    holds: [hold(42, 20, 'jug', { key: true, size: 1.3 }), hold(68, 32, 'jug'), hold(44, 87.5, 'foot'), hold(60, 85.5, 'foot')],
+    people: [
+      climber({ neck: [48, 41], pelvis: [50, 63], lHand: [39, 21], rHand: [67, 33], lFoot: [44, 85.5], rFoot: [60, 83.5] }, [], true),
+      climber(
+        { neck: [48, 41], pelvis: [50, 63], lHand: [39, 21], rHand: [45.5, 21], lFoot: [44, 85.5], rFoot: [60, 83.5] },
+        ['lArm', 'rArm'],
+      ),
+    ],
+    arrows: [{ d: 'M70,24 Q64,12 52,14' }],
+    rings: [[42, 20]],
+  }),
+
+  bld_foot_match: figure({
+    scene: 'vertical',
+    holds: [hold(40, 15, 'jug'), hold(60, 15, 'jug'), hold(50, 85, 'edge', { key: true }), hold(69, 75, 'foot')],
+    people: [
+      climber({ neck: [50, 35], pelvis: [50, 57], lHand: [40, 16], rHand: [60, 16], lFoot: [47, 83.5], rFoot: [68.5, 73] }, [], true),
+      climber(
+        { neck: [50, 35], pelvis: [50, 57], lHand: [40, 16], rHand: [60, 16], lFoot: [47, 83.5], rFoot: [53, 83.5] },
+        ['lLeg', 'rLeg'],
+      ),
+    ],
+    rings: [[50, 85]],
+  }),
+
+  bld_piano_match: figure({
+    scene: 'close-up',
+    wall: 'M28,24 L72,24 L72,32 L28,32 Z',
+    extra: [
+      // left hand, leaving: little and ring finger still on, middle and index lifted
+      { pts: [[12, 104], [29, 63]], width: 10, tone: 'body' },
+      { pts: [[26, 48], [40, 44], [41, 57], [30, 61]], width: 3, tone: 'body', closed: true },
+      { pts: [[27.5, 47], [30, 35], [31.5, 27]], width: 3.4, tone: 'body' },
+      { pts: [[32, 46], [34.5, 34], [36, 27]], width: 3.4, tone: 'body' },
+      { pts: [[36.5, 45], [39, 39]], width: 3.4, tone: 'body' },
+      { pts: [[40, 44.5], [43, 40]], width: 3.4, tone: 'body' },
+      { pts: [[40, 54], [45, 50]], width: 3.2, tone: 'body' },
+      // right hand, arriving: index and middle finger on, ring and little still to come
+      { pts: [[86, 104], [65, 63]], width: 10, tone: 'body' },
+      { pts: [[52, 45], [66, 49], [64, 61], [53, 58]], width: 3, tone: 'body', closed: true },
+      { pts: [[52.5, 45.5], [44.5, 33.5], [41, 27]], width: 3.4, tone: 'focus' },
+      { pts: [[57, 46.5], [49.5, 34], [46, 27]], width: 3.4, tone: 'focus' },
+      { pts: [[61, 47.5], [57.5, 41.5]], width: 3.4, tone: 'focus' },
+      { pts: [[65, 48.5], [62.5, 43.5]], width: 3.4, tone: 'focus' },
+      { pts: [[53, 54], [48, 50.5]], width: 3.2, tone: 'body' },
+    ],
+    arrows: [{ d: 'M64,16 L46,16' }],
+  }),
+
+  bld_hand_foot_match: figure({
+    scene: 'vertical',
+    holds: [hold(43, 14, 'jug'), hold(64, 57, 'jug', { key: true, size: 1.3 }), hold(43, 86.5, 'foot')],
+    people: [
+      climber(
+        {
+          neck: [52, 35],
+          pelvis: [54, 57],
+          lHand: [43, 15],
+          rHand: [60.5, 56.5],
+          lFoot: [43, 84.5],
+          rFoot: [68, 56],
+          joints: { rLeg: [67, 43] },
+          rToe: [-1, 0.1],
+          bend: { rArm: 'in' },
+        },
+        ['rLeg'],
+      ),
+    ],
+    arrows: [{ d: 'M44,68 Q58,74 64,66' }],
+    rings: [[64, 57]],
+  }),
+
+  bld_houdini: figure({
+    scene: 'close-up',
+    wall: 'M0,0 L24,0 L24,50 L36,50 L36,54 L24,54 L24,100 L0,100 Z',
+    extra: [
+      // bottom hand, gripping the edge
+      { pts: [[56, 104], [48, 68]], width: 9, tone: 'body' },
+      { pts: [[48, 68], [43, 50]], width: 7, tone: 'body' },
+      { pts: [[43, 50], [37, 41.5], [31, 44], [28, 49.5]], width: 3.6, tone: 'body' },
+      // top hand, laid over the holding fingers
+      { pts: [[86, 104], [62, 62]], width: 9, tone: 'focus' },
+      { pts: [[62, 62], [50, 45]], width: 7, tone: 'focus' },
+      { pts: [[50, 45], [41, 36], [33, 38], [29, 43.5]], width: 3.6, tone: 'focus' },
+    ],
+    arrows: [{ d: 'M90,52 L76,52', kind: 'force' }],
+  }),
+
+  bld_foot_cross: figure({
+    scene: 'vertical',
+    holds: [hold(36, 20, 'jug'), hold(62, 18, 'jug'), hold(37, 83.5, 'foot'), hold(54, 86.5, 'foot'), hold(69, 81.5, 'foot', { key: true })],
+    people: [
+      climber(
+        { neck: [50, 36], pelvis: [52, 58], lHand: [36, 21], rHand: [62, 19], lFoot: [37, 81.5], rFoot: [54, 84.5], turn: 0.4 },
+        [],
+        true,
+      ),
+      climber(
+        { neck: [50, 36], pelvis: [52, 58], lHand: [36, 21], rHand: [62, 19], lFoot: [68.5, 79.5], rFoot: [54, 84.5], turn: 0.4, bend: { lLeg: 'down' } },
+        ['lLeg'],
+      ),
+    ],
+    arrows: [{ d: 'M36,92 Q52,100 66,90' }],
+    rings: [[69, 81.5]],
+  }),
+
+  bld_hand_cross: figure({
+    scene: 'vertical',
+    holds: [hold(36, 26, 'jug'), hold(52, 20, 'jug'), hold(65.5, 18, 'jug', { key: true }), hold(48, 88, 'foot'), hold(63, 84, 'foot')],
+    people: [
+      climber(
+        { neck: [58, 38], pelvis: [56, 60], lHand: [36.5, 27], rHand: [52, 21], lFoot: [48, 86], rFoot: [63, 82], turn: 0.5, head: [60, 32.5] },
+        [],
+        true,
+      ),
+      climber(
+        { neck: [58, 38], pelvis: [56, 60], lHand: [65, 19], rHand: [52, 21], lFoot: [48, 86], rFoot: [63, 82], turn: 0.5, head: [60, 32.5], bend: { lArm: 'down', rArm: 'down' } },
+        ['lArm'],
+      ),
+    ],
+    arrows: [{ d: 'M36,18 Q50,2 61,10' }],
+    rings: [[65.5, 18]],
+  }),
+
+  bld_rose_move: figure({
+    scene: 'vertical',
+    holds: [hold(38, 29, 'jug'), hold(66, 17, 'jug'), hold(73.5, 49.5, 'jug', { key: true }), hold(31.5, 59.5, 'foot'), hold(58, 88.5, 'foot')],
+    people: [
+      climber(
+        {
+          neck: [58, 38],
+          pelvis: [50, 58],
+          lHand: [38.5, 30],
+          rHand: [66, 18],
+          lFoot: [33, 58],
+          rFoot: [58, 86.5],
+          joints: { lLeg: [42, 70] },
+          lToe: [-1, -0.15],
+          turn: 0.75,
+        },
+        [],
+        true,
+      ),
+      climber(
+        {
+          neck: [58, 38],
+          pelvis: [50, 58],
+          lHand: [73, 49],
+          rHand: [66, 18],
+          lFoot: [33, 58],
+          rFoot: [58, 86.5],
+          joints: { lLeg: [42, 70] },
+          lToe: [-1, -0.15],
+          turn: 0.75,
+          bend: { lArm: 'down' },
+        },
+        ['lArm'],
+      ),
+    ],
+    arrows: [{ d: 'M34,38 Q44,66 66,58' }],
+    rings: [[73.5, 49.5]],
+  }),
+
+  bld_beached_whale: figure({
+    scene: 'vertical',
+    wall: 'M0,50 L50,50 Q56,50 56,56 L56,100 L0,100 Z',
+    people: [
+      climber(
+        {
+          neck: [34, 46],
+          pelvis: [56, 47],
+          head: [27.5, 43],
+          lHand: [12.5, 48],
+          rHand: [16, 48.2],
+          lFoot: [59.5, 77],
+          rFoot: [61.5, 73.5],
+          joints: { rArm: [25, 48.2] },
+          turn: 1,
+          bend: { lArm: 'up', lLeg: 'right', rLeg: 'right' },
+        },
+        ['torso'],
+      ),
+    ],
+    arrows: [{ d: 'M64,33 L42,33' }],
+  }),
+
+  bld_chin: figure({
+    scene: 'vertical',
+    wall: 'M0,40 L52,40 L52,100 L0,100 Z',
+    people: [
+      climber(
+        {
+          neck: [59, 43],
+          pelvis: [61, 65],
+          head: [56, 35.5],
+          lHand: [44, 39],
+          rHand: [72, 62],
+          lFoot: [54, 82],
+          rFoot: [57.5, 93],
+          turn: 1,
+          bend: { lArm: 'down', rArm: 'right', lLeg: 'right', rLeg: 'right' },
+        },
+        ['head'],
+      ),
+    ],
+    arrows: [{ d: 'M54,18 L54,26', kind: 'force' }],
+    rings: [[52.5, 39.5]],
+  }),
+
+  bld_barrel_roll: figure({
+    scene: 'vertical',
+    wall: 'M4,100 L4,64 Q4,56 12,56 L88,56 Q96,56 96,64 L96,100 Z',
+    people: [
+      climber(
+        {
+          neck: [32, 50],
+          pelvis: [54, 52],
+          head: [26.5, 46],
+          lHand: [10, 55.5],
+          rHand: [29, 55.5],
+          lFoot: [51, 80],
+          rFoot: [77, 54.5],
+          rToe: [1, -0.4],
+          turn: 0.6,
+          bend: { rLeg: 'up', lLeg: 'right', rArm: 'left' },
+        },
+        ['rLeg', 'torso'],
+      ),
+    ],
+    arrows: [{ d: 'M26,86 Q16,72 28,62' }],
+    rings: [[78, 55]],
+  }),
+
+  bld_soapmaker: figure({
+    scene: 'vertical',
+    wall: 'M2,100 L2,66 Q50,30 98,66 L98,100 Z',
+    people: [
+      climber(
+        {
+          neck: [50, 30],
+          pelvis: [51, 52],
+          lHand: [37, 49],
+          rHand: [63, 49],
+          lFoot: [45, 80],
+          rFoot: [78, 52.6],
+          bend: { lArm: 'in', rArm: 'in', rLeg: 'up' },
+        },
+        ['lArm', 'rArm'],
+      ),
+    ],
+    extra: [
+      { pts: [[37, 48.8], [30, 51]], width: 3.6, tone: 'focus' },
+      { pts: [[63, 48.8], [70, 51]], width: 3.6, tone: 'focus' },
+    ],
+    arrows: [{ d: 'M90,84 Q94,68 84,59' }],
+  }),
+
+  bld_midnight_lightning: figure({
+    scene: 'vertical',
+    wall: 'M4,50 L96,50 L96,100 L4,100 Z',
+    people: [
+      climber(
+        {
+          neck: [47, 26],
+          pelvis: [54, 48],
+          lHand: [35.5, 49.5],
+          rHand: [68, 36],
+          lFoot: [46, 76],
+          rFoot: [79, 49],
+          bend: { rLeg: 'up', rArm: 'down' },
+        },
+        ['lArm', 'rLeg'],
+      ),
+    ],
+    extra: [{ pts: [[35.5, 49], [28, 49]], width: 3.6, tone: 'focus' }],
+    arrows: [{ d: 'M58,14 Q74,12 80,30' }],
   }),
 
   /* Strength -------------------------------------------------------- */
@@ -998,6 +1902,127 @@ const FIGURES: Record<string, FigureSpec> = {
       ),
     ],
     labels: [{ at: [82, 52], text: '5s' }],
+  }),
+
+  bld_palm_down: figure({
+    scene: 'vertical',
+    wall: 'M57,60 L78,60 L82,72 L54,72 Z',
+    holds: [hold(38, 15, 'jug'), hold(36, 71, 'foot'), hold(54, 87.5, 'foot')],
+    people: [
+      climber(
+        { neck: [51, 36], pelvis: [48, 58], lHand: [38, 16], rHand: [59, 58.5], lFoot: [36, 69], rFoot: [54, 85.5], bend: { lLeg: 'out' } },
+        ['rArm'],
+      ),
+    ],
+    extra: [{ pts: [[58.5, 58.4], [68, 58.4]], width: 3.6, tone: 'focus' }],
+    arrows: [{ d: 'M74,38 L74,50', kind: 'force' }],
+  }),
+
+  bld_open_crimp: figure({
+    scene: 'close-up',
+    wall: 'M0,0 L24,0 L24,48 L40,48 L40,53 L24,53 L24,100 L0,100 Z',
+    extra: handInProfile(
+      [
+        [40.8, 44.3],
+        [33.8, 44.9],
+        [28, 46.5],
+      ],
+      [57, 67],
+      [51.6, 46.2],
+      [
+        [55, 58],
+        [50, 62],
+        [47, 60],
+      ],
+    ),
+    arrows: [{ d: 'M72,40 L72,56', kind: 'force' }],
+  }),
+
+  bld_quarter_crimp: figure({
+    scene: 'close-up',
+    wall: 'M0,0 L24,0 L24,48 L40,48 L40,53 L24,53 L24,100 L0,100 Z',
+    extra: handInProfile(
+      [
+        [41, 40.7],
+        [34.2, 43],
+        [29, 46.5],
+      ],
+      [55, 67],
+      [50.5, 46.5],
+      [
+        [53, 58],
+        [48, 62],
+        [45, 60],
+      ],
+    ),
+    arrows: [{ d: 'M72,40 L72,56', kind: 'force' }],
+    labels: [{ at: [42, 31], text: '45°' }],
+  }),
+
+  bld_meat_hook: figure({
+    scene: 'close-up',
+    wall: 'M0,0 L24,0 L24,38 L44,38 Q47,38 47,41 L47,57 Q47,60 44,60 L24,60 L24,100 L0,100 Z',
+    extra: [
+      { pts: [[74, 104], [56, 52]], width: 9, tone: 'body' },
+      { pts: [[56, 52], [50.5, 37], [38, 34]], width: 8, tone: 'focus' },
+      { pts: [[38, 34], [29, 35.3]], width: 3.6, tone: 'body' },
+      { pts: [[52, 46], [44, 47.5], [40, 53]], width: 3.4, tone: 'focus' },
+    ],
+    arrows: [{ d: 'M74,28 L74,44', kind: 'force' }],
+  }),
+
+  bld_thumbercling: figure({
+    scene: 'close-up',
+    wall: 'M0,0 L24,0 L24,36 L42,45.5 L42,49 L24,49 L24,100 L0,100 Z',
+    extra: [
+      { pts: [[64, 104], [52, 76]], width: 9, tone: 'body' },
+      { pts: [[52, 76], [44, 66]], width: 7, tone: 'body' },
+      { pts: [[44, 66], [37.5, 67.5], [38.5, 73]], width: 3.4, tone: 'body' },
+      { pts: [[47, 68], [40, 59], [35, 51]], width: 3.6, tone: 'focus' },
+    ],
+    arrows: [{ d: 'M72,66 L72,50', kind: 'force' }],
+    rings: [[35, 51]],
+  }),
+
+  bld_front_back_three: figure({
+    scene: 'close-up',
+    wall: `M0,0 L100,0 L100,100 L0,100 Z ${hole(28, 36.5, 8.5, 4.6)} ${hole(72, 36.5, 8.5, 4.6)}`,
+    extra: [...handFromBehind(30, ['in', 'in', 'in', 'off'], 0.8), ...handFromBehind(70, ['off', 'in', 'in', 'in'], 0.8)],
+    labels: [
+      { at: [28, 24], text: 'F3' },
+      { at: [72, 24], text: 'B3' },
+    ],
+  }),
+
+  bld_two_finger_pocket: figure({
+    scene: 'close-up',
+    wall: `M0,0 L100,0 L100,100 L0,100 Z ${hole(50, 33, 7.5, 5)}`,
+    extra: handFromBehind(50, ['off', 'in', 'in', 'off']),
+  }),
+
+  bld_stacked_fingers: figure({
+    scene: 'close-up',
+    wall: 'M0,0 L30,0 L30,48 L16,48 L16,52 L30,52 L30,100 L0,100 Z',
+    extra: [
+      { pts: [[62, 104], [52, 66]], width: 9, tone: 'body' },
+      { pts: [[52, 66], [46, 51]], width: 7, tone: 'body' },
+      { pts: [[46, 51], [38, 50], [19, 50]], width: 3.4, tone: 'focus' },
+      { pts: [[46.5, 46], [40, 37], [34.5, 41], [32.5, 46.4]], width: 3.4, tone: 'focus' },
+      { pts: [[47, 56], [40, 58], [41, 63]], width: 3.2, tone: 'body' },
+    ],
+    arrows: [{ d: 'M33,24 L33,33', kind: 'force' }],
+  }),
+
+  bld_closed_mono: figure({
+    scene: 'close-up',
+    wall: 'M0,0 L30,0 L30,44.5 L27,45.5 L27,49.5 L30,50.5 L30,100 L0,100 Z',
+    extra: [
+      { pts: [[62, 104], [52, 64]], width: 9, tone: 'body' },
+      { pts: [[52, 64], [46, 48]], width: 7, tone: 'body' },
+      { pts: [[46, 48], [39, 37], [33, 42], [29.5, 47.5]], width: 3.4, tone: 'focus' },
+      { pts: [[47, 54], [40, 56], [41, 61]], width: 3.2, tone: 'body' },
+    ],
+    rings: [[28.5, 47.5]],
   }),
 };
 
