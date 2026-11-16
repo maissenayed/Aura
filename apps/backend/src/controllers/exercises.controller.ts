@@ -1,7 +1,10 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { SignedInGuard } from '../auth/account.js';
 import { ExercisesService } from '../services/exercises.service.js';
 
+/** Only for signed-in players, like everything else on the server. */
 @Controller('api/v1/exercises')
+@UseGuards(SignedInGuard)
 export class ExercisesController {
   constructor(private readonly exercisesService: ExercisesService) {}
 

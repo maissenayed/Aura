@@ -1,7 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { SignedInGuard } from '../auth/account.js';
 import { TrackerService } from '../services/tracker.service.js';
 
+/** Only for signed-in players, like everything else on the server. */
 @Controller('api/v1/tracker')
+@UseGuards(SignedInGuard)
 export class TrackerController {
   constructor(private readonly trackerService: TrackerService) {}
 

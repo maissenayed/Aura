@@ -1,7 +1,10 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { SignedInGuard } from '../auth/account.js';
 import { AnatomyService } from '../services/anatomy.service.js';
 
+/** Only for signed-in players, like everything else on the server. */
 @Controller('api/v1/anatomy')
+@UseGuards(SignedInGuard)
 export class AnatomyController {
   constructor(private readonly anatomyService: AnatomyService) {}
 
