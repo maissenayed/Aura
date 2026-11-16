@@ -322,6 +322,9 @@ const GYM_LIFTS: Record<string, string> = {
   gym_squat_2x: 'backSquat',
   gym_deadlift_2x: 'deadlift',
   gym_deadlift_2_5x: 'deadlift',
+  gym_bench_2x: 'benchPress',
+  gym_squat_2_5x: 'backSquat',
+  gym_deadlift_3x: 'deadlift',
 };
 const GYM_BODYWEIGHT = new Set(['gym_pushup', 'gym_pullup', 'gym_plank', 'gym_hanging_leg_raise', 'gym_ab_wheel']);
 const laneGroup = (lane: string) => (lane === 'Core' ? 'Core & Grip' : lane);
