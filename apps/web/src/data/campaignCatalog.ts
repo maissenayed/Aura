@@ -18,7 +18,6 @@
 import type { Branch, StatUnit, TrainableAttribute } from '../utils/campaignPlan';
 import { BOULDERING_SKILLS } from './boulderingTree';
 import { EXERCISES as SKILL_TREE_EXERCISES } from './exercisesData';
-import { GYM_SKILLS } from './gymTree';
 
 /* ------------------------------------------------------------------ */
 /* Sets & reps                                                         */
@@ -329,27 +328,28 @@ const GYM_LIFTS: Record<string, string> = {
 const GYM_BODYWEIGHT = new Set(['gym_pushup', 'gym_pullup', 'gym_plank', 'gym_hanging_leg_raise', 'gym_ab_wheel']);
 const laneGroup = (lane: string) => (lane === 'Core' ? 'Core & Grip' : lane);
 
-function fromGymTree(skill: (typeof GYM_SKILLS)[number]): CatalogExercise {
-  const timed = /plank|hold|hang\b|carry/i.test(skill.name);
-  const lift = GYM_LIFTS[skill.id];
-  const lane = skill.lane.toLowerCase() as ExerciseCategory;
+/** A gym lift from the tree: strength standards on a lift the campaign tracks log that lift, the rest keep a working weight. */
+function fromGymLift(exercise: (typeof SKILL_TREE_EXERCISES)[number]): CatalogExercise {
+  const timed = /plank|hold|hang\b|carry/i.test(exercise.name);
+  const lift = GYM_LIFTS[exercise.id];
+  const lane = exercise.swimlane.toLowerCase() as ExerciseCategory;
   const trains = new Set<TrainableAttribute>([lane as TrainableAttribute]);
-  if (/leg raise|ab wheel/i.test(skill.name)) trains.add('compression');
-  if (/pull-up|pullup/i.test(skill.name)) trains.add('power');
+  if (/leg raise|ab wheel/i.test(exercise.name)) trains.add('compression');
+  if (/pull-up|pullup/i.test(exercise.name)) trains.add('power');
+  const level = exercise.level;
   return {
-    id: skill.id,
-    name: skill.name,
+    id: exercise.id,
+    name: exercise.name,
     discipline: 'gym',
     category: lane,
-    level: skill.level,
-    levelLabel: skill.levelLabel,
-    group: laneGroup(skill.lane),
-    focus: skill.focus,
+    level,
+    group: laneGroup(exercise.swimlane),
+    focus: exercise.focus ?? exercise.subCategory,
     dose: timed ? 'seconds' : 'reps',
-    ...(lift ? { lift } : GYM_BODYWEIGHT.has(skill.id) ? { note: BW } : { load: { start: null, step: 2.5 } }),
+    ...(lift ? { lift } : GYM_BODYWEIGHT.has(exercise.id) ? { note: BW } : { load: { start: null, step: 2.5 } }),
     trains: [...trains],
-    sets: skill.level <= 2 ? 3 : 4,
-    reps: timed ? '30' : skill.level <= 2 ? '8–12' : skill.level === 3 ? '6–10' : '5',
+    sets: level <= 4 ? 3 : 4,
+    reps: timed ? '30' : level <= 4 ? '8–12' : level <= 7 ? '6–10' : '5',
   };
 }
 
@@ -387,20 +387,22 @@ function fromBoulderingTree(skill: (typeof BOULDERING_SKILLS)[number]): CatalogE
 }
 
 const curatedIds = new Set(CURATED.map((exercise) => exercise.id));
-const gymById = new Map(GYM_SKILLS.map((skill) => [skill.id, skill]));
+const treeById = new Map(SKILL_TREE_EXERCISES.map((exercise) => [exercise.id, exercise]));
 
 export const EXERCISE_CATALOG: CatalogExercise[] = [
   ...CURATED.map((exercise) => {
-    // Curated exercises that are also on the gym tree take its level.
-    const tree = gymById.get(exercise.id);
+    // Curated exercises that are also in the skill tree take its level; their lift links stay their own.
+    const tree = treeById.get(exercise.id);
     return {
       ...exercise,
       discipline: disciplineOf(exercise),
-      ...(tree ? { level: tree.level, levelLabel: tree.levelLabel, group: laneGroup(tree.lane) } : {}),
+      ...(tree ? { level: tree.level, group: laneGroup(tree.swimlane) } : {}),
     };
   }),
-  ...SKILL_TREE_EXERCISES.map(fromSkillTree),
-  ...GYM_SKILLS.filter((skill) => !curatedIds.has(skill.id)).map(fromGymTree),
+  // Tree rows that share a curated id are skipped, or the later copy would replace the curated one (and its lift).
+  ...SKILL_TREE_EXERCISES.filter((exercise) => !curatedIds.has(exercise.id)).map((exercise) =>
+    exercise.discipline === 'gym' ? fromGymLift(exercise) : fromSkillTree(exercise),
+  ),
   ...BOULDERING_SKILLS.map(fromBoulderingTree),
 ];
 

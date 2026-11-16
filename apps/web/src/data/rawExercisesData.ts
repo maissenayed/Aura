@@ -1,7 +1,7 @@
 import { RawExercise } from '@aura/types';
 
 /**
- * The calisthenics skill tree: every exercise with its level (1-20), the
+ * The calisthenics & gym skill tree: every exercise and lift with its level (1-20), the
  * branch it climbs in (`subCategory`), its lane, and what it requires.
  *
  * Rebuilt from a coach-and-gymnast review of the original progression chart:
@@ -4485,5 +4485,1138 @@ export const rawExercises: RawExercise[] = [
     ],
     "youtubeQuery": "OA Bridge tutorial bodyweight fitness",
     "videoSearchUrl": "https://youtu.be/NcwijTIZyTU"
+  },
+  {
+    "id": "gym_db_bench",
+    "name": "Dumbbell Bench Press",
+    "level": 3,
+    "category": "Gym",
+    "subCategory": "Barbell Bench Press",
+    "swimlane": "Push",
+    "prerequisites": [
+      "ex_7"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Lie on a flat bench, feet planted, shoulder blades squeezed together.",
+      "Lower the dumbbells to the sides of your chest, forearms vertical.",
+      "Press up and slightly in until your arms are straight over your shoulders."
+    ],
+    "standard": "3×10 at 0.2x BW per dumbbell.",
+    "youtubeQuery": "Dumbbell Bench Press proper form",
+    "expertTip": "Keep both dumbbells moving at the same speed; the weaker side sets the pace.",
+    "focus": "Chest",
+    "summary": "Pressing two dumbbells teaches a stable, even press before the barbell.",
+    "muscles": [
+      "Chest",
+      "Front delts",
+      "Triceps"
+    ]
+  },
+  {
+    "id": "bench_press",
+    "name": "Barbell Bench Press",
+    "level": 4,
+    "category": "Gym",
+    "subCategory": "Barbell Bench Press",
+    "swimlane": "Push",
+    "prerequisites": [
+      "gym_db_bench"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Lie with your eyes under the bar, feet planted, shoulder blades pinched and a slight arch.",
+      "Unrack and lower the bar to the lower chest, elbows about 45° from your body.",
+      "Touch, then press up and slightly back until the arms lock out over the shoulders."
+    ],
+    "standard": "0.75x BW × 5, bar touching the chest.",
+    "youtubeQuery": "Barbell Bench Press proper form",
+    "expertTip": "Use a spotter or the rack’s safety arms whenever you press near your limit.",
+    "focus": "Chest",
+    "summary": "The classic horizontal press: bar to the chest and back to lockout.",
+    "muscles": [
+      "Chest",
+      "Triceps",
+      "Front delts"
+    ]
+  },
+  {
+    "id": "gym_bench_bodyweight",
+    "name": "1x Bodyweight Bench Press",
+    "level": 6,
+    "category": "Gym",
+    "subCategory": "Barbell Bench Press",
+    "swimlane": "Push",
+    "prerequisites": [
+      "bench_press"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Warm up in steps: empty bar, then about 50%, 70% and 85% of the working weight.",
+      "Set up the same way every set: shoulder blades pinched, feet driving.",
+      "Lower with control, pause a moment on the chest, and press."
+    ],
+    "standard": "1x BW × 5, paused on the chest.",
+    "youtubeQuery": "1x Bodyweight Bench Press proper form",
+    "expertTip": "Small plates win: add 1–2.5 kg a week rather than 5 kg jumps.",
+    "focus": "Chest",
+    "summary": "A classic milestone: bench press your own bodyweight.",
+    "muscles": [
+      "Chest",
+      "Triceps",
+      "Front delts"
+    ]
+  },
+  {
+    "id": "gym_bench_1_5x",
+    "name": "1.5x Bodyweight Bench Press",
+    "level": 8,
+    "category": "Gym",
+    "subCategory": "Barbell Bench Press",
+    "swimlane": "Push",
+    "prerequisites": [
+      "gym_bench_bodyweight"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Peak for it: a few weeks of heavy triples and doubles, then a lighter week.",
+      "Warm up to about 90% in small jumps and take a full rest before the attempt.",
+      "Set up tight, take a big breath, and drive the bar off the chest."
+    ],
+    "standard": "1.5x BW × 1, paused, with a spotter.",
+    "youtubeQuery": "1.5x Bodyweight Bench Press proper form",
+    "expertTip": "Test it at most a few times a year. Most progress is made far from your max.",
+    "focus": "Chest",
+    "summary": "An elite pressing standard: one and a half times your bodyweight.",
+    "muscles": [
+      "Chest",
+      "Triceps",
+      "Front delts"
+    ]
+  },
+  {
+    "id": "gym_bench_2x",
+    "name": "2x Bodyweight Bench Press",
+    "level": 12,
+    "category": "Gym",
+    "subCategory": "Barbell Bench Press",
+    "swimlane": "Push",
+    "prerequisites": [
+      "gym_bench_1_5x"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Competition-style bench: touch, a clear pause on the chest, press to lockout, with a spotter; one clean single at 2x BW."
+    ],
+    "standard": "2x BW × 1, paused.",
+    "youtubeQuery": "2x Bodyweight Bench Press proper form",
+    "focus": "Chest",
+    "summary": "Competition-style bench: touch, a clear pause on the chest, press to lockout, with a spotter.",
+    "muscles": [
+      "Chest",
+      "Triceps",
+      "Front delts"
+    ]
+  },
+  {
+    "id": "incline_bench",
+    "name": "Incline Bench Press",
+    "level": 5,
+    "category": "Gym",
+    "subCategory": "Incline Bench Press",
+    "swimlane": "Push",
+    "prerequisites": [
+      "bench_press"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Set the bench to 30–45° and lie with your eyes under the bar.",
+      "Lower the bar to the upper chest, just below the collarbones.",
+      "Press up in a straight line to lockout above the shoulders."
+    ],
+    "standard": "0.8x BW × 5.",
+    "youtubeQuery": "Incline Bench Press proper form",
+    "expertTip": "Lower the incline if your shoulders take over from your chest.",
+    "focus": "Upper Chest",
+    "summary": "Press from a 30–45° bench to work the upper chest and front shoulders.",
+    "muscles": [
+      "Upper chest",
+      "Front delts",
+      "Triceps"
+    ]
+  },
+  {
+    "id": "tricep_pushdown",
+    "name": "Cable Triceps Pushdown",
+    "level": 3,
+    "category": "Gym",
+    "subCategory": "Triceps",
+    "swimlane": "Push",
+    "prerequisites": [
+      "ex_7"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Face a high pulley with your elbows tucked against your sides.",
+      "Push the handle down until your arms are straight and squeeze the triceps.",
+      "Let it rise to chest height without the elbows drifting forwards."
+    ],
+    "standard": "3×12 at 0.3x BW, elbows still.",
+    "youtubeQuery": "Cable Triceps Pushdown proper form",
+    "expertTip": "If the elbows move, the weight is too heavy and the shoulders are taking over.",
+    "focus": "Tricep Lockout",
+    "summary": "Push a cable handle from chest to thighs with the elbows pinned to your sides.",
+    "muscles": [
+      "Triceps"
+    ]
+  },
+  {
+    "id": "overhead_extension",
+    "name": "Overhead Cable Triceps Extension",
+    "level": 4,
+    "category": "Gym",
+    "subCategory": "Triceps",
+    "swimlane": "Push",
+    "prerequisites": [
+      "tricep_pushdown"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Face away from the pulley with the rope behind your head and elbows pointing forwards.",
+      "Straighten the arms forwards and up until they lock.",
+      "Bend the elbows back slowly until you feel the stretch."
+    ],
+    "standard": "3×12 at 0.25x BW.",
+    "youtubeQuery": "Overhead Cable Triceps Extension proper form",
+    "expertTip": "The stretch at the bottom is where this exercise earns its keep. Don’t cut it short.",
+    "focus": "Triceps Long Head",
+    "summary": "Straighten the arms overhead against a cable to train the long head of the triceps.",
+    "muscles": [
+      "Triceps"
+    ]
+  },
+  {
+    "id": "gym_close_grip_bench",
+    "name": "Close-Grip Bench Press",
+    "level": 5,
+    "category": "Gym",
+    "subCategory": "Triceps",
+    "swimlane": "Push",
+    "prerequisites": [
+      "overhead_extension",
+      "bench_press"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Grip the bar at shoulder width, no narrower, wrists stacked over the elbows.",
+      "Lower to the lower chest with the elbows close to your sides.",
+      "Press to lockout and squeeze the triceps at the top."
+    ],
+    "standard": "0.9x BW × 5, hands shoulder-width.",
+    "youtubeQuery": "Close-Grip Bench Press proper form",
+    "expertTip": "A grip narrower than your shoulders only strains the wrists.",
+    "focus": "Triceps & Lockout",
+    "summary": "Bench with the hands shoulder-width apart to move the work onto the triceps.",
+    "muscles": [
+      "Triceps",
+      "Chest"
+    ]
+  },
+  {
+    "id": "lateral_raise",
+    "name": "Cable Lateral Raise",
+    "level": 3,
+    "category": "Gym",
+    "subCategory": "Side Delts",
+    "swimlane": "Push",
+    "prerequisites": [
+      "ex_1"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Stand side-on to a low pulley and take the handle in the far hand.",
+      "Raise the arm out to the side, elbow soft, until the hand reaches shoulder height.",
+      "Lower slowly, keeping tension on the cable all the way down."
+    ],
+    "standard": "3×15 per arm, no swing.",
+    "youtubeQuery": "Cable Lateral Raise proper form",
+    "expertTip": "Lead with the elbow, not the hand, and stop at shoulder height.",
+    "focus": "Middle Deltoids",
+    "summary": "Raise the arm out to the side against a low cable to build the side of the shoulder.",
+    "muscles": [
+      "Side delts"
+    ]
+  },
+  {
+    "id": "db_press",
+    "name": "Seated Dumbbell Overhead Press",
+    "level": 5,
+    "category": "Gym",
+    "subCategory": "Weighted Overhead Press",
+    "swimlane": "Push",
+    "prerequisites": [
+      "ex_41"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Sit upright with your back supported, dumbbells at shoulder height, palms forwards.",
+      "Press straight up until the arms lock, dumbbells close together over your head.",
+      "Lower under control back to the shoulders."
+    ],
+    "standard": "3×8 at 0.25x BW per dumbbell.",
+    "youtubeQuery": "Seated Dumbbell Overhead Press proper form",
+    "expertTip": "Keep your ribs down. Arching the lower back turns it into an incline press.",
+    "focus": "Front Delts",
+    "summary": "Press two dumbbells overhead from a seat with back support.",
+    "muscles": [
+      "Front delts",
+      "Triceps"
+    ]
+  },
+  {
+    "id": "overhead_press",
+    "name": "Standing Overhead Press",
+    "level": 7,
+    "category": "Gym",
+    "subCategory": "Weighted Overhead Press",
+    "swimlane": "Push",
+    "prerequisites": [
+      "ex_93"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Bar on the front of the shoulders, grip just outside them, glutes and abs tight.",
+      "Press straight up, moving your head back out of the way and then through.",
+      "Lock out with the bar over the middle of your feet."
+    ],
+    "standard": "0.65x BW × 5, strict.",
+    "youtubeQuery": "Standing Overhead Press proper form",
+    "expertTip": "Squeeze your glutes. It stops the lower back arching under load.",
+    "focus": "Shoulders",
+    "summary": "Press a barbell from the shoulders to overhead, standing, with no leg drive.",
+    "muscles": [
+      "Shoulders",
+      "Triceps",
+      "Core"
+    ]
+  },
+  {
+    "id": "cable_row",
+    "name": "Seated Cable Row",
+    "level": 3,
+    "category": "Gym",
+    "subCategory": "Barbell & Cable Rows",
+    "swimlane": "Pull",
+    "prerequisites": [
+      "ex_22"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Sit tall with your feet on the platform and knees soft.",
+      "Pull the handle to your belly, squeezing the shoulder blades together.",
+      "Let the arms straighten forwards without rounding your back."
+    ],
+    "standard": "3×10 at 0.6x BW, pause at the belly.",
+    "youtubeQuery": "Seated Cable Row proper form",
+    "expertTip": "Pause one second at the belly. If you can’t, the stack is too heavy.",
+    "focus": "Horizontal Power",
+    "summary": "Row a cable handle to your belly from a seat, chest tall.",
+    "muscles": [
+      "Mid back",
+      "Lats",
+      "Biceps"
+    ]
+  },
+  {
+    "id": "barbell_row",
+    "name": "Barbell Row",
+    "level": 4,
+    "category": "Gym",
+    "subCategory": "Barbell & Cable Rows",
+    "swimlane": "Pull",
+    "prerequisites": [
+      "cable_row",
+      "gym_kb_deadlift"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Hinge at the hips with a flat back until your torso is close to parallel.",
+      "Row the bar to the lower chest, elbows going back past your body.",
+      "Lower until the arms are straight without your torso rising."
+    ],
+    "standard": "0.6x BW × 5, torso near parallel.",
+    "youtubeQuery": "Barbell Row proper form",
+    "expertTip": "If your torso rises to move the bar, the weight is too heavy.",
+    "focus": "Upper Back",
+    "summary": "Hinge forwards and row a barbell to the lower chest.",
+    "muscles": [
+      "Upper back",
+      "Lats",
+      "Biceps"
+    ]
+  },
+  {
+    "id": "gym_pendlay_row",
+    "name": "Pendlay Row",
+    "level": 6,
+    "category": "Gym",
+    "subCategory": "Barbell & Cable Rows",
+    "swimlane": "Pull",
+    "prerequisites": [
+      "barbell_row"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Bar on the floor over your mid-foot, torso parallel, back flat.",
+      "Row it explosively to the lower chest.",
+      "Return it to the floor and reset before the next rep."
+    ],
+    "standard": "0.8x BW × 5, dead stop each rep.",
+    "youtubeQuery": "Pendlay Row proper form",
+    "expertTip": "Every rep starts from zero, so momentum can’t help. That’s the point.",
+    "focus": "Upper Back Power",
+    "summary": "A strict row from a dead stop on the floor, torso parallel.",
+    "muscles": [
+      "Upper back",
+      "Lats",
+      "Lower back"
+    ]
+  },
+  {
+    "id": "gym_row_bodyweight",
+    "name": "1x Bodyweight Barbell Row",
+    "level": 8,
+    "category": "Gym",
+    "subCategory": "Barbell & Cable Rows",
+    "swimlane": "Pull",
+    "prerequisites": [
+      "gym_pendlay_row"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Brace as for a deadlift and hinge to near parallel.",
+      "Row to the lower chest, driving the elbows back.",
+      "Lower under control and keep the torso still between reps."
+    ],
+    "standard": "1x BW × 5, torso rising less than a hand's width.",
+    "youtubeQuery": "1x Bodyweight Barbell Row proper form",
+    "expertTip": "Lifting straps let your back work beyond what your grip can hold.",
+    "focus": "Upper Back",
+    "summary": "Row your own bodyweight with a strict torso.",
+    "muscles": [
+      "Upper back",
+      "Lats",
+      "Lower back"
+    ]
+  },
+  {
+    "id": "lat_pulldown",
+    "name": "Lat Pulldown",
+    "level": 2,
+    "category": "Gym",
+    "subCategory": "Lat Pulldown",
+    "swimlane": "Pull",
+    "prerequisites": [
+      "ex_439"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Take a grip a little wider than your shoulders and lock your knees under the pad.",
+      "Pull the bar to the top of your chest, leading with the elbows.",
+      "Let it rise until the arms are straight and the lats stretch."
+    ],
+    "standard": "3×10 at 0.5x BW, full stretch.",
+    "youtubeQuery": "Lat Pulldown proper form",
+    "expertTip": "Think \"elbows to the back pockets\" rather than pulling with the hands.",
+    "focus": "Lats",
+    "summary": "Pull a wide bar down to the top of your chest from a seat.",
+    "muscles": [
+      "Lats",
+      "Biceps"
+    ]
+  },
+  {
+    "id": "gym_weighted_pullup",
+    "name": "Weighted Pull-up +0.25x Bodyweight",
+    "level": 6,
+    "category": "Gym",
+    "subCategory": "Weighted Pull-ups",
+    "swimlane": "Pull",
+    "prerequisites": [
+      "ex_71"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Hang the plate from a dip belt and start from a dead hang.",
+      "Pull until the chin clears the bar without kicking.",
+      "Lower to straight arms under control."
+    ],
+    "standard": "+0.25x BW × 5.",
+    "youtubeQuery": "Weighted Pull-up +0.25x Bodyweight proper form",
+    "expertTip": "Add weight only once you own 12 bodyweight reps.",
+    "focus": "Lats & Biceps",
+    "summary": "Pull-ups with extra weight hanging from a dip belt.",
+    "muscles": [
+      "Lats",
+      "Biceps",
+      "Grip"
+    ]
+  },
+  {
+    "id": "cable_curl",
+    "name": "Cable Biceps Curl",
+    "level": 3,
+    "category": "Gym",
+    "subCategory": "Weighted Curls",
+    "swimlane": "Pull",
+    "prerequisites": [
+      "lat_pulldown"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Stand facing a low pulley, elbows against your sides.",
+      "Curl the handle up to your shoulders without the elbows moving forwards.",
+      "Lower until the arms are straight."
+    ],
+    "standard": "3×12 at 0.25x BW, no swing.",
+    "youtubeQuery": "Cable Biceps Curl proper form",
+    "expertTip": "The cable keeps tension at the bottom where dumbbells go slack — use the full range.",
+    "focus": "Bicep Peak Isolation",
+    "summary": "Curl a low cable with the elbows fixed at your sides.",
+    "muscles": [
+      "Biceps"
+    ]
+  },
+  {
+    "id": "hammer_curl",
+    "name": "Dumbbell Hammer Curl",
+    "level": 4,
+    "category": "Gym",
+    "subCategory": "Weighted Curls",
+    "swimlane": "Pull",
+    "prerequisites": [
+      "cable_curl"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Stand with dumbbells at your sides, palms facing in.",
+      "Curl up without turning the wrists, elbows fixed at your sides.",
+      "Lower all the way to straight arms."
+    ],
+    "standard": "3×10 at 0.2x BW per dumbbell.",
+    "youtubeQuery": "Dumbbell Hammer Curl proper form",
+    "expertTip": "This one builds the elbow flexors and forearms that pulling needs.",
+    "focus": "Brachialis & Forearms",
+    "summary": "Curl dumbbells with the palms facing each other.",
+    "muscles": [
+      "Brachialis",
+      "Forearms",
+      "Biceps"
+    ]
+  },
+  {
+    "id": "face_pulls",
+    "name": "Cable Face Pull",
+    "level": 3,
+    "category": "Gym",
+    "subCategory": "Rear Delts",
+    "swimlane": "Pull",
+    "prerequisites": [
+      "ex_22"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Set the pulley at head height and hold the rope with the thumbs pointing back.",
+      "Pull the rope towards your eyes, elbows high and hands ending beside your ears.",
+      "Return slowly until the arms are straight."
+    ],
+    "standard": "3×15, 2 s squeeze at the face.",
+    "youtubeQuery": "Cable Face Pull proper form",
+    "expertTip": "Light and strict. This one protects the shoulders that heavy pressing works.",
+    "focus": "Rear Delts & Rotator Cuff",
+    "summary": "Pull a rope to your face with the elbows high — shoulder health in one exercise.",
+    "muscles": [
+      "Rear delts",
+      "Rotator cuff",
+      "Upper back"
+    ]
+  },
+  {
+    "id": "reverse_pec_deck",
+    "name": "Reverse Pec Deck",
+    "level": 4,
+    "category": "Gym",
+    "subCategory": "Rear Delts",
+    "swimlane": "Pull",
+    "prerequisites": [
+      "face_pulls"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Sit facing the pad with the handles at shoulder height.",
+      "Sweep the arms back and out in a wide arc, arms almost straight.",
+      "Return slowly until the hands nearly meet in front."
+    ],
+    "standard": "3×15, 1 s pause arms open.",
+    "youtubeQuery": "Reverse Pec Deck proper form",
+    "expertTip": "Keep the shoulder blades still and let the rear delts move the arms.",
+    "focus": "Rear Deltoids",
+    "summary": "Open the arms wide on the machine to train the back of the shoulders.",
+    "muscles": [
+      "Rear delts",
+      "Upper back"
+    ]
+  },
+  {
+    "id": "gym_goblet_squat",
+    "name": "Goblet Squat",
+    "level": 3,
+    "category": "Gym",
+    "subCategory": "Barbell Squat",
+    "swimlane": "Legs",
+    "prerequisites": [
+      "ex_32"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Hold a dumbbell upright against your chest, feet a little wider than your hips.",
+      "Sit down between your heels, elbows inside your knees, chest up.",
+      "Stand up by pushing the floor away."
+    ],
+    "standard": "3×10 at 0.25x BW, full depth.",
+    "youtubeQuery": "Goblet Squat proper form",
+    "expertTip": "Use your elbows to nudge the knees out at the bottom.",
+    "focus": "Quads & Glutes",
+    "summary": "Squat holding one dumbbell at your chest — the way to learn depth and posture.",
+    "muscles": [
+      "Quads",
+      "Glutes",
+      "Core"
+    ]
+  },
+  {
+    "id": "back_squat",
+    "name": "Barbell Back Squat",
+    "level": 4,
+    "category": "Gym",
+    "subCategory": "Barbell Squat",
+    "swimlane": "Legs",
+    "prerequisites": [
+      "gym_goblet_squat"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Bar on your upper back, hands just outside the shoulders, feet shoulder-width.",
+      "Brace, then sit down and slightly back until the hips pass below the knees.",
+      "Drive up, keeping your chest up and the knees tracking over the toes."
+    ],
+    "standard": "1x BW × 5, hip crease below the knee.",
+    "youtubeQuery": "Barbell Back Squat proper form",
+    "expertTip": "Set the safety bars just below your bottom position before you start.",
+    "focus": "Quads & Glutes",
+    "summary": "The king of leg lifts: a barbell on your back, hips below the knees.",
+    "muscles": [
+      "Quads",
+      "Glutes",
+      "Core"
+    ]
+  },
+  {
+    "id": "gym_squat_1_5x",
+    "name": "1.5x Bodyweight Squat",
+    "level": 6,
+    "category": "Gym",
+    "subCategory": "Barbell Squat",
+    "swimlane": "Legs",
+    "prerequisites": [
+      "back_squat"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Run a block of heavy fives, then threes, adding small plates each week.",
+      "Brace with a big breath before every rep; a belt helps.",
+      "Sit to depth under control and drive straight up."
+    ],
+    "standard": "1.5x BW × 3, below parallel.",
+    "youtubeQuery": "1.5x Bodyweight Squat proper form",
+    "expertTip": "Depth is the standard. A high squat with more weight doesn’t count.",
+    "focus": "Quads & Glutes",
+    "summary": "An advanced standard: squat one and a half times your bodyweight.",
+    "muscles": [
+      "Quads",
+      "Glutes",
+      "Core"
+    ]
+  },
+  {
+    "id": "gym_squat_2x",
+    "name": "2x Bodyweight Squat",
+    "level": 8,
+    "category": "Gym",
+    "subCategory": "Barbell Squat",
+    "swimlane": "Legs",
+    "prerequisites": [
+      "gym_squat_1_5x"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Peak with heavy doubles and singles over a few weeks.",
+      "Warm up to about 90% in small jumps and rest fully before the attempt.",
+      "Brace, descend under control and drive up without the chest folding."
+    ],
+    "standard": "2x BW × 1, below parallel, with safeties.",
+    "youtubeQuery": "2x Bodyweight Squat proper form",
+    "expertTip": "Most lifters need years of steady training to get here. Enjoy the road.",
+    "focus": "Quads & Glutes",
+    "summary": "An elite standard: squat twice your bodyweight.",
+    "muscles": [
+      "Quads",
+      "Glutes",
+      "Core"
+    ]
+  },
+  {
+    "id": "gym_squat_2_5x",
+    "name": "2.5x Bodyweight Squat",
+    "level": 11,
+    "category": "Gym",
+    "subCategory": "Barbell Squat",
+    "swimlane": "Legs",
+    "prerequisites": [
+      "gym_squat_2x"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Raw back squat (belt allowed, no suit or wraps), hip crease below the knee, with safeties or spotters; one clean single at 2.5x BW."
+    ],
+    "standard": "2.5x BW × 1, below parallel.",
+    "youtubeQuery": "2.5x Bodyweight Squat proper form",
+    "focus": "Quads & Glutes",
+    "summary": "Raw back squat (belt allowed, no suit or wraps), hip crease below the knee, with safeties or spotters.",
+    "muscles": [
+      "Quads",
+      "Glutes",
+      "Core"
+    ]
+  },
+  {
+    "id": "gym_front_squat",
+    "name": "Front Squat",
+    "level": 5,
+    "category": "Gym",
+    "subCategory": "Front Squat",
+    "swimlane": "Legs",
+    "prerequisites": [
+      "back_squat"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Rest the bar on the front of the shoulders, fingertips under it, elbows pointing forwards.",
+      "Squat straight down with the torso upright.",
+      "Lead the way up with the elbows so the bar doesn’t roll forwards."
+    ],
+    "standard": "1x BW × 5, elbows high.",
+    "youtubeQuery": "Front Squat proper form",
+    "expertTip": "Wrists tight? A cross-arm grip or lifting straps around the bar work too.",
+    "focus": "Quads & Upper Back",
+    "summary": "Squat with the bar resting on the front of your shoulders, elbows high.",
+    "muscles": [
+      "Quads",
+      "Upper back",
+      "Core"
+    ]
+  },
+  {
+    "id": "gym_kb_deadlift",
+    "name": "Kettlebell Deadlift",
+    "level": 2,
+    "category": "Gym",
+    "subCategory": "Deadlift",
+    "swimlane": "Legs",
+    "prerequisites": [
+      "ex_12"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Stand over the kettlebell with it between your mid-feet.",
+      "Push your hips back, keep your back flat, and grab the handle.",
+      "Stand up by driving the hips forwards, then lower it the same way."
+    ],
+    "standard": "3×10 at 0.3x BW, back flat.",
+    "youtubeQuery": "Kettlebell Deadlift proper form",
+    "expertTip": "Hips back, not knees forward. Your shins stay nearly vertical.",
+    "focus": "Hip Hinge",
+    "summary": "Lift a kettlebell from between your feet to learn to hinge at the hips.",
+    "muscles": [
+      "Glutes",
+      "Hamstrings",
+      "Lower back"
+    ]
+  },
+  {
+    "id": "deadlift",
+    "name": "Barbell Deadlift",
+    "level": 4,
+    "category": "Gym",
+    "subCategory": "Deadlift",
+    "swimlane": "Legs",
+    "prerequisites": [
+      "gym_kb_deadlift"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Bar over your mid-foot, shins close, hands just outside your legs.",
+      "Pull the slack out of the bar, chest up and back flat.",
+      "Push the floor away and stand tall with the bar against your thighs, then lower it the same way."
+    ],
+    "standard": "1.25x BW × 5, back flat.",
+    "youtubeQuery": "Barbell Deadlift proper form",
+    "expertTip": "The bar travels in a straight line up your shins. If it swings out, you lose it.",
+    "focus": "Posterior Chain",
+    "summary": "Lift a loaded bar from the floor until you stand tall.",
+    "muscles": [
+      "Glutes",
+      "Hamstrings",
+      "Back"
+    ]
+  },
+  {
+    "id": "gym_deadlift_2x",
+    "name": "2x Bodyweight Deadlift",
+    "level": 6,
+    "category": "Gym",
+    "subCategory": "Deadlift",
+    "swimlane": "Legs",
+    "prerequisites": [
+      "deadlift"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Use a mixed grip or straps once the grip starts to fail before the back.",
+      "Pull the slack out and build tension before the plates leave the floor.",
+      "Lock out by squeezing the glutes, not leaning back."
+    ],
+    "standard": "2x BW × 3, back flat.",
+    "youtubeQuery": "2x Bodyweight Deadlift proper form",
+    "expertTip": "Heavy deadlifts once a week is plenty. Recovery is part of the program.",
+    "focus": "Posterior Chain",
+    "summary": "An advanced standard: deadlift twice your bodyweight.",
+    "muscles": [
+      "Glutes",
+      "Hamstrings",
+      "Back"
+    ]
+  },
+  {
+    "id": "gym_deadlift_2_5x",
+    "name": "2.5x Bodyweight Deadlift",
+    "level": 8,
+    "category": "Gym",
+    "subCategory": "Deadlift",
+    "swimlane": "Legs",
+    "prerequisites": [
+      "gym_deadlift_2x"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Peak with heavy singles at 85–90% over several weeks.",
+      "Take the slack out of the bar until it clicks against the plates.",
+      "Push the floor away and finish tall, then lower it under control."
+    ],
+    "standard": "2.5x BW × 1, full lockout.",
+    "youtubeQuery": "2.5x Bodyweight Deadlift proper form",
+    "expertTip": "Chalk and a flat-soled shoe make a real difference at this weight.",
+    "focus": "Posterior Chain",
+    "summary": "An elite standard: deadlift two and a half times your bodyweight.",
+    "muscles": [
+      "Glutes",
+      "Hamstrings",
+      "Back"
+    ]
+  },
+  {
+    "id": "gym_deadlift_3x",
+    "name": "3x Bodyweight Deadlift",
+    "level": 11,
+    "category": "Gym",
+    "subCategory": "Deadlift",
+    "swimlane": "Legs",
+    "prerequisites": [
+      "gym_deadlift_2_5x"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Raw conventional or sumo deadlift (belt allowed, no straps), flat back, hips and knees locked at the top; one clean single at 3x BW."
+    ],
+    "standard": "3x BW × 1, full lockout.",
+    "youtubeQuery": "3x Bodyweight Deadlift proper form",
+    "focus": "Posterior Chain",
+    "summary": "Raw conventional or sumo deadlift (belt allowed, no straps), flat back, hips and knees locked at the top.",
+    "muscles": [
+      "Glutes",
+      "Hamstrings",
+      "Back"
+    ]
+  },
+  {
+    "id": "leg_curl",
+    "name": "Seated Leg Curl",
+    "level": 3,
+    "category": "Gym",
+    "subCategory": "Hamstrings",
+    "swimlane": "Legs",
+    "prerequisites": [
+      "ex_13"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Sit with the pad on your lower calves and the thigh pad locked down.",
+      "Curl your heels down and back as far as they go.",
+      "Let the pad return slowly to straight legs."
+    ],
+    "standard": "3×12 at 0.4x BW, slow on the way back.",
+    "youtubeQuery": "Seated Leg Curl proper form",
+    "expertTip": "Point the toes up to keep the calves out of it.",
+    "focus": "Hamstrings",
+    "summary": "Curl the pad down and under the seat to train the hamstrings.",
+    "muscles": [
+      "Hamstrings"
+    ]
+  },
+  {
+    "id": "gym_rdl",
+    "name": "Romanian Deadlift",
+    "level": 5,
+    "category": "Gym",
+    "subCategory": "Hamstrings",
+    "swimlane": "Legs",
+    "prerequisites": [
+      "leg_curl",
+      "deadlift"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Stand tall holding the bar, knees slightly bent.",
+      "Push your hips back and let the bar slide down your thighs until the hamstrings stretch.",
+      "Drive the hips forwards to stand tall again."
+    ],
+    "standard": "1x BW × 8, bar to mid-shin, back flat.",
+    "youtubeQuery": "Romanian Deadlift proper form",
+    "expertTip": "Stop where your back would start to round, not where the bar touches the floor.",
+    "focus": "Hamstrings & Glutes",
+    "summary": "Lower the bar down your legs by pushing the hips back, knees soft.",
+    "muscles": [
+      "Hamstrings",
+      "Glutes",
+      "Lower back"
+    ]
+  },
+  {
+    "id": "walking_lunges",
+    "name": "Dumbbell Walking Lunge",
+    "level": 3,
+    "category": "Gym",
+    "subCategory": "Weighted Lunges",
+    "swimlane": "Legs",
+    "prerequisites": [
+      "ex_14"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Take a long step and lower until the back knee nearly touches the floor.",
+      "Keep the front shin close to vertical and your torso upright.",
+      "Push through the front heel and bring the back foot through into the next step."
+    ],
+    "standard": "20 steps at 0.15x BW per dumbbell.",
+    "youtubeQuery": "Dumbbell Walking Lunge proper form",
+    "expertTip": "A longer step loads the glutes; a shorter one loads the quads.",
+    "focus": "Quads & Glutes",
+    "summary": "Step forwards into a lunge, then step through into the next one.",
+    "muscles": [
+      "Quads",
+      "Glutes",
+      "Balance"
+    ]
+  },
+  {
+    "id": "split_squat",
+    "name": "Dumbbell Bulgarian Split Squat",
+    "level": 4,
+    "category": "Gym",
+    "subCategory": "Weighted Lunges",
+    "swimlane": "Legs",
+    "prerequisites": [
+      "walking_lunges"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Put the top of your back foot on a bench and step the front foot far enough forwards.",
+      "Lower straight down until the back knee nearly touches the floor.",
+      "Drive up through the front foot."
+    ],
+    "standard": "3×8 per leg at 0.2x BW per dumbbell.",
+    "youtubeQuery": "Dumbbell Bulgarian Split Squat proper form",
+    "expertTip": "Most of the weight belongs on the front leg; the back foot is for balance.",
+    "focus": "Quads & Glutes",
+    "summary": "A split squat with the back foot raised on a bench.",
+    "muscles": [
+      "Quads",
+      "Glutes",
+      "Balance"
+    ]
+  },
+  {
+    "id": "calf_raises",
+    "name": "Standing Calf Raise",
+    "level": 1,
+    "category": "Gym",
+    "subCategory": "Calves",
+    "swimlane": "Legs",
+    "prerequisites": [],
+    "discipline": "gym",
+    "steps": [
+      "Stand with the balls of your feet on a step and heels hanging off.",
+      "Let the heels sink until the calves stretch.",
+      "Rise as high as you can and pause before lowering."
+    ],
+    "standard": "3×15, 1 s pause top and bottom.",
+    "youtubeQuery": "Standing Calf Raise proper form",
+    "expertTip": "Pauses kill the bounce. The stretch at the bottom does the work.",
+    "focus": "Calves",
+    "summary": "Rise onto the balls of your feet from a step, with a full stretch below.",
+    "muscles": [
+      "Calves"
+    ]
+  },
+  {
+    "id": "gym_cable_crunch",
+    "name": "Cable Crunch",
+    "level": 2,
+    "category": "Gym",
+    "subCategory": "Cable Crunch",
+    "swimlane": "Core",
+    "prerequisites": [
+      "ex_441"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Kneel facing the stack with the rope beside your head.",
+      "Curl your ribs down towards your hips, rounding the back.",
+      "Uncurl slowly, keeping the hips still."
+    ],
+    "standard": "3×15, spine curling.",
+    "youtubeQuery": "Cable Crunch proper form",
+    "expertTip": "Keep the rope fixed beside your head; the arms don’t pull.",
+    "focus": "Abs",
+    "summary": "Kneel under a high cable and crunch your ribs towards your hips.",
+    "muscles": [
+      "Abs"
+    ]
+  },
+  {
+    "id": "gym_hanging_leg_raise",
+    "name": "Hanging Leg Raise",
+    "level": 4,
+    "category": "Gym",
+    "subCategory": "Hanging Leg Raises",
+    "swimlane": "Core",
+    "prerequisites": [
+      "ex_367"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Hang with straight arms and the shoulders engaged.",
+      "Raise the legs straight until they are level with your hips.",
+      "Lower slowly to stop the swing."
+    ],
+    "standard": "10 straight-leg raises to hip height, no swing.",
+    "youtubeQuery": "Hanging Leg Raise proper form",
+    "expertTip": "Bend the knees until you own the range, then straighten them.",
+    "focus": "Abs & Hip Flexors",
+    "summary": "Hang from a bar and raise straight legs to hip height.",
+    "muscles": [
+      "Abs",
+      "Hip flexors",
+      "Grip"
+    ]
+  },
+  {
+    "id": "wrist_curls",
+    "name": "Dumbbell Reverse Wrist Curl",
+    "level": 1,
+    "category": "Gym",
+    "subCategory": "Grip & Forearms",
+    "swimlane": "Core",
+    "prerequisites": [],
+    "discipline": "gym",
+    "steps": [
+      "Rest your forearm on a bench or your thigh, palm down, hand over the edge.",
+      "Raise the back of the hand as high as it goes.",
+      "Lower slowly to a full stretch."
+    ],
+    "standard": "3×15 per arm, slow both ways.",
+    "youtubeQuery": "Dumbbell Reverse Wrist Curl proper form",
+    "expertTip": "Light weight, slow reps. These are for tendons, not for records.",
+    "focus": "Wrist Tendon Armor",
+    "summary": "Lift the back of the hand against a light dumbbell to strengthen the wrist extensors.",
+    "muscles": [
+      "Wrist extensors",
+      "Forearms"
+    ]
+  },
+  {
+    "id": "farmers_carry",
+    "name": "Farmer's Carry",
+    "level": 2,
+    "category": "Gym",
+    "subCategory": "Grip & Forearms",
+    "swimlane": "Core",
+    "prerequisites": [
+      "wrist_curls"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Deadlift the weights up and stand tall, shoulders down.",
+      "Walk with short, quick steps, keeping the weights from swinging.",
+      "Set them down the way you picked them up."
+    ],
+    "standard": "30 m at 0.3x BW per hand.",
+    "youtubeQuery": "Farmer's Carry proper form",
+    "expertTip": "Squeeze the handles as if trying to crush them. The grip is half the exercise.",
+    "focus": "Grip & Trunk",
+    "summary": "Walk with a heavy weight in each hand, standing tall.",
+    "muscles": [
+      "Grip",
+      "Traps",
+      "Core"
+    ]
+  },
+  {
+    "id": "gym_farmers_bodyweight",
+    "name": "1x Bodyweight Farmer's Carry",
+    "level": 5,
+    "category": "Gym",
+    "subCategory": "Grip & Forearms",
+    "swimlane": "Core",
+    "prerequisites": [
+      "farmers_carry",
+      "deadlift"
+    ],
+    "discipline": "gym",
+    "steps": [
+      "Pick the weights up with a deadlift, back flat.",
+      "Walk tall with short steps and steady breathing.",
+      "Put them down under control before your grip opens."
+    ],
+    "standard": "30 m at 0.5x BW per hand.",
+    "youtubeQuery": "1x Bodyweight Farmer's Carry proper form",
+    "expertTip": "Chalk helps. Straps don’t count — the grip is the test.",
+    "focus": "Grip & Trunk",
+    "summary": "Carry your own bodyweight, half in each hand.",
+    "muscles": [
+      "Grip",
+      "Traps",
+      "Core"
+    ]
   }
 ];

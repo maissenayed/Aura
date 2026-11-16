@@ -146,10 +146,11 @@ function lookup(given: string): FigureSpec | undefined {
 }
 
 /** The tree skill a hand-written campaign exercise borrows its drawing from, when it has one. */
-export function lookalikeOf(exerciseId: string): { tree: 'calisthenics' | 'gym' | 'bouldering'; id: string } | null {
+export function lookalikeOf(exerciseId: string): { tree: 'calisthenics' | 'bouldering'; id: string } | null {
   const id = resolveExerciseId(exerciseId);
   if (CALISTHENICS_LOOKALIKE[id]) return { tree: 'calisthenics', id: resolveExerciseId(CALISTHENICS_LOOKALIKE[id]) };
-  if (GYM_LOOKALIKE[id]) return { tree: 'gym', id: GYM_LOOKALIKE[id] };
+  // Gym lifts are part of the calisthenics tree now.
+  if (GYM_LOOKALIKE[id]) return { tree: 'calisthenics', id: resolveExerciseId(GYM_LOOKALIKE[id]) };
   if (BOULDERING_LOOKALIKE[id]) return { tree: 'bouldering', id: BOULDERING_LOOKALIKE[id] };
   return null;
 }
