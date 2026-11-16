@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Check, Flame, Hammer, Map, Moon, Repeat, Skull, Star, Swords } from 'lucide-react';
+import { ArrowRight, Check, Flame, Hammer, Map, Moon, Repeat, Skull, Swords } from 'lucide-react';
 import { useGame } from '../../../components/game/GameProvider';
 import { figureForBoss, figureForExercise } from '../../../components/game/figures';
 import { bossForDay, bossHp, splitTarget } from '../../../components/game/helpers';
@@ -65,9 +65,49 @@ const MOTES = [
   { left: '58%', delay: '3.7s', colour: '#3ee8ff' },
 ];
 
+/**
+ * What the character is doing: today's exercises, starting on the next one
+ * not done yet; tapping steps through the day. On a rest day (or a day with
+ * nothing planned) it strikes your signature move instead.
+ */
+function useTodayMove() {
+  const { derived, save, currentWeek, todayDayId } = useGame();
+  const signature = useSignature();
+  const [picked, setPicked] = useState<number | null>(null);
+  const day = derived.week.days.find((entry) => entry.day.id === todayDayId)?.day;
+  const exercises = day && day.kind !== 'rest' ? day.exercises : [];
+
+  if (!day || exercises.length === 0) {
+    return {
+      spec: signature.spec,
+      name: signature.name,
+      tag: day?.kind === 'rest' ? 'Rest day' : 'Signature',
+      done: false,
+      dose: null,
+      idle: !signature.earned,
+      cycle: signature.choices > 1 ? signature.next : undefined,
+    };
+  }
+
+  const isDone = (index: number) => Boolean(save.quests[questKey(currentWeek, exercises[index].id)]);
+  const next = exercises.findIndex((_, index) => !isDone(index));
+  const index = (picked ?? (next >= 0 ? next : 0)) % exercises.length;
+  const current = exercises[index];
+  const done = isDone(index);
+  return {
+    spec: figureForExercise(current.exercise, day.kind),
+    name: current.name,
+    tag: done ? 'Done' : index === next ? 'Next up' : `${index + 1} of ${exercises.length}`,
+    done,
+    dose: splitTarget(current.target),
+    idle: false,
+    cycle: exercises.length > 1 ? () => setPicked((index + 1) % exercises.length) : undefined,
+  };
+}
+
 const HeroStage: React.FC<{ className?: string }> = ({ className = '' }) => {
   const { derived } = useGame();
-  const signature = useSignature();
+  const move = useTodayMove();
   const { level } = derived;
   const pct = level.xpIntoLevel / level.xpForLevel;
   const r = 128;
@@ -107,12 +147,19 @@ const HeroStage: React.FC<{ className?: string }> = ({ className = '' }) => {
         ))}
         <button
           type="button"
-          onClick={signature.next}
-          aria-label={`Signature move: ${signature.name}${signature.choices > 1 ? '. Tap to switch' : ''}`}
-          className="absolute left-1/2 top-1/2 w-[200px] h-[200px] -ml-[100px] -mt-[104px] cursor-pointer"
+          onClick={move.cycle}
+          disabled={!move.cycle}
+          aria-label={`${move.tag}: ${move.name}${move.cycle ? '. Tap for the next one' : ''}`}
+          className="absolute left-1/2 top-1/2 w-[200px] h-[200px] -ml-[100px] -mt-[104px] cursor-pointer disabled:cursor-default"
         >
-          <span className="block anim-breathe" style={{ filter: 'drop-shadow(0 0 14px rgba(167,123,255,.5))' }}>
-            <Figure spec={signature.spec} state={signature.earned ? 'ready' : 'locked'} accent="#a77bff" animate className="w-[200px] h-[200px]" />
+          <span key={move.name} className="block anim-breathe anim-fade" style={{ filter: 'drop-shadow(0 0 14px rgba(167,123,255,.5))' }}>
+            <Figure
+              spec={move.spec}
+              state={move.idle ? 'locked' : move.done ? 'mastered' : 'ready'}
+              accent={move.done ? '#ffc247' : '#a77bff'}
+              animate
+              className="w-[200px] h-[200px]"
+            />
           </span>
         </button>
         <span className="absolute left-1/2 bottom-1 -translate-x-1/2 flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#0d1019] border border-[#2a2414] font-display font-bold text-sm text-earned whitespace-nowrap">
@@ -122,13 +169,18 @@ const HeroStage: React.FC<{ className?: string }> = ({ className = '' }) => {
       </div>
       <button
         type="button"
-        onClick={signature.next}
-        disabled={signature.choices < 2}
-        className="flex items-center gap-2 h-8 px-3.5 rounded-full bg-[#0d1019] border border-ink-700 text-fg-2 text-[13px] font-semibold cursor-pointer disabled:cursor-default"
+        onClick={move.cycle}
+        disabled={!move.cycle}
+        className="max-w-full flex items-center gap-2 h-9 px-3.5 rounded-full bg-[#0d1019] border border-ink-700 text-fg-2 text-[13px] font-semibold cursor-pointer disabled:cursor-default"
       >
-        <Star className="w-3.5 h-3.5 text-aura fill-aura" />
-        <span>{signature.name}</span>
-        {signature.choices > 1 && <Repeat className="w-3.5 h-3.5 text-fg-5" />}
+        <span className={`shrink-0 text-[10.5px] font-extrabold tracking-[0.1em] uppercase ${move.done ? 'text-earned' : 'text-aura-soft'}`}>{move.tag}</span>
+        <span className="truncate">{move.name}</span>
+        {move.dose && (
+          <span className="shrink-0 font-display font-bold text-act">
+            {move.dose.sets ? `${move.dose.sets} × ${move.dose.reps}` : move.dose.reps}
+          </span>
+        )}
+        {move.cycle && <Repeat className="w-3.5 h-3.5 shrink-0 text-fg-5" />}
       </button>
     </section>
   );
