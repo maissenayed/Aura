@@ -98,7 +98,8 @@ export function climbsOf(lines: ClimbLine[]): Climb[] {
 const ROW = 118;
 const NODE = 62;
 const SLOT = 82;
-const BASE = 76;
+/** Room under the lowest row: a node and a two-line name, clear of the climb's title. */
+const BASE = 92;
 const TOP = 64;
 /** The narrowest track: one node and its label. */
 const TRACK = SLOT + 10;
