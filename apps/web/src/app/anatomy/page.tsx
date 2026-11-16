@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Header } from '../../components/Header';
+import { AppShell } from '../../components/game/AppShell';
 import { AnatomyVisualizer } from '../../components/anatomy/AnatomyVisualizer';
 import { MuscleInspectorCard } from '../../components/anatomy/MuscleInspectorCard';
 import { MuscleSearchBar } from '../../components/anatomy/MuscleSearchBar';
@@ -19,10 +19,7 @@ export default function AnatomyPage() {
   const selectedMeta = getMuscleInfo(selectedMuscleId);
 
   return (
-    <div className="min-h-screen bg-dark-950 text-slate-100 flex flex-col font-sans selection:bg-neon-cyan selection:text-dark-950">
-      
-      {/* GLOBAL HEADER NAVIGATION */}
-      <Header />
+    <AppShell className="selection:bg-neon-cyan selection:text-dark-950">
 
       {/* MAIN CONTAINER */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 sm:px-8 space-y-6">
@@ -111,6 +108,6 @@ export default function AnatomyPage() {
           onToggleMastered={() => {}}
         />
       )}
-    </div>
+    </AppShell>
   );
 }

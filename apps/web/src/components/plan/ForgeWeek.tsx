@@ -1,0 +1,546 @@
+'use client';
+
+import React, { useMemo, useState } from 'react';
+import { ArrowDown, ArrowUp, HeartPulse, Minus, Moon, Mountain, Plus, Search, Shield, X } from 'lucide-react';
+import { ARMOR_CATALOG, DISCIPLINES, Discipline, EXERCISE_BY_ID, EXERCISE_CATALOG } from '../../data/campaignCatalog';
+import {
+  DAY_IDS,
+  DAY_KINDS,
+  DAY_NAMES,
+  DayId,
+  DayKind,
+  PlanSpec,
+  SpecDay,
+  SpecExercise,
+  choiceFor,
+  newId,
+  normalizeSpec,
+} from '../../utils/campaignPlan';
+import { figureForExercise } from '../game/figures';
+import { Figure } from '../game/kit';
+import { repsChoices } from './catalogOptions';
+import { removeAt, setAt } from './fields';
+
+/**
+ * The week, built like a quest board: pick a day, give it a type, drop
+ * exercises in from a catalogue of figures, and tune sets and reps in place.
+ * Phones edit one day at a time with the catalogue in a sheet; desktop shows
+ * all seven days as columns with the catalogue alongside.
+ */
+
+const KIND_ICON: Record<DayKind, React.ComponentType<{ className?: string }>> = {
+  push: ArrowUp,
+  pull: ArrowDown,
+  legs: ({ className }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+      <path d="M9 3v8l-2 10M15 3v8l2 10" />
+    </svg>
+  ),
+  core: ({ className }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+      <rect x="7" y="4" width="10" height="16" rx="3" />
+      <path d="M7 10h10M7 14h10" />
+    </svg>
+  ),
+  recovery: HeartPulse,
+  rest: Moon,
+};
+
+const MAX_EXERCISES = 20;
+
+interface Props {
+  spec: PlanSpec;
+  onChange: (spec: PlanSpec) => void;
+  initialDay?: DayId;
+}
+
+export const ForgeWeek: React.FC<Props> = ({ spec, onChange, initialDay = 'mon' }) => {
+  const [dayId, setDayId] = useState<DayId>(initialDay);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [flash, setFlash] = useState<string | null>(null);
+  const dayIndex = DAY_IDS.indexOf(dayId);
+  const day = spec.days[dayIndex];
+
+  /** Changes that can pull in a lift go through the normaliser, which adds it. */
+  const setDayAt = (index: number, next: SpecDay, structural = false) => {
+    const nextSpec = { ...spec, days: setAt(spec.days, index, next) };
+    onChange(structural ? normalizeSpec(nextSpec, spec) : nextSpec);
+  };
+
+  const add = (exerciseId: string) => {
+    if (day.exercises.length >= MAX_EXERCISES) return;
+    const exercise: SpecExercise = { id: newId('ex'), ...choiceFor(exerciseId) };
+    const kind = day.kind === 'rest' ? kindFor(exerciseId) : day.kind;
+    setDayAt(dayIndex, { ...day, kind, exercises: [...day.exercises, exercise] }, true);
+    setFlash(exerciseId);
+    window.setTimeout(() => setFlash((current) => (current === exerciseId ? null : current)), 800);
+  };
+
+  const moveToDay = (from: number, index: number, target: DayId) => {
+    const exercise = spec.days[from].exercises[index];
+    const targetIndex = DAY_IDS.indexOf(target);
+    onChange({
+      ...spec,
+      days: spec.days.map((entry, i) => {
+        if (i === from) return { ...entry, exercises: removeAt(entry.exercises, index) };
+        if (i === targetIndex) return { ...entry, exercises: [...entry.exercises, exercise] };
+        return entry;
+      }),
+    });
+  };
+
+  const toggleArmor = (id: string) =>
+    onChange({ ...spec, armor: spec.armor.includes(id) ? spec.armor.filter((other) => other !== id) : [...spec.armor, id] });
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Phones: one day at a time. */}
+      <div className="lg:hidden flex flex-col gap-3">
+        <div className="grid grid-cols-7 gap-1.5">
+          {spec.days.map((entry) => {
+            const on = entry.id === dayId;
+            const Icon = KIND_ICON[entry.kind];
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => setDayId(entry.id)}
+                aria-pressed={on}
+                aria-label={`${DAY_NAMES[entry.id]}, ${entry.kind}, ${entry.exercises.length} exercises`}
+                className={`h-[66px] rounded-[14px] border-[1.5px] flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                  on ? 'bg-[#08161d] border-act text-act' : 'bg-ink-850 border-ink-700 text-fg-3'
+                }`}
+              >
+                <span className="text-[11px] font-extrabold">{DAY_NAMES[entry.id].slice(0, 1)}</span>
+                <Icon className="w-4 h-4" />
+                <span className={`font-display font-bold text-[11px] ${on ? 'text-fg' : 'text-fg-5'}`}>{entry.kind === 'rest' ? '–' : entry.exercises.length}</span>
+              </button>
+            );
+          })}
+        </div>
+        <DayCard
+          day={day}
+          onDay={(next, structural) => setDayAt(dayIndex, next, structural)}
+          onMoveToDay={(index, target) => moveToDay(dayIndex, index, target)}
+        />
+        {day.exercises.length < MAX_EXERCISES && (
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            className="h-14 rounded-[18px] border-[1.5px] border-dashed border-[#17566a] bg-act/5 text-act font-display font-bold tracking-[0.04em] flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Plus className="w-[18px] h-[18px]" strokeWidth={2.8} /> ADD TO {DAY_NAMES[dayId].slice(0, 3).toUpperCase()}
+          </button>
+        )}
+      </div>
+
+      {/* Desktop: the whole week as a board, catalogue alongside. */}
+      <div className="hidden lg:flex gap-4 items-start">
+        <div className="flex-1 min-w-0 overflow-x-auto">
+          <div className="grid grid-cols-[repeat(7,minmax(128px,1fr))] gap-2 min-w-[900px]">
+            {spec.days.map((entry, index) => (
+              <DayColumn
+                key={entry.id}
+                day={entry}
+                selected={entry.id === dayId}
+                onSelect={() => setDayId(entry.id)}
+                onDay={(next, structural) => setDayAt(index, next, structural)}
+                onMoveToDay={(i, target) => moveToDay(index, i, target)}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="w-[300px] shrink-0 sticky top-6">
+          <Catalogue dayName={DAY_NAMES[dayId]} dayExercises={day.exercises} flash={flash} onPick={add} />
+        </div>
+      </div>
+
+      <ArmorRow armor={spec.armor} onToggle={toggleArmor} />
+
+      {pickerOpen && (
+        <>
+          <button type="button" aria-label="Close" onClick={() => setPickerOpen(false)} className="lg:hidden fixed inset-0 z-[45] bg-black/65 anim-fade cursor-pointer" />
+          <div role="dialog" aria-label="Add an exercise" className="lg:hidden fixed z-50 inset-x-0 bottom-0 h-[82dvh] rounded-t-[30px] bg-ink-900 border-t border-ink-600 p-4 pt-2.5 flex flex-col gap-3 anim-sheet">
+            <span className="self-center w-11 h-[5px] rounded-full bg-ink-600" aria-hidden="true" />
+            <div className="flex items-center gap-2">
+              <span className="flex-1 font-display font-bold text-xl">Add to {DAY_NAMES[dayId].slice(0, 3)}</span>
+              <button type="button" onClick={() => setPickerOpen(false)} aria-label="Close" className="w-11 h-11 rounded-[14px] border border-ink-600 bg-ink-800 text-fg-3 flex items-center justify-center cursor-pointer">
+                <X className="w-[18px] h-[18px]" />
+              </button>
+            </div>
+            <Catalogue dayName={DAY_NAMES[dayId]} dayExercises={day.exercises} flash={flash} onPick={add} grid />
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+/** A rest day takes the type of the first exercise dropped on it. */
+function kindFor(exerciseId: string): DayKind {
+  const category = EXERCISE_BY_ID.get(exerciseId)?.category;
+  if (category === 'push' || category === 'pull' || category === 'legs' || category === 'core') return category;
+  if (category === 'recovery' || category === 'warmup') return 'recovery';
+  return 'pull';
+}
+
+/* ------------------------------------------------------------------ */
+
+const KindPicker: React.FC<{ kind: DayKind; onPick: (kind: DayKind) => void; compact?: boolean }> = ({ kind, onPick, compact = false }) => (
+  <div role="radiogroup" aria-label="Day type" className={`grid gap-1 ${compact ? 'grid-cols-3' : 'grid-cols-6'}`}>
+    {DAY_KINDS.map((entry) => {
+      const on = entry.id === kind;
+      const Icon = KIND_ICON[entry.id];
+      return (
+        <button
+          key={entry.id}
+          type="button"
+          role="radio"
+          aria-checked={on}
+          aria-label={entry.label}
+          title={entry.label}
+          onClick={() => onPick(entry.id)}
+          className={`${compact ? 'h-7' : 'h-11'} rounded-[10px] border flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+            on ? 'bg-act border-act text-act-deep' : 'bg-ink-850 border-ink-700 text-[#8a94ad] hover:text-fg'
+          }`}
+        >
+          <Icon className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+          {!compact && <span className="text-[9px] font-bold">{entry.label}</span>}
+        </button>
+      );
+    })}
+  </div>
+);
+
+const DayCard: React.FC<{
+  day: SpecDay;
+  onDay: (next: SpecDay, structural?: boolean) => void;
+  onMoveToDay: (index: number, target: DayId) => void;
+}> = ({ day, onDay, onMoveToDay }) => (
+  <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2.5 p-3.5 rounded-[20px] bg-ink-900 border border-ink-700">
+      <label className="flex flex-col gap-1">
+        <span className="sr-only">Day title</span>
+        <input
+          type="text"
+          value={day.title}
+          maxLength={60}
+          onChange={(event) => onDay({ ...day, title: event.target.value })}
+          className="bg-transparent font-display font-bold text-[19px] outline-none focus:text-act"
+        />
+      </label>
+      <KindPicker kind={day.kind} onPick={(kind) => onDay({ ...day, kind })} />
+    </div>
+    {day.kind === 'rest' ? (
+      <div className="h-[110px] rounded-[20px] border-[1.5px] border-dashed border-ink-600 flex flex-col items-center justify-center gap-2 text-fg-4">
+        <Moon className="w-7 h-7" />
+        <span className="font-display font-bold">Claim your rest</span>
+      </div>
+    ) : (
+      <ul className="flex flex-col gap-2">
+        {day.exercises.map((exercise, index) => (
+          <ExerciseRow
+            key={exercise.id}
+            exercise={exercise}
+            kind={day.kind}
+            dayId={day.id}
+            onChange={(next) => onDay({ ...day, exercises: setAt(day.exercises, index, next) })}
+            onRemove={() => onDay({ ...day, exercises: removeAt(day.exercises, index) })}
+            onMoveToDay={(target) => onMoveToDay(index, target)}
+          />
+        ))}
+      </ul>
+    )}
+  </div>
+);
+
+const DayColumn: React.FC<{
+  day: SpecDay;
+  selected: boolean;
+  onSelect: () => void;
+  onDay: (next: SpecDay, structural?: boolean) => void;
+  onMoveToDay: (index: number, target: DayId) => void;
+}> = ({ day, selected, onSelect, onDay, onMoveToDay }) => {
+  const Icon = KIND_ICON[day.kind];
+  return (
+    <div
+      className={`flex flex-col gap-1.5 p-2 rounded-[18px] border-[1.5px] min-h-[480px] transition-colors ${selected ? 'bg-[#0a141b] border-act' : 'bg-ink-900 border-ink-750'}`}
+    >
+      <button type="button" onClick={onSelect} aria-pressed={selected} className="flex flex-col gap-1 px-1 pt-1 pb-2 border-b border-ink-750 text-left cursor-pointer">
+        <span className={`flex items-center gap-1.5 font-display font-bold text-[15px] ${selected ? 'text-act' : 'text-fg-2'}`}>
+          {DAY_NAMES[day.id].slice(0, 3)}
+          <Icon className="w-3.5 h-3.5" />
+          <span className="ml-auto text-xs text-fg-5">{day.exercises.length}</span>
+        </span>
+        <span className="text-[11px] font-semibold text-fg-4 leading-tight line-clamp-2 min-h-[26px]">{day.title}</span>
+      </button>
+      {selected && <KindPicker kind={day.kind} onPick={(kind) => onDay({ ...day, kind })} compact />}
+      {day.kind === 'rest' ? (
+        <div className="flex-1 min-h-[120px] rounded-xl border-[1.5px] border-dashed border-ink-600 flex flex-col items-center justify-center gap-1.5 text-fg-5">
+          <Moon className="w-5 h-5" />
+          <span className="text-[11px] font-bold">Rest</span>
+        </div>
+      ) : (
+        day.exercises.map((exercise, index) => (
+          <ExerciseRow
+            key={exercise.id}
+            exercise={exercise}
+            kind={day.kind}
+            dayId={day.id}
+            compact
+            onChange={(next) => onDay({ ...day, exercises: setAt(day.exercises, index, next) })}
+            onRemove={() => onDay({ ...day, exercises: removeAt(day.exercises, index) })}
+            onMoveToDay={(target) => onMoveToDay(index, target)}
+          />
+        ))
+      )}
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-label={`Add to ${DAY_NAMES[day.id]}`}
+        className="h-9 mt-auto rounded-[10px] border-[1.5px] border-dashed border-[#1d2a38] text-act flex items-center justify-center hover:bg-act/5 cursor-pointer"
+      >
+        <Plus className="w-4 h-4" strokeWidth={2.8} />
+      </button>
+    </div>
+  );
+};
+
+const ExerciseRow: React.FC<{
+  exercise: SpecExercise;
+  kind: DayKind;
+  dayId: DayId;
+  compact?: boolean;
+  onChange: (next: SpecExercise) => void;
+  onRemove: () => void;
+  onMoveToDay: (target: DayId) => void;
+}> = ({ exercise, kind, dayId, compact = false, onChange, onRemove, onMoveToDay }) => {
+  const catalog = EXERCISE_BY_ID.get(exercise.exercise);
+  const name = catalog?.name ?? 'Unknown exercise';
+  const reps = repsChoices(exercise.exercise);
+  const repIndex = reps.findIndex((option) => option.id === exercise.reps);
+  const cycle = () => reps.length > 0 && onChange({ ...exercise, reps: reps[(repIndex + 1) % reps.length].id });
+  const sets = (delta: number) => onChange({ ...exercise, sets: Math.min(10, Math.max(1, exercise.sets + delta)) });
+
+  if (compact) {
+    return (
+      <li className="list-none flex flex-col gap-1.5 p-2 rounded-xl bg-ink-850 border border-ink-700 anim-fade">
+        <div className="flex items-center gap-1.5">
+          <span className="w-8 h-8 rounded-lg shrink-0 bg-ink-950 border border-ink-700 flex items-center justify-center">
+            <Figure spec={figureForExercise(exercise.exercise, kind)} className="w-7 h-7" />
+          </span>
+          <span className="flex-1" />
+          <button type="button" onClick={onRemove} aria-label={`Remove ${name}`} className="w-6 h-6 shrink-0 rounded-md text-[#a55a6a] hover:bg-[#2a1a22] flex items-center justify-center cursor-pointer">
+            <X className="w-3 h-3" strokeWidth={2.8} />
+          </button>
+        </div>
+        <span className="text-[11.5px] font-semibold text-fg-2 leading-tight line-clamp-2" title={name}>
+          {name}
+        </span>
+        {reps.length > 0 && <Dose exercise={exercise} reps={reps} onSets={sets} onCycle={cycle} compact />}
+        <label className="sr-only">
+          Move {name} to another day
+          <select value={dayId} onChange={(event) => onMoveToDay(event.target.value as DayId)}>
+            {DAY_IDS.map((id) => (
+              <option key={id} value={id}>
+                {DAY_NAMES[id]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </li>
+    );
+  }
+
+  return (
+    <li className={`list-none flex ${compact ? 'flex-col gap-1.5 p-2 rounded-xl' : 'items-center gap-2.5 p-2 rounded-[18px]'} bg-ink-850 border border-ink-700 anim-fade`}>
+      <div className={`flex ${compact ? 'items-start' : 'items-center flex-1 min-w-0'} gap-2`}>
+        <span className={`${compact ? 'w-8 h-8 rounded-lg' : 'w-[50px] h-[50px] rounded-[14px]'} shrink-0 bg-ink-950 border border-ink-700 flex items-center justify-center`}>
+          <Figure spec={figureForExercise(exercise.exercise, kind)} className={compact ? 'w-7 h-7' : 'w-11 h-11'} />
+        </span>
+        <span className={`flex-1 min-w-0 flex flex-col ${compact ? '' : 'gap-1.5'}`}>
+          <span className={`${compact ? 'text-[11.5px] leading-tight line-clamp-2' : 'text-[13.5px] truncate'} font-semibold text-fg-2`}>{name}</span>
+          {!compact && reps.length > 0 && <Dose exercise={exercise} reps={reps} onSets={sets} onCycle={cycle} />}
+        </span>
+        <button type="button" onClick={onRemove} aria-label={`Remove ${name}`} className={`${compact ? 'w-5 h-5' : 'w-9 h-9 rounded-xl border border-[#2a1a22]'} shrink-0 text-[#a55a6a] flex items-center justify-center cursor-pointer`}>
+          <X className={compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} strokeWidth={2.8} />
+        </button>
+      </div>
+      {compact && reps.length > 0 && <Dose exercise={exercise} reps={reps} onSets={sets} onCycle={cycle} compact />}
+      <label className={compact ? 'sr-only' : 'sr-only'}>
+        Move {name} to another day
+        <select value={dayId} onChange={(event) => onMoveToDay(event.target.value as DayId)}>
+          {DAY_IDS.map((id) => (
+            <option key={id} value={id}>
+              {DAY_NAMES[id]}
+            </option>
+          ))}
+        </select>
+      </label>
+    </li>
+  );
+};
+
+const Dose: React.FC<{
+  exercise: SpecExercise;
+  reps: { id: string; label: string }[];
+  onSets: (delta: number) => void;
+  onCycle: () => void;
+  compact?: boolean;
+}> = ({ exercise, reps, onSets, onCycle, compact = false }) => {
+  const label = reps.find((option) => option.id === exercise.reps)?.label ?? exercise.reps;
+  const box = compact ? 'w-[22px] h-6 rounded-md' : 'w-[30px] h-[30px]';
+  return (
+    <span className="flex items-center gap-1">
+      <span className={`flex items-center ${compact ? 'gap-0.5' : 'h-8 rounded-[10px] bg-ink-950 border border-ink-700'}`}>
+        <button type="button" onClick={() => onSets(-1)} aria-label="One set fewer" className={`${box} flex items-center justify-center text-fg-3 cursor-pointer ${compact ? 'border border-ink-700 bg-ink-950' : ''}`}>
+          <Minus className="w-3 h-3" strokeWidth={3.4} />
+        </button>
+        <span className={`min-w-[16px] text-center font-display font-bold ${compact ? 'text-[13px]' : 'text-base'}`}>{exercise.sets}</span>
+        <button type="button" onClick={() => onSets(1)} aria-label="One set more" className={`${box} flex items-center justify-center text-act cursor-pointer ${compact ? 'border border-ink-700 bg-ink-950' : ''}`}>
+          <Plus className="w-3 h-3" strokeWidth={3.4} />
+        </button>
+      </span>
+      <span className="text-fg-5 font-display font-bold text-xs">×</span>
+      <button
+        type="button"
+        onClick={onCycle}
+        aria-label={`Reps: ${label}. Change`}
+        title={label}
+        className={`${compact ? 'h-6 flex-1 min-w-0 text-[11px] rounded-md' : 'h-8 px-2.5 text-sm rounded-[10px]'} border border-[#17566a] bg-[#08161d] text-act font-display font-bold truncate cursor-pointer`}
+      >
+        {exercise.reps || label}
+      </button>
+    </span>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+
+const Catalogue: React.FC<{
+  dayName: string;
+  dayExercises: SpecExercise[];
+  flash: string | null;
+  onPick: (id: string) => void;
+  grid?: boolean;
+}> = ({ dayName, dayExercises, flash, onPick, grid = false }) => {
+  const [discipline, setDiscipline] = useState<Discipline>('calisthenics');
+  const [query, setQuery] = useState('');
+  const onDay = new Set(dayExercises.map((exercise) => exercise.exercise));
+
+  const results = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return EXERCISE_CATALOG.filter(
+      (exercise) =>
+        (needle ? exercise.name.toLowerCase().includes(needle) || exercise.focus.toLowerCase().includes(needle) : exercise.discipline === discipline),
+    )
+      .sort((a, b) => (a.level ?? 0) - (b.level ?? 0))
+      .slice(0, 60);
+  }, [discipline, query]);
+
+  return (
+    <section aria-label={`Exercise catalogue for ${dayName}`} className={`flex flex-col gap-2.5 min-h-0 ${grid ? 'flex-1' : 'p-3.5 rounded-[22px] bg-ink-900 border border-[#17566a]'}`}>
+      {!grid && (
+        <div className="flex items-center gap-2">
+          <span className="flex-1 font-display font-bold text-lg">Catalogue</span>
+          <span className="h-[26px] px-2.5 rounded-full bg-act text-act-deep font-display font-bold text-[13px] leading-[26px]">→ {dayName.slice(0, 3)}</span>
+        </div>
+      )}
+      <label className="flex items-center gap-2 h-11 px-3 rounded-[14px] bg-ink-950 border border-ink-700 focus-within:border-act">
+        <Search className="w-4 h-4 text-fg-5" />
+        <span className="sr-only">Search exercises</span>
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search"
+          className="flex-1 min-w-0 bg-transparent outline-none text-sm placeholder:text-fg-5"
+        />
+      </label>
+      {!query && (
+        <div className="flex flex-wrap gap-1.5">
+          {DISCIPLINES.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              onClick={() => setDiscipline(entry.id)}
+              aria-pressed={entry.id === discipline}
+              className={`h-8 px-3 rounded-full border text-xs font-bold cursor-pointer ${
+                entry.id === discipline ? 'bg-act border-act text-act-deep' : 'bg-ink-850 border-ink-700 text-fg-3'
+              }`}
+            >
+              {entry.id === 'bouldering' && <Mountain className="inline w-3.5 h-3.5 mr-1 -mt-0.5" />}
+              {entry.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <ul className={`min-h-0 overflow-y-auto no-scrollbar ${grid ? 'grid grid-cols-3 gap-2 content-start flex-1' : 'flex flex-col gap-1.5 max-h-[560px]'}`}>
+        {results.map((exercise) => {
+          const added = onDay.has(exercise.id);
+          return (
+            <li key={exercise.id} className="list-none">
+              <button
+                type="button"
+                onClick={() => onPick(exercise.id)}
+                aria-label={`Add ${exercise.name}`}
+                className={`w-full border rounded-2xl bg-ink-850 transition active:scale-95 cursor-pointer ${flash === exercise.id ? 'anim-ready' : ''} ${
+                  added ? 'border-[#17566a]' : 'border-ink-700 hover:border-ink-600'
+                } ${grid ? 'h-[128px] p-1.5 flex flex-col items-center gap-1 text-center' : 'p-1.5 flex items-center gap-2.5 text-left'}`}
+              >
+                <span className={`${grid ? 'w-16 h-16' : 'w-11 h-11'} shrink-0 rounded-xl bg-ink-950 flex items-center justify-center`}>
+                  <Figure spec={figureForExercise(exercise.id, exercise.category)} className={grid ? 'w-14 h-14' : 'w-10 h-10'} />
+                </span>
+                <span className={`flex-1 min-w-0 flex flex-col ${grid ? 'items-center' : ''}`}>
+                  <span className={`text-[12px] font-semibold text-fg-2 leading-tight ${grid ? 'line-clamp-2' : 'truncate'}`}>{exercise.name}</span>
+                  <span className="font-display font-bold text-[11.5px] text-act">
+                    {exercise.sets} × {exercise.reps || '—'}
+                  </span>
+                </span>
+                {!grid && (
+                  <span className={`w-7 h-7 shrink-0 rounded-lg flex items-center justify-center ${added ? 'bg-act text-act-deep' : 'bg-[#08161d] text-act'}`}>
+                    <Plus className="w-3.5 h-3.5" strokeWidth={3} />
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+};
+
+const ArmorRow: React.FC<{ armor: string[]; onToggle: (id: string) => void }> = ({ armor, onToggle }) => (
+  <section aria-label="Weekly tendon armor" className="flex flex-col gap-2.5 p-3.5 rounded-[20px] bg-ink-900 border border-ink-700">
+    <div className="flex items-center gap-2">
+      <Shield className="w-4 h-4 text-act" />
+      <h2 className="flex-1 font-display font-bold text-[15px]">Weekly armor</h2>
+      <span className="font-display font-bold text-sm text-act">
+        {armor.length}
+        <span className="text-fg-5">/{ARMOR_CATALOG.length}</span>
+      </span>
+    </div>
+    <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+      {ARMOR_CATALOG.map((piece) => {
+        const on = armor.includes(piece.id);
+        return (
+          <button
+            key={piece.id}
+            type="button"
+            role="switch"
+            aria-checked={on}
+            onClick={() => onToggle(piece.id)}
+            title={`${piece.drill} — ${piece.when}`}
+            className={`h-[58px] rounded-2xl border-[1.5px] flex flex-col items-center justify-center gap-1 cursor-pointer ${
+              on ? 'bg-act/10 border-act text-act' : 'bg-ink-850 border-dashed border-ink-600 text-fg-5'
+            }`}
+          >
+            <Shield className={`w-5 h-5 ${on ? 'fill-act/20' : ''}`} />
+            <span className="text-[10.5px] font-bold">{piece.slot}</span>
+          </button>
+        );
+      })}
+    </div>
+  </section>
+);
