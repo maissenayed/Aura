@@ -164,12 +164,16 @@ export function figureForLift(lift: Pick<Lift, 'id' | 'branch'>): FigureSpec {
   return figureForExercise(lift.id, lift.branch);
 }
 
-export function figureForBoss(boss: Pick<Boss, 'id' | 'branch'>): FigureSpec {
+/** A boss is drawn as what it asks for: its skill or its exercise. Bosses from the first campaign keep the drawing they had. */
+export function figureForBoss(boss: Pick<Boss, 'id' | 'branch'> & Partial<Pick<Boss, 'requirements'>>): FigureSpec {
   const id = BOSS_LOOKALIKE[boss.id];
   const gym = BOSS_GYM[boss.id];
+  const own = boss.requirements?.find((req) => req.kind === 'skill' || req.kind === 'lift' || req.kind === 'multiple');
+  const ownId = own ? (own.kind === 'skill' ? own.skill : own.lift) : undefined;
   return (
     (id ? calisthenicsFigure(id) : undefined) ??
     (gym ? gymFigure(gym) : undefined) ??
+    (ownId ? lookup(ownId) : undefined) ??
     calisthenicsFigure(BRANCH_FALLBACK[boss.branch] ?? FALLBACK)!
   );
 }

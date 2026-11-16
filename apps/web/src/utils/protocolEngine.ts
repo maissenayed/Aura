@@ -22,6 +22,8 @@ import {
   liftOf,
 } from './campaignPlan';
 import { formatStatValue } from './campaignPlan';
+import { HistoryPoint, PLAN_FORMAT_V3, SkillTreeRef } from './campaignV3';
+import { floorsOf, masteredIn } from './treeIndex';
 
 export { formatStatValue, unitLabel } from './campaignPlan';
 import { AttributeStatus, evaluateAttributes } from './attributes';
@@ -30,7 +32,7 @@ import { AttributeStatus, evaluateAttributes } from './attributes';
 /* Save                                                                */
 /* ------------------------------------------------------------------ */
 
-export type EventKind = 'pr' | 'tier' | 'boss' | 'level' | 'mass' | 'iron' | 'day' | 'week' | 'skill' | 'attribute';
+export type EventKind = 'pr' | 'tier' | 'boss' | 'level' | 'mass' | 'iron' | 'day' | 'week' | 'skill' | 'attribute' | 'badge';
 
 export interface GameEvent {
   kind: EventKind;
@@ -61,6 +63,14 @@ export interface ProtocolSave {
    * were mastered. Kept in the save so mastery follows the account to every device.
    */
   skills: Record<string, string>;
+  /** Save format: 3 once converted to the v3 campaign, absent on a save from before it. */
+  version?: number;
+  /** Latest logged number per record key (the exercise, see `recordKeyOf`). */
+  records: Record<string, number>;
+  /** Logged numbers over time per record key, one point per day, oldest first. */
+  history: Record<string, HistoryPoint[]>;
+  /** Badges earned (`boss:<id>`, `tower:<id>`, `record:<exercise>`), with the date first earned. Never removed. */
+  badges: Record<string, string>;
 }
 
 export function createInitialSave(plan: CampaignPlan = BLUEPRINT_PLAN): ProtocolSave {
@@ -73,6 +83,10 @@ export function createInitialSave(plan: CampaignPlan = BLUEPRINT_PLAN): Protocol
     quests: {},
     log: [],
     skills: {},
+    version: PLAN_FORMAT_V3,
+    records: {},
+    history: {},
+    badges: {},
   };
 }
 
@@ -122,7 +136,47 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 
 /** A lift's number right now: the last log, or its starting number. */
 export function currentOf(save: ProtocolSave, lift: Lift): number {
-  return save.stats[lift.id] ?? lift.baseline;
+  return save.records?.[lift.id] ?? save.stats[lift.id] ?? lift.baseline;
+}
+
+/** The number a "lift N × bodyweight" boss asks for: the load itself, or the load on top of bodyweight for added-kg lifts. */
+export function multipleTarget(lift: Lift | undefined, multiple: number, bodyWeightKg: number): number {
+  const total = multiple * bodyWeightKg;
+  return Math.round((lift?.unit === 'added-kg' ? Math.max(0, total - bodyWeightKg) : total) * 2) / 2;
+}
+
+/** How far up a skill's climb the player is: the skill and everything it needs. */
+export interface SkillClimb {
+  tree: SkillTreeRef;
+  skill: string;
+  name: string;
+  floors: number;
+  mastered: number;
+  /** The summit itself is mastered. */
+  done: boolean;
+  /** The skills to master next: not mastered, with every skill they need mastered. Easiest first. */
+  next: { id: string; name: string; level: number }[];
+}
+
+export function climbOf(save: ProtocolSave, tree: SkillTreeRef, skill: string): SkillClimb | null {
+  const floors = floorsOf(tree, skill);
+  if (!floors.length) return null;
+  const owned = masteredIn(save.skills, tree);
+  const inClimb = new Set(floors.map((floor) => floor.id));
+  const next = floors
+    .filter((floor) => !owned.has(floor.id) && floor.prerequisites.every((id) => !inClimb.has(id) || owned.has(id)))
+    .map((floor) => ({ id: floor.id, name: floor.name, level: floor.level }));
+  // Every other floor needs the summit's level or less, strictly, so the summit sorts last.
+  const summit = floors[floors.length - 1];
+  return {
+    tree,
+    skill: summit.id,
+    name: summit.name,
+    floors: floors.length,
+    mastered: floors.filter((floor) => owned.has(floor.id)).length,
+    done: owned.has(summit.id),
+    next,
+  };
 }
 
 /** How far a lift has travelled from its starting number to a gate, 0–1. */
@@ -170,6 +224,8 @@ export interface RequirementStatus {
   lift?: Lift;
   /** Set for milestone requirements. */
   milestone?: Milestone;
+  /** Set for skill requirements: the climb to the skill. */
+  climb?: SkillClimb;
   target: number;
   current: number;
   met: boolean;
@@ -211,6 +267,53 @@ function evaluateRequirement(
       met: current >= target,
       ratio: travel(lift, current, target),
       scales: req.atGoal !== undefined,
+    };
+  }
+
+  if (req.kind === 'multiple') {
+    const lift = liftOf(plan, req.lift);
+    if (!lift) return { requirement: req, label: req.label ?? 'Missing lift', target: 1, current: 0, met: false, ratio: 0, scales: false };
+    const current = currentOf(save, lift);
+    const target = multipleTarget(lift, req.multiple, save.bodyWeightKg);
+    return {
+      requirement: req,
+      label: req.label ?? `${lift.name} · ${req.multiple}× bodyweight`,
+      lift,
+      target,
+      current,
+      met: current >= target,
+      ratio: travel(lift, current, target),
+      scales: true,
+    };
+  }
+
+  if (req.kind === 'scale') {
+    const { start } = plan.bodyweight;
+    const current = save.bodyWeightKg;
+    return {
+      requirement: req,
+      label: req.label ?? `${req.kg} kg on the scale`,
+      target: req.kg,
+      current,
+      met: reached(current, start, req.kg),
+      ratio: towards(current, start, req.kg),
+      scales: false,
+    };
+  }
+
+  if (req.kind === 'skill') {
+    const climb = climbOf(save, req.tree, req.skill);
+    const met = Boolean(climb?.done);
+    return {
+      requirement: req,
+      label: req.label ?? `Master ${climb?.name ?? 'the skill'}`,
+      climb: climb ?? undefined,
+      target: climb?.floors ?? 1,
+      current: climb?.mastered ?? 0,
+      met,
+      // The summit itself is the last blow: the skills below it take the boss down to one hit.
+      ratio: met ? 1 : climb ? Math.min(climb.mastered, climb.floors - 1) / climb.floors : 0,
+      scales: false,
     };
   }
 
@@ -306,7 +409,13 @@ export interface LadderStatus {
 }
 
 function evaluateLadder(ladder: SkillTree, save: ProtocolSave, plan: CampaignPlan): LadderStatus {
+  const owned = ladder.tower ? masteredIn(save.skills, ladder.tower.tree) : null;
   const tiers: TierStatus[] = ladder.tiers.map((tier) => {
+    // A tower floor is cleared by mastering its skill on the tree.
+    if (tier.skill && owned) {
+      const cleared = owned.has(tier.skill.id);
+      return { tier, gates: [], cleared, byBlueprint: false, progress: cleared ? 1 : 0, isCurrent: false };
+    }
     const gates: TierGate[] = [];
     for (const gate of tier.gates) {
       const lift = liftOf(plan, gate.lift);
@@ -601,6 +710,10 @@ export const XP_RULES = {
   perLevel: 500,
   statMax: 300,
   tier: 400,
+  /** A tower climbed to its summit. Its floors are skills, which earn on the tree. */
+  tower: 400,
+  /** Each skill mastered on the way up a tower or a skill boss. */
+  floor: 50,
   boss: 1500,
   ironCheckpoint: 300,
   massMax: 1500,
@@ -643,9 +756,26 @@ function evaluateLevel(
   }, 0);
 
   const earnedTiers = ladders.reduce(
-    (sum, ladder) => sum + ladder.tiers.filter((tier) => tier.cleared && !tier.byBlueprint).length,
+    (sum, ladder) => (ladder.ladder.tower ? sum : sum + ladder.tiers.filter((tier) => tier.cleared && !tier.byBlueprint).length),
     0,
   );
+  const towersClimbed = ladders.filter((ladder) => ladder.ladder.tower && ladder.tiers.length > 0 && ladder.clearedCount === ladder.tiers.length).length;
+  // Skills that are floors of a tower or weak points of a skill boss, counted once each.
+  const climbed = new Set<string>();
+  for (const ladder of ladders) {
+    for (const tier of ladder.tiers) {
+      if (tier.cleared && tier.tier.skill) climbed.add(`${tier.tier.skill.tree}:${tier.tier.skill.id}`);
+    }
+  }
+  for (const status of bosses) {
+    for (const { climb } of status.requirements) {
+      if (!climb) continue;
+      const owned = masteredIn(save.skills, climb.tree);
+      for (const floor of floorsOf(climb.tree, climb.skill)) {
+        if (owned.has(floor.id)) climbed.add(`${climb.tree}:${floor.id}`);
+      }
+    }
+  }
 
   let missions = 0;
   let armor = 0;
@@ -658,7 +788,9 @@ function evaluateLevel(
 
   const breakdown = [
     { label: 'Iron strength', xp: Math.round(strength) },
-    { label: 'Skill tiers', xp: earnedTiers * XP_RULES.tier },
+    ...(earnedTiers ? [{ label: 'Skill tiers', xp: earnedTiers * XP_RULES.tier }] : []),
+    { label: 'Skills climbed', xp: climbed.size * XP_RULES.floor },
+    { label: 'Towers', xp: towersClimbed * XP_RULES.tower },
     { label: 'Bosses', xp: bosses.filter((b) => b.defeated).length * XP_RULES.boss },
     { label: 'Lift checkpoints', xp: checkpoints.filter((c) => c.met).length * XP_RULES.ironCheckpoint },
     { label: 'Bodyweight', xp: Math.round(mass.finalProgress * XP_RULES.massMax) },
@@ -752,6 +884,28 @@ function evaluateActs(
             }
           }
           return [];
+        }
+        case 'skill': {
+          const climb = climbOf(save, goal.tree, goal.skill);
+          if (!climb) return [];
+          return [
+            {
+              node: { id: goal.id, label: goal.label ?? 'Skill', detail: climb.name, done: climb.done },
+              progress: climb.done ? 1 : climb.mastered / climb.floors,
+            },
+          ];
+        }
+        case 'tower': {
+          const tower = ladders.find((entry) => entry.ladder.id === goal.tower);
+          if (!tower) return [];
+          const total = tower.tiers.length;
+          const done = total > 0 && tower.clearedCount === total;
+          return [
+            {
+              node: { id: goal.id, label: 'Tower', detail: tower.ladder.name, done },
+              progress: total ? tower.clearedCount / total : 0,
+            },
+          ];
         }
         case 'milestone': {
           const milestone = plan.milestones.find((entry) => entry.id === goal.milestone);
@@ -881,6 +1035,39 @@ export function derive(save: ProtocolSave, clock: Clock, plan: CampaignPlan): De
     gates: evaluateGates(save, plan, bosses, ladders, checkpoints),
     attributes: evaluateAttributes(save, plan, bosses, ladders),
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Badges — kept for good, whatever the plan becomes                   */
+/* ------------------------------------------------------------------ */
+
+export interface BadgeAward {
+  id: string;
+  kind: 'boss' | 'tower' | 'record';
+  title: string;
+  detail: string;
+}
+
+/** Badges the save has earned but not been given yet: bosses down, towers climbed, lifts at their end-game number. */
+export function badgesDue(save: ProtocolSave, derived: Derived, plan: CampaignPlan): BadgeAward[] {
+  const due: BadgeAward[] = [];
+  const add = (award: BadgeAward) => {
+    if (!save.badges[award.id]) due.push(award);
+  };
+  for (const status of derived.bosses) {
+    if (status.defeated) add({ id: `boss:${status.boss.id}`, kind: 'boss', title: status.boss.name, detail: 'Boss defeated' });
+  }
+  for (const ladder of derived.ladders) {
+    if (ladder.ladder.tower && ladder.tiers.length > 0 && ladder.clearedCount === ladder.tiers.length) {
+      add({ id: `tower:${ladder.ladder.id}`, kind: 'tower', title: ladder.ladder.name, detail: 'Climbed to the summit' });
+    }
+  }
+  for (const lift of plan.lifts) {
+    if (lift.endgame !== null && currentOf(save, lift) >= lift.endgame) {
+      add({ id: `record:${lift.id}`, kind: 'record', title: lift.name, detail: `End-game number · ${formatStatValue(lift.endgame, lift.unit)}` });
+    }
+  }
+  return due;
 }
 
 /* ------------------------------------------------------------------ */

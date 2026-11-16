@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { LIFT_BY_ID } from '../../data/campaignCatalog';
-import { CampaignPlan, PlanSpec, SpecLift, usesOf } from '../../utils/campaignPlan';
-import { formatStatValue } from '../../utils/protocolEngine';
+import { CampaignPlan, PlanSpec, usesOf } from '../../utils/campaignPlan';
+import { TrackedLift } from '../../utils/campaignV3';
+import { currentOf, formatStatValue } from '../../utils/protocolEngine';
+import { metricOf } from '../../utils/records';
+import { useGame } from '../game/GameProvider';
 import { themeFor } from '../protocol/primitives';
-import { liftGroups } from './catalogOptions';
-import { DeleteButton, EditCard, Facts, Group, GroupedSelect, MoveButtons, NumberField, moveBy, removeAt, setAt } from './fields';
+import { DeleteButton, EditCard, Facts, Group, GroupedSelect, NumberField } from './fields';
+import { exerciseGroups } from './pickers';
 
 interface Props {
   spec: PlanSpec;
@@ -16,26 +18,41 @@ interface Props {
 
 const UNIT_NAME = { kg: 'kg (load)', 'added-kg': '+kg on bodyweight', reps: 'reps', seconds: 'seconds' } as const;
 
+/**
+ * The lifts are the week's exercises: every mission logs its number under
+ * its exercise, so progress shows wherever that exercise is trained. Bosses
+ * and map goals add the exercises they read. Here each one gets the
+ * player's own starting and end-game numbers.
+ */
 export const LiftsEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
+  const { save } = useGame();
   const [openId, setOpenId] = useState<string | null>(null);
-  const setLifts = (lifts: SpecLift[]) => onChange({ ...spec, lifts });
-  const tracked = new Set(spec.lifts.map((entry) => entry.lift));
+  const own = new Map(spec.lifts.map((entry) => [entry.exercise, entry]));
+
+  /** Writes this lift's own numbers; a lift back on its defaults drops out of the stored list. */
+  const setOwn = (id: string, patch: Partial<TrackedLift>) => {
+    const current = own.get(id) ?? { exercise: id, metric: metricOf(id), baseline: null, endgame: null };
+    const next = { ...current, ...patch };
+    const lifts = own.has(id) ? spec.lifts.map((entry) => (entry.exercise === id ? next : entry)) : [...spec.lifts, next];
+    onChange({ ...spec, lifts });
+  };
 
   return (
     <Group
-      title={`Lifts · ${spec.lifts.length}`}
-      hint="The numbers the game measures, chosen from the lift library. Exercises, bosses and skill trees add the lifts they need by themselves. Set your own starting and end-game numbers; log progress in the Stats tab."
+      title={`Lifts · ${plan.lifts.length}`}
+      hint="Your week's exercises. Log a number when you finish a mission and it lands here, so you can see where you progressed. Bosses and map goals add the exercises they read. Track another exercise to follow it without a mission."
     >
       <ul className="space-y-2">
-        {spec.lifts.map((entry, index) => {
-          const lift = LIFT_BY_ID.get(entry.lift);
-          if (!lift) return null;
+        {plan.lifts.map((lift) => {
           const theme = themeFor(lift.branch);
+          const entry = own.get(lift.id);
           const uses = usesOf(plan, 'lift', lift.id);
+          const logged = save.records?.[lift.id] ?? save.stats[lift.id];
           const meta = [
-            entry.baseline === null ? 'starts on first log' : `starts at ${formatStatValue(entry.baseline, lift.unit)}`,
-            entry.endgame === null ? 'no end-game number' : `end-game ${formatStatValue(entry.endgame, lift.unit)}`,
+            logged === undefined ? (lift.hasBaseline ? `starts at ${formatStatValue(lift.baseline, lift.unit)}` : 'not logged yet') : `now ${formatStatValue(currentOf(save, lift), lift.unit)}`,
+            lift.endgame === null ? 'no end-game number' : `end-game ${formatStatValue(lift.endgame, lift.unit)}`,
           ].join(' · ');
+          const history = save.history?.[lift.id] ?? [];
 
           return (
             <EditCard
@@ -49,12 +66,11 @@ export const LiftsEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
               <Facts
                 items={[
                   { label: 'Measured in', value: UNIT_NAME[lift.unit] },
-                  { label: 'Branch', value: theme.label },
-                  { label: 'The number is', value: lift.measure },
+                  { label: 'Category', value: theme.label },
+                  { label: 'Logged', value: history.length ? `${history.length} day${history.length === 1 ? '' : 's'}` : 'never' },
                   ...(uses.length ? [{ label: 'Used by', value: uses.join(', ') }] : []),
                 ]}
               />
-              <p className="text-[11px] text-slate-500">{lift.note}</p>
 
               <div className="grid gap-3 grid-cols-2">
                 <NumberField
@@ -62,8 +78,8 @@ export const LiftsEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
                   optional
                   placeholder="first log"
                   step={lift.step}
-                  value={entry.baseline}
-                  onChange={(baseline) => setLifts(setAt(spec.lifts, index, { ...entry, baseline }))}
+                  value={entry?.baseline ?? null}
+                  onChange={(baseline) => setOwn(lift.id, { baseline })}
                   hint="Used until you log it. Empty: the first log sets it."
                 />
                 <NumberField
@@ -71,34 +87,29 @@ export const LiftsEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
                   optional
                   placeholder="none"
                   step={lift.step}
-                  value={entry.endgame}
-                  onChange={(endgame) => setLifts(setAt(spec.lifts, index, { ...entry, endgame: endgame && endgame > 0 ? endgame : null }))}
-                  hint="The number you are chasing. Drives XP and Character."
+                  value={entry?.endgame ?? null}
+                  onChange={(endgame) => setOwn(lift.id, { endgame: endgame && endgame > 0 ? endgame : null })}
+                  hint="The number you are chasing. Reaching it earns a badge."
                 />
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <MoveButtons label={lift.name} index={index} count={spec.lifts.length} onMove={(delta) => setLifts(moveBy(spec.lifts, index, delta))} />
-                <span className="ml-auto">
-                  {uses.length ? (
-                    <span className="text-[11px] text-slate-500">In use — remove it from those first.</span>
-                  ) : (
-                    <DeleteButton label={lift.name} onDelete={() => setLifts(removeAt(spec.lifts, index))} />
-                  )}
-                </span>
-              </div>
+              {entry && !uses.length && (
+                <div className="flex justify-end pt-1">
+                  <DeleteButton label={`${lift.name} from your lifts`} onDelete={() => onChange({ ...spec, lifts: spec.lifts.filter((other) => other.exercise !== lift.id) })} />
+                </div>
+              )}
             </EditCard>
           );
         })}
       </ul>
       <GroupedSelect
-        label="Track another lift"
+        label="Track another exercise"
         hideLabel
         value=""
-        placeholder="+ Track another lift…"
-        groups={liftGroups(tracked)}
+        placeholder="+ Track another exercise…"
+        groups={exerciseGroups({ except: new Set(plan.lifts.map((lift) => lift.id)) })}
         onChange={(id) => {
-          setLifts([...spec.lifts, { lift: id, baseline: null, endgame: LIFT_BY_ID.get(id)?.endgame ?? null }]);
+          onChange({ ...spec, lifts: [...spec.lifts, { exercise: id, metric: metricOf(id), baseline: null, endgame: null }] });
           setOpenId(id);
         }}
       />

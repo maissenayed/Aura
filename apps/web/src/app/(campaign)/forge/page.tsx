@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, CalendarRange, Check, CloudOff, Dumbbell, GitBranch, Hammer, Layers, Map, Moon, Skull, Star } from 'lucide-react';
+import { AlertTriangle, CalendarRange, Castle, Check, CloudOff, Dumbbell, Hammer, Layers, Map, Moon, Skull, Star } from 'lucide-react';
 import { ScreenHeader } from '../../../components/game/AppShell';
 import { useGame } from '../../../components/game/GameProvider';
 import { BossesEditor } from '../../../components/plan/BossesEditor';
 import { ForgeWeek } from '../../../components/plan/ForgeWeek';
 import { LiftsEditor } from '../../../components/plan/LiftsEditor';
 import { MapEditor } from '../../../components/plan/MapEditor';
-import { TreesEditor } from '../../../components/plan/TreesEditor';
+import { TowersEditor } from '../../../components/plan/TowersEditor';
 import { BLUEPRINT_SPEC } from '../../../data/blueprintPlan';
 import { CampaignPlan, DAY_NAMES, DayId, PlanSpec, blankSpec, resolvePlan } from '../../../utils/campaignPlan';
 import { PlanSaveResult, savePlan, takeServerPlan } from '../../../utils/protocolStore';
@@ -22,9 +22,8 @@ function warningsFor(plan: CampaignPlan): string[] {
   for (const day of plan.days) {
     if (day.kind !== 'rest' && day.exercises.length === 0) warnings.push(`${DAY_NAMES[day.id]} is a training day with no exercises.`);
   }
-  for (const tree of plan.trees) {
-    const stuck = tree.tiers.filter((tier) => tier.gates.length === 0 && !tier.preCleared).length;
-    if (stuck) warnings.push(`${tree.name} has ${stuck} tier${stuck === 1 ? '' : 's'} with no lift gates — mark ${stuck === 1 ? 'it' : 'them'} as owned when you get there.`);
+  for (const day of plan.days) {
+    if (day.kind !== 'rest' && day.kind !== 'recovery' && day.exercises.length > 0 && day.warmUps.length === 0) warnings.push(`${DAY_NAMES[day.id]} has no warm-up.`);
   }
   for (const act of plan.acts) {
     if (act.goals.length === 0) warnings.push(`${act.name || 'An act'} has no goals and is skipped on the map.`);
@@ -82,9 +81,9 @@ export default function ForgePage() {
 
   const sections: { id: Section; label: string; count: number; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'week', label: 'Week', count: exerciseCount, icon: CalendarRange },
-    { id: 'lifts', label: 'Lifts', count: working.lifts.length, icon: Dumbbell },
+    { id: 'lifts', label: 'Lifts', count: resolved.lifts.length, icon: Dumbbell },
     { id: 'bosses', label: 'Bosses', count: working.bosses.length, icon: Skull },
-    { id: 'trees', label: 'Trees', count: working.trees.length, icon: GitBranch },
+    { id: 'trees', label: 'Towers', count: working.trees.length, icon: Castle },
     { id: 'map', label: 'Map', count: working.acts.length, icon: Map },
   ];
 
@@ -210,7 +209,7 @@ export default function ForgePage() {
       {section === 'week' && <ForgeWeek spec={working} onChange={edit} initialDay={(todayDayId as DayId | null) ?? 'mon'} />}
       {section === 'lifts' && <LiftsEditor spec={working} plan={resolved} onChange={edit} />}
       {section === 'bosses' && <BossesEditor spec={working} plan={resolved} onChange={edit} />}
-      {section === 'trees' && <TreesEditor spec={working} plan={resolved} onChange={edit} />}
+      {section === 'trees' && <TowersEditor spec={working} plan={resolved} onChange={edit} />}
       {section === 'map' && <MapEditor spec={working} plan={resolved} onChange={edit} />}
 
       <section aria-label="Danger zone" className="mt-4 flex flex-wrap items-center gap-3 p-3.5 rounded-2xl border border-[#4a1a28] bg-[#16090d]">

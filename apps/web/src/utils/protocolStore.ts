@@ -1,9 +1,11 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import { BLUEPRINT_PLAN, BLUEPRINT_SPEC } from '../data/blueprintPlan';
+import { BLUEPRINT_PLAN, BLUEPRINT_SPEC, BLUEPRINT_SPEC_V2 } from '../data/blueprintPlan';
 import { getAccountState, refreshAccount, signOut, subscribeAccount } from './accountStore';
-import { CampaignPlan, PlanSpec, normalizeSpec, resolvePlan } from './campaignPlan';
+import { CampaignPlan, PlanSpec, PlanSpecV2, normalizeSpec, normalizeSpecV2, resolvePlan } from './campaignPlan';
+import { HISTORY_LIMIT, HistoryPoint } from './campaignV3';
+import { isV3Save, migrateSave } from './migrateSaveV2';
 import { LogEntry, ProtocolSave, createInitialSave, mondayOf, toIsoDate } from './protocolEngine';
 import { resolveExerciseId } from '../data/exerciseAliases';
 
@@ -62,9 +64,15 @@ export interface CampaignSnapshot {
 export type PlanSaveResult = 'saved' | 'offline' | 'conflict' | 'invalid' | 'outdated';
 
 /** The plan format this version of the app reads and writes. */
-const PLAN_VERSION = 2;
+const PLAN_VERSION = 3;
 /** The server holds a plan from a newer app; it is left alone until this tab reloads. */
 let planFromNewerApp = false;
+/** The plan the account played before v3, while its save still needs converting. */
+let v2PlanForSave: PlanSpecV2 | undefined;
+/** The account's plan was read on this pull, so a save conversion knows what it was played on. */
+let planRead = false;
+/** A v2 plan converted on this pull: sent up once the converted save is. */
+let convertedPlanPending = false;
 
 interface RemoteDoc {
   rev: number;
@@ -143,9 +151,34 @@ function normalizeSave(raw: unknown): ProtocolSave {
     }
   }
 
+  const numbers = (value: unknown): Record<string, number> =>
+    isRecord(value)
+      ? Object.fromEntries(Object.entries(value).filter((entry): entry is [string, number] => typeof entry[1] === 'number' && Number.isFinite(entry[1])))
+      : {};
+  const history: Record<string, HistoryPoint[]> = {};
+  if (isRecord(raw.history)) {
+    for (const [key, points] of Object.entries(raw.history)) {
+      if (!Array.isArray(points)) continue;
+      const kept = points.filter(
+        (point): point is HistoryPoint =>
+          Array.isArray(point) && typeof point[0] === 'string' && typeof point[1] === 'number' && Number.isFinite(point[1]),
+      );
+      if (kept.length) history[key] = kept.slice(-HISTORY_LIMIT);
+    }
+  }
+  const badges: Record<string, string> = {};
+  if (isRecord(raw.badges)) {
+    for (const [id, date] of Object.entries(raw.badges)) if (typeof date === 'string') badges[id] = date;
+  }
+
   return {
     // Fields a newer version of the app added ride along untouched, so this one never strips them.
     ...extrasOf(raw),
+    // No version: a save from before v3, converted once the account's plan is known.
+    ...(typeof raw.version === 'number' ? { version: raw.version } : {}),
+    records: numbers(raw.records),
+    history,
+    badges,
     startedAt: typeof raw.startedAt === 'string' ? raw.startedAt : fresh.startedAt,
     bodyWeightKg:
       typeof raw.bodyWeightKg === 'number' && Number.isFinite(raw.bodyWeightKg) ? raw.bodyWeightKg : fresh.bodyWeightKg,
@@ -167,7 +200,20 @@ function currentSkillKey(stored: string): string {
 }
 
 /** The save fields this version of the app knows how to read. */
-const KNOWN_SAVE_FIELDS = new Set(['startedAt', 'bodyWeightKg', 'stats', 'loads', 'milestones', 'quests', 'log', 'skills']);
+const KNOWN_SAVE_FIELDS = new Set([
+  'startedAt',
+  'bodyWeightKg',
+  'stats',
+  'loads',
+  'milestones',
+  'quests',
+  'log',
+  'skills',
+  'version',
+  'records',
+  'history',
+  'badges',
+]);
 
 /** Everything in a stored save that this version does not read. */
 function extrasOf(raw: Record<string, unknown>): Record<string, unknown> {
@@ -197,6 +243,34 @@ function mergeMap<T>(from: Record<string, T>, mine: Record<string, T>, theirs: R
     const value = Object.is(mine[key], from[key]) ? theirs[key] : mine[key];
     if (value !== undefined) merged[key] = value;
   }
+  return merged;
+}
+
+/** Logged numbers over time: every day either side logged, this device's number winning where it changed that day's. */
+function mergeHistory(
+  from: Record<string, HistoryPoint[]>,
+  mine: Record<string, HistoryPoint[]>,
+  theirs: Record<string, HistoryPoint[]>,
+): Record<string, HistoryPoint[]> {
+  const merged: Record<string, HistoryPoint[]> = {};
+  for (const key of new Set([...Object.keys(mine), ...Object.keys(theirs)])) {
+    const before = new Map(from[key] ?? []);
+    const mineDays = new Map(mine[key] ?? []);
+    const days = new Map(theirs[key] ?? []);
+    for (const [date, value] of mineDays) {
+      if (!days.has(date) || !Object.is(value, before.get(date))) days.set(date, value);
+    }
+    merged[key] = [...days.entries()].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)).slice(-HISTORY_LIMIT);
+  }
+  return merged;
+}
+
+const versionOf = (version: number | undefined) => (version === undefined ? {} : { version });
+
+/** Badges are never taken away: every badge either side has, with the earliest date. */
+function mergeBadges(mine: Record<string, string>, theirs: Record<string, string>): Record<string, string> {
+  const merged = { ...theirs };
+  for (const [id, date] of Object.entries(mine)) if (!merged[id] || date < merged[id]) merged[id] = date;
   return merged;
 }
 
@@ -230,6 +304,11 @@ function mergeSaves(from: ProtocolSave, mine: ProtocolSave, theirs: ProtocolSave
     quests: mergeMap(from.quests, mine.quests, theirs.quests),
     log,
     skills: mergeMap(from.skills, mine.skills, theirs.skills),
+    // A save converted on either side stays converted; a fresh one here does not hide an unconverted one there.
+    ...versionOf(mine.version !== from.version ? mine.version : theirs.version),
+    records: mergeMap(from.records, mine.records, theirs.records),
+    history: mergeHistory(from.history, mine.history, theirs.history),
+    badges: mergeBadges(mine.badges, theirs.badges),
   };
 }
 
@@ -496,16 +575,24 @@ async function pull(): Promise<void> {
 
   retryDelay = RETRY_MIN_MS;
   await pullPlan();
+  upgradeSave();
   if (isDirty()) await push();
   else update({ sync: 'synced' });
+  // The converted plan goes up after the converted save, which carries a copy of the old one.
+  if (convertedPlanPending) {
+    convertedPlanPending = false;
+    await pushPlan(false);
+  }
 }
 
 /** Follows the plan saved on the server, or sends this device's unsaved one up. */
 async function pullPlan(): Promise<void> {
   if (!userId) return;
+  planRead = false;
   const result = await request('GET', '/campaign/plan');
   // The save sync owns the offline badge; a plan that cannot be fetched just stays as it is.
   if (!result || result.status !== 200) return;
+  planRead = true;
 
   const doc = result.body?.data as RemoteDoc | null | undefined;
   if (planDirty) {
@@ -521,9 +608,30 @@ async function pullPlan(): Promise<void> {
   planFromNewerApp = isRecord(doc?.value) && typeof doc.value.version === 'number' && doc.value.version > PLAN_VERSION;
   if (planFromNewerApp) return;
 
+  // A plan from before v3 is converted here, once, and saved back so every device reads the same one.
+  const fromV2 = isRecord(doc?.value) && doc.value.version === 2;
+  v2PlanForSave = !doc ? BLUEPRINT_SPEC_V2 : fromV2 ? normalizeSpecV2(doc.value, BLUEPRINT_SPEC_V2) : undefined;
   const spec = doc ? toSpec(doc.value) : BLUEPRINT_SPEC;
   if (canonical(spec) !== canonical(getSnapshot().spec)) update(planState(spec));
+  if (fromV2) {
+    planDirty = true;
+    convertedPlanPending = true;
+  }
   persistPlan();
+}
+
+/**
+ * A save from before v3 gains its records, history and badges, once, from
+ * the plan it was played on. The v2 fields stay as they were.
+ */
+function upgradeSave(): void {
+  const current = getSnapshot().save;
+  if (!planRead || planFromNewerApp || isV3Save(current)) return;
+  const { save } = migrateSave(current, { days: getSnapshot().plan.days, trees: v2PlanForSave?.trees }, toIsoDate(new Date()), v2PlanForSave);
+  // A copy of the account's own v2 plan rides in the save (as a field this app never reads), so it can be restored.
+  const own = v2PlanForSave && v2PlanForSave !== BLUEPRINT_SPEC_V2 ? { planBeforeV3: v2PlanForSave } : {};
+  update({ save: { ...save, ...own } });
+  persist();
 }
 
 async function pushPlan(overwrite: boolean): Promise<PlanSaveResult> {
