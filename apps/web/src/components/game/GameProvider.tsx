@@ -26,6 +26,7 @@ import {
   useTodayIso,
 } from '../../utils/protocolStore';
 import { adoptDeviceProgress } from '../../utils/skillProgressStore';
+import { v3ShadowReport } from '../../utils/v3Shadow';
 import { Toast, ToastStack } from '../protocol/Toasts';
 import { MomentOverlay } from './MomentOverlay';
 
@@ -106,6 +107,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (snapshot.gate === 'ready' && snapshot.sync === 'synced') adoptDeviceProgress();
   }, [snapshot.gate, snapshot.sync]);
+
+  // Shadow mode for the v3 campaign: what the conversion would make of this account, written nowhere.
+  useEffect(() => {
+    if (snapshot.gate !== 'ready' || snapshot.sync !== 'synced') return;
+    try {
+      (window as unknown as { __auraV3Report?: unknown }).__auraV3Report = v3ShadowReport(snapshot.spec, snapshot.save, snapshot.plan);
+    } catch (error) {
+      (window as unknown as { __auraV3Report?: unknown }).__auraV3Report = { error: String(error) };
+    }
+  }, [snapshot.gate, snapshot.sync, snapshot.spec, snapshot.save, snapshot.plan]);
 
   const [weekOverride, setWeekOverride] = useState<number | null>(null);
   const [dayOverride, setDayOverride] = useState<string | null>(null);
