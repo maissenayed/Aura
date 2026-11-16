@@ -25,6 +25,7 @@ import {
   useCampaign,
   useTodayIso,
 } from '../../utils/protocolStore';
+import { adoptDeviceProgress } from '../../utils/skillProgressStore';
 import { Toast, ToastStack } from '../protocol/Toasts';
 import { MomentOverlay } from './MomentOverlay';
 
@@ -99,6 +100,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const currentWeek = todayIso ? weekOf(save.startedAt, todayIso) : 1;
   const todayDayId = todayIso ? dayIdOf(todayIso) : null;
+
+  // Once the account's save is in from the server, skills mastered on this device before
+  // mastery was synced join it (once per device).
+  useEffect(() => {
+    if (snapshot.gate === 'ready' && snapshot.sync === 'synced') adoptDeviceProgress();
+  }, [snapshot.gate, snapshot.sync]);
 
   const [weekOverride, setWeekOverride] = useState<number | null>(null);
   const [dayOverride, setDayOverride] = useState<string | null>(null);

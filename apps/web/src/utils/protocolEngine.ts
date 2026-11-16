@@ -56,6 +56,11 @@ export interface ProtocolSave {
   /** Ticked missions and armor upkeep, keyed by `questKey`. */
   quests: Record<string, boolean>;
   log: LogEntry[];
+  /**
+   * Skill-tree skills mastered, keyed `${tree}:${skillId}`, with the date they
+   * were mastered. Kept in the save so mastery follows the account to every device.
+   */
+  skills: Record<string, string>;
 }
 
 export function createInitialSave(plan: CampaignPlan = BLUEPRINT_PLAN): ProtocolSave {
@@ -67,6 +72,7 @@ export function createInitialSave(plan: CampaignPlan = BLUEPRINT_PLAN): Protocol
     milestones: {},
     quests: {},
     log: [],
+    skills: {},
   };
 }
 
