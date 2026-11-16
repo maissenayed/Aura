@@ -58,6 +58,14 @@ export const MERGED_EXERCISE_IDS: Readonly<Record<string, string>> = {
   ex_434: 'ex_180',
   ex_435: 'ex_215',
   ex_436: 'ex_246',
+  // Gym lifts that are the same movement as a calisthenics exercise.
+  gym_ab_wheel: 'ex_115',
+  gym_assisted_pullup: 'ex_24',
+  gym_ohp_bodyweight: 'ex_199',
+  gym_plank: 'ex_54',
+  gym_pullup: 'ex_45',
+  gym_pullup_half_bw: 'ex_140',
+  gym_pushup: 'ex_7',
 };
 
 /** Ids that were removed outright: placeholders and legend rows, not exercises. */

@@ -1,7 +1,6 @@
 import { BOULDERING_SKILLS } from '../../data/boulderingTree';
 import { resolveExerciseId } from '../../data/exerciseAliases';
 import { EXERCISES } from '../../data/exercisesData';
-import { GYM_SKILLS } from '../../data/gymTree';
 import type { SkillTreeId } from '../../utils/skillProgressStore';
 import { SKILL_TREES } from '../skilltree/skillTrees';
 import { lookalikeOf } from './figures';
@@ -32,7 +31,6 @@ interface SkillLike {
 
 const SOURCES: { tree: SkillTreeId; byId: Map<string, SkillLike> }[] = [
   { tree: 'calisthenics', byId: new Map(EXERCISES.map((skill) => [skill.id, skill])) },
-  { tree: 'gym', byId: new Map(GYM_SKILLS.map((skill) => [skill.id, skill])) },
   { tree: 'bouldering', byId: new Map(BOULDERING_SKILLS.map((skill) => [skill.id, skill])) },
 ];
 

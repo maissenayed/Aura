@@ -135,8 +135,11 @@ function normalizeSave(raw: unknown): ProtocolSave {
 
   const skills: Record<string, string> = {};
   if (isRecord(raw.skills)) {
-    for (const [key, date] of Object.entries(raw.skills)) {
-      if (typeof date === 'string') skills[key] = date;
+    for (const [stored, date] of Object.entries(raw.skills)) {
+      if (typeof date !== 'string') continue;
+      // Gym lifts moved into the calisthenics tree, and merged skills count for the one they became.
+      const key = currentSkillKey(stored);
+      if (!skills[key] || date < skills[key]) skills[key] = date;
     }
   }
 
@@ -153,6 +156,14 @@ function normalizeSave(raw: unknown): ProtocolSave {
     log: Array.isArray(raw.log) ? (raw.log as LogEntry[]) : [],
     skills,
   };
+}
+
+/** A stored mastery key as it reads today: `gym:x` and merged calisthenics ids become the calisthenics skill they are now. */
+function currentSkillKey(stored: string): string {
+  const [tree, ...rest] = stored.split(':');
+  const id = rest.join(':');
+  if (tree === 'gym' || tree === 'calisthenics') return `calisthenics:${resolveExerciseId(id)}`;
+  return stored;
 }
 
 /** The save fields this version of the app knows how to read. */

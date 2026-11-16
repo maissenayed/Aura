@@ -1,11 +1,10 @@
 import React from 'react';
-import { BicepsFlexed, Mountain, Weight } from 'lucide-react';
+import { BicepsFlexed, Mountain } from 'lucide-react';
 import { BOULDERING_RULES, BOULDERING_SKILLS, fontGrade, vGrade } from '../../data/boulderingTree';
-import { GYM_RULES, GYM_SKILLS, gymLevelName, gymLevelTag } from '../../data/gymTree';
 import { SkillTreeId } from '../../utils/skillProgressStore';
 import { CALISTHENICS_RULES, TreeRules, TreeSkill } from '../../utils/skillTree';
 import { FigureSpec } from './SkillFigure';
-import { BOULDERING_LANE_THEME, FALLBACK_LANE_THEME, GYM_LANE_THEME, LANE_THEME, LaneTheme } from './laneTheme';
+import { BOULDERING_LANE_THEME, FALLBACK_LANE_THEME, LANE_THEME, LaneTheme } from './laneTheme';
 import { boulderingFigure } from './boulderingFigures';
 import { calisthenicsFigure } from './calisthenicsFigures';
 import { gymFigure } from './gymFigures';
@@ -43,9 +42,10 @@ export interface SkillTreeDef {
 
 const ICON = 'w-4 h-4';
 
+/** Calisthenics and the gym, as one tree: bodyweight skills and barbell, dumbbell, cable and machine lifts. */
 export const CALISTHENICS_TREE: SkillTreeDef = {
   id: 'calisthenics',
-  label: 'Calisthenics',
+  label: 'Calisthenics & Gym',
   icon: <BicepsFlexed className={ICON} />,
   rules: CALISTHENICS_RULES,
   lanes: LANE_THEME,
@@ -55,9 +55,10 @@ export const CALISTHENICS_TREE: SkillTreeDef = {
   levelTag: (level) => `L${level}`,
   levelRange: (min, max) => `Levels ${min}–${max}`,
   basicsMax: 3,
-  searchPlaceholder: 'Find an exercise — muscle-up, planche, pistol…',
+  searchPlaceholder: 'Find an exercise — muscle-up, planche, bench, deadlift…',
   tutorialTopic: 'calisthenics tutorial',
-  figureFor: calisthenicsFigure,
+  // Gym lifts keep the drawings they had in the gym tree.
+  figureFor: (id) => calisthenicsFigure(id) ?? gymFigure(id),
 };
 
 export const BOULDERING_TREE: SkillTreeDef = {
@@ -78,29 +79,10 @@ export const BOULDERING_TREE: SkillTreeDef = {
   figureFor: boulderingFigure,
 };
 
-export const GYM_TREE: SkillTreeDef = {
-  id: 'gym',
-  label: 'Gym',
-  icon: <Weight className={ICON} />,
-  rules: GYM_RULES,
-  skills: GYM_SKILLS,
-  lanes: GYM_LANE_THEME,
-  noun: { one: 'lift', many: 'lifts' },
-  levelWord: 'level',
-  levelName: gymLevelName,
-  levelTag: gymLevelTag,
-  levelRange: (min, max) => (min === max ? gymLevelName(min) : `${gymLevelName(min)}–${gymLevelName(max)}`),
-  basicsMax: 1,
-  searchPlaceholder: 'Find a lift — bench, deadlift, face pulls…',
-  tutorialTopic: 'proper form',
-  figureFor: gymFigure,
-};
-
 /** In the order the dropdown lists them. */
 export const SKILL_TREES: Record<SkillTreeId, SkillTreeDef> = {
   calisthenics: CALISTHENICS_TREE,
   bouldering: BOULDERING_TREE,
-  gym: GYM_TREE,
 };
 
 export const laneThemeOf = (tree: SkillTreeDef, lane: string): LaneTheme => tree.lanes[lane] ?? FALLBACK_LANE_THEME;

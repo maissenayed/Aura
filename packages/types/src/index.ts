@@ -16,6 +16,14 @@ export interface RawExercise {
   expertTip?: string;
   youtubeQuery?: string;
   videoSearchUrl?: string;
+  /** 'gym' for lifts with free weights, cables or machines; bodyweight skills leave it out. */
+  discipline?: 'gym';
+  /** One line on what it builds, e.g. "Upper Chest". */
+  focus?: string;
+  /** One sentence on what it is. */
+  summary?: string;
+  /** The muscles it trains; worked out from the lane when absent. */
+  muscles?: string[];
 }
 
 export interface Exercise {
@@ -35,6 +43,9 @@ export interface Exercise {
   musclesTargeted: string[];
   xpReward: number;
   proStatus?: boolean;
+  discipline?: 'gym';
+  focus?: string;
+  summary?: string;
 }
 
 export interface UserProgress {

@@ -14,16 +14,18 @@ import { adoptDeviceSkills, campaignUserId, setSyncedSkills, subscribeToCampaign
  * `useSyncExternalStore` so the server render and the first client render agree.
  */
 
-export type SkillTreeId = 'calisthenics' | 'bouldering' | 'gym';
+/** Gym lifts are part of the calisthenics tree; there is no separate gym tree any more. */
+export type SkillTreeId = 'calisthenics' | 'bouldering';
 
-export const SKILL_TREE_IDS: readonly SkillTreeId[] = ['calisthenics', 'bouldering', 'gym'];
+export const SKILL_TREE_IDS: readonly SkillTreeId[] = ['calisthenics', 'bouldering'];
 
 /** The calisthenics key predates the other trees and stays as it was, so existing progress keeps loading. */
 const PROGRESS_KEYS: Record<SkillTreeId, string> = {
   calisthenics: 'aura_calisthenics_skill_tree_progress_v1',
   bouldering: 'aura_bouldering_skill_tree_progress_v1',
-  gym: 'aura_gym_skill_tree_progress_v1',
 };
+/** Where the separate gym tree kept this device's progress; it now counts in the calisthenics tree. */
+const LEGACY_GYM_KEY = 'aura_gym_skill_tree_progress_v1';
 
 const EMPTY: readonly string[] = Object.freeze([]);
 
@@ -31,14 +33,18 @@ const cache = new Map<SkillTreeId, readonly string[]>();
 const listeners = new Set<() => void>();
 
 function read(tree: SkillTreeId): readonly string[] {
+  const ids = readKey(PROGRESS_KEYS[tree]);
+  // Calisthenics skills merged in the rebuild count for the skill they were merged into; gym lifts now live here too.
+  return tree === 'calisthenics' ? [...new Set([...ids, ...readKey(LEGACY_GYM_KEY)].map(resolveExerciseId))] : ids;
+}
+
+function readKey(key: string): readonly string[] {
   try {
-    const raw = window.localStorage.getItem(PROGRESS_KEYS[tree]);
+    const raw = window.localStorage.getItem(key);
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as { masteredIds?: unknown };
     if (!Array.isArray(parsed.masteredIds)) return EMPTY;
-    const ids = parsed.masteredIds.filter((id): id is string => typeof id === 'string');
-    // Calisthenics skills merged in the rebuild count for the skill they were merged into.
-    return tree === 'calisthenics' ? [...new Set(ids.map(resolveExerciseId))] : ids;
+    return parsed.masteredIds.filter((id): id is string => typeof id === 'string');
   } catch (error) {
     console.error('Could not read skill tree progress on this device:', error);
     return EMPTY;

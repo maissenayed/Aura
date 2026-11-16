@@ -91,8 +91,10 @@ export function enrichExercises(rawList: RawExercise[]): Exercise[] {
       allPrereqs = Array.from(new Set([...subCategoryPrereqs, ...extraPrereqs]));
     }
 
+    // A lift that names its muscles keeps them; the rest get the lane's usual set.
     let muscles: string[] = [];
-    if (swimlane === 'Push') muscles = ['Chest', 'Front Delts', 'Triceps', 'Core'];
+    if (raw.muscles?.length) muscles = raw.muscles;
+    else if (swimlane === 'Push') muscles = ['Chest', 'Front Delts', 'Triceps', 'Core'];
     else if (swimlane === 'Pull') muscles = ['Lats', 'Rhomboids', 'Biceps', 'Grip', 'Rear Delts'];
     else if (swimlane === 'Legs') muscles = ['Quadriceps', 'Glutes', 'Hamstrings', 'Calves'];
     else muscles = ['Abs', 'Obliques', 'Lower Back', 'Shoulders'];
@@ -117,7 +119,7 @@ export function enrichExercises(rawList: RawExercise[]): Exercise[] {
       `4. Return steadily to the starting position.`
     ];
 
-    const youtubeQuery = raw.youtubeQuery || `${raw.name} calisthenics form tutorial`;
+    const youtubeQuery = raw.youtubeQuery || `${raw.name} ${raw.discipline === 'gym' ? 'proper form' : 'calisthenics form tutorial'}`;
     const videoSearchUrl = raw.videoSearchUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(youtubeQuery)}`;
 
     return {
@@ -140,7 +142,10 @@ export function enrichExercises(rawList: RawExercise[]): Exercise[] {
       ],
       musclesTargeted: muscles,
       xpReward: raw.level * 150,
-      proStatus: raw.level >= 15
+      proStatus: raw.level >= 15,
+      ...(raw.discipline ? { discipline: raw.discipline } : {}),
+      ...(raw.focus ? { focus: raw.focus } : {}),
+      ...(raw.summary ? { summary: raw.summary } : {}),
     };
   });
 }
