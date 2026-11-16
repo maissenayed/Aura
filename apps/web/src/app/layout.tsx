@@ -19,6 +19,14 @@ const chakra = Chakra_Petch({
 export const metadata: Metadata = {
   title: "Calisthenics Skill Tree | RPG Bodyweight Roadmap",
   description: "Gamified RPG roadmap from beginner bodyweight exercises to pro-level static holds across Push, Pull, Core, and Legs.",
+  applicationName: "Aura",
+  // iPhone "Add to Home Screen": opens full screen with its own name; the icon is app/apple-icon.png.
+  appleWebApp: {
+    capable: true,
+    title: "Aura",
+    statusBarStyle: "black",
+  },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
