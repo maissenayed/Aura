@@ -1,113 +1,184 @@
 'use client';
 
-import React, { useState } from 'react';
-import { AppShell } from '../../components/game/AppShell';
-import { AnatomyVisualizer } from '../../components/anatomy/AnatomyVisualizer';
-import { MuscleInspectorCard } from '../../components/anatomy/MuscleInspectorCard';
-import { MuscleSearchBar } from '../../components/anatomy/MuscleSearchBar';
-import { ExerciseDetailModal } from '../../components/ExerciseDetailModal';
-import { getMuscleInfo } from '../../data/muscleData';
-import { Swimlane, Exercise } from '@aura/types';
-import { Flame, Activity, Sparkles, Layers } from 'lucide-react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { AppShell, ScreenHeader } from '../../components/game/AppShell';
+import { useGame } from '../../components/game/GameProvider';
+import { BodyMap, GroupStatus } from '../../components/anatomy/BodyMap';
+import { MusclePanel, MusclePick, TodayCard, TodayTargets } from '../../components/anatomy/MusclePanel';
+import { BodySide, GROUPS, GROUP_BY_ID, MuscleGroup, groupsOfExercise } from '../../components/anatomy/muscleGroups';
+import { questKey } from '../../utils/protocolEngine';
 
+/** Anatomy: the body, lit by what today's quest trains; tap a muscle for what it does and the moves that build it. */
 export default function AnatomyPage() {
-  const [selectedMuscleId, setSelectedMuscleId] = useState<string | null>(null);
-  const [filterCategory, setFilterCategory] = useState<'All' | Swimlane>('All');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedExerciseModal, setSelectedExerciseModal] = useState<Exercise | null>(null);
+  const today = useTodayTargets();
+  const [side, setSide] = useState<BodySide>('front');
+  const [pick, setPick] = useState<MusclePick | null>(null);
+  const [hovered, setHovered] = useState<MuscleGroup | null>(null);
 
-  const selectedMeta = getMuscleInfo(selectedMuscleId);
+  const status = today?.status ?? NO_STATUS;
+  const close = useCallback(() => setPick(null), []);
+
+  /** From the body (a path was tapped) or from a chip (turn the body to where the group is). */
+  const choose = (group: MuscleGroup, pathId: string | null = null) => {
+    if (pick?.group === group && (pathId === null || pathId === pick.pathId)) {
+      setPick(null);
+      return;
+    }
+    setPick({ group, pathId });
+    if (pathId === null) setSide(GROUP_BY_ID[group].side);
+  };
+
+  const label = hovered ?? pick?.group ?? null;
 
   return (
-    <AppShell className="selection:bg-neon-cyan selection:text-dark-950">
+    <AppShell>
+      <main className="w-full max-w-[1180px] mx-auto px-4 pt-5 lg:px-8 lg:pt-8 pb-8 grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_400px] gap-4 lg:gap-6 items-start">
+        <div className="flex flex-col gap-4 min-w-0">
+          <ScreenHeader eyebrow="Body" title="Anatomy" right={<SideSwitch side={side} onChange={setSide} />} />
 
-      {/* MAIN CONTAINER */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 sm:px-8 space-y-6">
-        
-        {/* PAGE HERO BANNER */}
-        <div className="relative p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-dark-900 via-dark-900 to-dark-850 border border-slate-800/80 shadow-2xl overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-neon-cyan/10 blur-[120px] pointer-events-none" />
-          <div className="absolute bottom-0 left-1/3 w-80 h-80 rounded-full bg-neon-purple/10 blur-[100px] pointer-events-none" />
-          
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="space-y-2 max-w-2xl">
-              <div className="flex items-center gap-2">
-                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-neon-cyan/20 border border-neon-cyan/40 text-neon-cyan shadow-neon-cyan">
-                  <Activity className="w-4 h-4 animate-pulse" />
+          <section
+            className="relative rounded-[22px] border border-ink-700 bg-[linear-gradient(180deg,#0f1322,#0a0d16)] overflow-hidden"
+            aria-label="Body map"
+          >
+            <div className="absolute inset-0 dot-grid pointer-events-none" aria-hidden />
+            {today && <Legend status={status} />}
+            <BodyMap
+              side={side}
+              status={status}
+              selected={pick?.group ?? null}
+              onSelect={(group, pathId) => choose(group, pathId)}
+              onHover={setHovered}
+              className="relative pt-12 pb-14 px-2"
+            />
+            <div className="absolute inset-x-0 bottom-4 flex justify-center pointer-events-none" aria-live="polite">
+              {label && (
+                <span
+                  key={label}
+                  className={`anim-fade h-8 px-3.5 rounded-full border bg-ink-950/90 font-display font-bold text-[14px] flex items-center ${
+                    pick?.group === label ? 'border-aura/60 text-aura-soft' : 'border-ink-600 text-fg-2'
+                  }`}
+                >
+                  {GROUP_BY_ID[label].name}
                 </span>
-                <span className="text-xs font-black tracking-widest uppercase text-neon-cyan">
-                  Biomechanical Interactive Engine
-                </span>
-              </div>
-
-              <h1 className="text-2xl sm:text-4xl font-black tracking-tight bg-gradient-to-r from-white via-slate-100 to-neon-cyan bg-clip-text text-transparent">
-                HUMAN MUSCLE <span className="text-neon-cyan">ANATOMY</span>
-              </h1>
-
-              <p className="text-xs sm:text-sm text-slate-400 font-medium leading-relaxed">
-                Explore 70+ anatomical muscle regions in real-time vector format. Hover over any muscle to view live HUD tooltips, click to inspect biomechanical origins and insertions, and discover target calisthenics exercises.
-              </p>
+              )}
             </div>
+          </section>
 
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
-              <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-dark-950/80 border border-slate-800 text-xs font-bold text-slate-300">
-                <Sparkles className="w-4 h-4 text-neon-emerald" />
-                <span>70+ Vector SVG Paths</span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-dark-950/80 border border-slate-800 text-xs font-bold text-slate-300">
-                <Layers className="w-4 h-4 text-neon-purple" />
-                <span>Anterior & Posterior</span>
-              </div>
-            </div>
-          </div>
+          <GroupChips status={status} selected={pick?.group ?? null} onPick={(group) => choose(group)} />
+
+          <TodayCard className="lg:hidden" today={today} onPick={(group) => choose(group)} />
         </div>
 
-        {/* SEARCH BAR & QUICK FILTERS */}
-        <MuscleSearchBar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          selectedCategory={filterCategory}
-          onCategoryChange={setFilterCategory}
-          onQuickSelectGroup={(id) => setSelectedMuscleId(id)}
-        />
-
-        {/* MAIN DUAL GRID: VISUALIZER & INSPECTOR */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
-          {/* LEFT / MAIN COLUMN: VECTOR VISUALIZER */}
-          <div className="lg:col-span-7 xl:col-span-7 w-full">
-            <AnatomyVisualizer
-              selectedMuscleId={selectedMuscleId}
-              onSelectMuscle={setSelectedMuscleId}
-              filterCategory={filterCategory}
-              searchQuery={searchQuery}
-            />
-          </div>
-
-          {/* RIGHT COLUMN: MUSCLE INSPECTOR CARD */}
-          <div className="lg:col-span-5 xl:col-span-5 w-full min-h-[580px]">
-            <MuscleInspectorCard
-              muscle={selectedMeta}
-              onSelectExercise={(ex) => setSelectedExerciseModal(ex)}
-            />
-          </div>
-
-        </div>
-
+        <MusclePanel pick={pick} today={today} onClose={close} onPick={(group) => choose(group)} />
       </main>
-
-      {/* EXERCISE DETAIL MODAL */}
-      {selectedExerciseModal && (
-        <ExerciseDetailModal
-          exercise={selectedExerciseModal}
-          isOpen={Boolean(selectedExerciseModal)}
-          onClose={() => setSelectedExerciseModal(null)}
-          onSelectPrerequisite={(prereq) => setSelectedExerciseModal(prereq)}
-          isMastered={false}
-          isUnlocked={true}
-          onToggleMastered={() => {}}
-        />
-      )}
     </AppShell>
   );
 }
+
+const NO_STATUS: Partial<Record<MuscleGroup, GroupStatus>> = {};
+
+/** Today's day from the campaign, with the muscle groups each mission trains. */
+function useTodayTargets(): TodayTargets | null {
+  const { gate, derived, save, currentWeek, todayDayId } = useGame();
+  return useMemo(() => {
+    if (gate !== 'ready') return null;
+    const day = derived.week.days.find((entry) => entry.day.id === todayDayId)?.day;
+    if (!day) return null;
+    const items =
+      day.kind === 'rest'
+        ? []
+        : day.exercises.map((exercise) => ({
+            exercise,
+            done: Boolean(save.quests[questKey(currentWeek, exercise.id)]),
+            groups: groupsOfExercise(exercise),
+          }));
+    // A group is done once every mission that trains it is ticked.
+    const status: Partial<Record<MuscleGroup, GroupStatus>> = {};
+    for (const item of items) {
+      for (const group of item.groups) {
+        if (!item.done) status[group] = 'todo';
+        else if (!status[group]) status[group] = 'done';
+      }
+    }
+    return { day, items, status };
+  }, [gate, derived, save.quests, currentWeek, todayDayId]);
+}
+
+const SideSwitch: React.FC<{ side: BodySide; onChange: (side: BodySide) => void }> = ({ side, onChange }) => (
+  <div className="flex p-1 rounded-[14px] bg-ink-850 border border-ink-700" role="tablist" aria-label="Side">
+    {(['front', 'back'] as const).map((value) => (
+      <button
+        key={value}
+        type="button"
+        role="tab"
+        aria-selected={side === value}
+        onClick={() => onChange(value)}
+        className={`h-9 px-3.5 rounded-[10px] font-display font-bold text-[14px] capitalize transition ${
+          side === value ? 'bg-act text-act-deep' : 'text-fg-3 hover:text-fg'
+        }`}
+      >
+        {value}
+      </button>
+    ))}
+  </div>
+);
+
+const Legend: React.FC<{ status: Partial<Record<MuscleGroup, GroupStatus>> }> = ({ status }) => {
+  const values = Object.values(status);
+  const todo = values.filter((value) => value === 'todo').length;
+  const done = values.filter((value) => value === 'done').length;
+  if (!todo && !done) return null;
+  return (
+    <div className="absolute top-3 left-3 z-10 flex gap-2 pointer-events-none">
+      {todo > 0 && (
+        <span className="h-7 px-2.5 rounded-full border border-[#17566a] bg-ink-950/80 text-act font-display font-bold text-[13px] flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-act" />
+          Today {todo}
+        </span>
+      )}
+      {done > 0 && (
+        <span className="h-7 px-2.5 rounded-full border border-[#3a2c12] bg-ink-950/80 text-earned font-display font-bold text-[13px] flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-earned" />
+          Done {done}
+        </span>
+      )}
+    </div>
+  );
+};
+
+/** Every group as a chip; today's are coloured and come first. */
+const GroupChips: React.FC<{
+  status: Partial<Record<MuscleGroup, GroupStatus>>;
+  selected: MuscleGroup | null;
+  onPick: (group: MuscleGroup) => void;
+}> = ({ status, selected, onPick }) => {
+  const rank = (group: MuscleGroup) => (status[group] === 'todo' ? 0 : status[group] === 'done' ? 1 : 2);
+  const ordered = [...GROUPS].sort((a, b) => rank(a.id) - rank(b.id));
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 lg:mx-0 lg:px-0 lg:flex-wrap scrollbar-none" aria-label="Muscles">
+      {ordered.map((group) => {
+        const lit = status[group.id];
+        const isSelected = selected === group.id;
+        return (
+          <button
+            key={group.id}
+            type="button"
+            aria-pressed={isSelected}
+            onClick={() => onPick(group.id)}
+            className={`h-9 px-3.5 shrink-0 rounded-full border font-display font-bold text-[14px] whitespace-nowrap transition active:scale-95 ${
+              isSelected
+                ? 'border-aura bg-aura/15 text-aura-soft'
+                : lit === 'todo'
+                  ? 'border-[#17566a] bg-[#08161d] text-act'
+                  : lit === 'done'
+                    ? 'border-[#3a2c12] bg-[#14100a] text-earned'
+                    : 'border-ink-700 bg-ink-850 text-fg-3 hover:text-fg'
+            }`}
+          >
+            {group.name}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
