@@ -13,6 +13,19 @@ import type { NextConfig } from 'next';
 const backendOrigin = process.env.BACKEND_ORIGIN ?? (process.env.VERCEL ? null : 'http://localhost:3002');
 
 const nextConfig: NextConfig = {
+  async headers() {
+    return [
+      {
+        // The service worker that makes Aura installable: never cached, so a fix reaches installed phones on their next visit.
+        source: '/sw.js',
+        headers: [
+          { key: 'Content-Type', value: 'application/javascript; charset=utf-8' },
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Content-Security-Policy', value: "default-src 'self'; script-src 'self'" },
+        ],
+      },
+    ];
+  },
   // The campaign used to live on one tabbed page; each part now has its own route.
   async redirects() {
     return [{ source: '/tracker', destination: '/camp', permanent: true }];

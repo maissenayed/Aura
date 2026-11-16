@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Chakra_Petch, Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { ServiceWorkerRegister } from "../components/pwa/ServiceWorkerRegister";
 
 /** Body text: the few words the game still needs. */
 const inter = Inter({
@@ -27,6 +28,8 @@ export const metadata: Metadata = {
     statusBarStyle: "black",
   },
   formatDetection: { telephone: false },
+  // `appleWebApp.capable` only emits `mobile-web-app-capable`; iPhones before iOS 26 still look for the Apple name.
+  other: { "apple-mobile-web-app-capable": "yes" },
 };
 
 export const viewport: Viewport = {
@@ -44,6 +47,8 @@ export default function RootLayout({
       className={`${inter.variable} ${chakra.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col bg-ink-950 text-fg">
+        {/* Outside the sign-in wall, so Chrome can offer "Install" from the sign-in screen too. */}
+        <ServiceWorkerRegister />
         <Providers>{children}</Providers>
       </body>
     </html>
