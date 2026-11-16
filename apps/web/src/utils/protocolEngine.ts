@@ -551,6 +551,42 @@ function countPerfectWeeks(save: ProtocolSave, plan: CampaignPlan): number {
   return perfect;
 }
 
+/**
+ * Days in a row with every mission of the day ticked — a rest day counts once
+ * its rest is claimed. Worked out from the ticks already saved, so nothing new
+ * is stored. Today only adds to the streak once it is cleared; leaving it open
+ * does not break the run, and the count never reaches back before week 1.
+ */
+export function streakOf(save: ProtocolSave, plan: CampaignPlan, todayIso: string): number {
+  if (!save.startedAt || plan.days.length === 0) return 0;
+
+  const weeks = new Map<number, WeekStatus>();
+  const clearedOn = (iso: string): boolean | null => {
+    const week = weekOf(save.startedAt, iso);
+    let status = weeks.get(week);
+    if (!status) {
+      status = evaluateWeek(save, week, plan);
+      weeks.set(week, status);
+    }
+    const day = status.days.find((entry) => entry.day.id === dayIdOf(iso));
+    return day ? day.cleared : null;
+  };
+
+  const start = fromIsoDate(save.startedAt);
+  const cursor = fromIsoDate(todayIso);
+  let streak = clearedOn(todayIso) ? 1 : 0;
+
+  cursor.setDate(cursor.getDate() - 1);
+  // Ten years is far beyond any campaign; the bound only guards the loop.
+  for (let guard = 0; guard < 3660 && cursor >= start; guard += 1) {
+    const cleared = clearedOn(toIsoDate(cursor));
+    if (cleared === false) break;
+    if (cleared) streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
 /* ------------------------------------------------------------------ */
 /* Level & XP                                                          */
 /* ------------------------------------------------------------------ */

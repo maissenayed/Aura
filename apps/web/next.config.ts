@@ -13,6 +13,10 @@ import type { NextConfig } from 'next';
 const backendOrigin = process.env.BACKEND_ORIGIN ?? (process.env.VERCEL ? null : 'http://localhost:3002');
 
 const nextConfig: NextConfig = {
+  // The campaign used to live on one tabbed page; each part now has its own route.
+  async redirects() {
+    return [{ source: '/tracker', destination: '/camp', permanent: true }];
+  },
   async rewrites() {
     if (!backendOrigin) return [];
     return [

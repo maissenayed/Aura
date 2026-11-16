@@ -35,7 +35,7 @@ export const AccountMenu: React.FC = () => {
   if (!account) {
     return (
       <Link
-        href="/tracker"
+        href="/camp"
         className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-slate-700 text-xs font-extrabold text-slate-300 hover:text-white hover:border-slate-500 transition shrink-0"
       >
         <LogIn className="w-3.5 h-3.5" />

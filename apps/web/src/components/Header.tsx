@@ -13,7 +13,7 @@ const ADMIN_URL =
 const LINKS = [
   { href: '/', label: 'Skill Tree', icon: LayoutGrid, active: 'bg-neon-cyan/15 text-neon-cyan border-neon-cyan/40' },
   { href: '/anatomy', label: 'Anatomy', icon: Activity, active: 'bg-neon-emerald/15 text-neon-emerald border-neon-emerald/40' },
-  { href: '/tracker', label: 'Campaign', icon: Swords, active: 'bg-blue-600/25 text-blue-300 border-blue-500/50' },
+  { href: '/camp', label: 'Campaign', icon: Swords, active: 'bg-blue-600/25 text-blue-300 border-blue-500/50' },
 ];
 
 const LINK = 'flex items-center gap-2 h-9 px-3 rounded-xl border text-xs font-extrabold whitespace-nowrap transition';
