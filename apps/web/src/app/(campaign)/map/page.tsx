@@ -1,11 +1,23 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Crown, Scale } from 'lucide-react';
+import Link from 'next/link';
+import { Castle, Check, ChevronRight, Crown, Dumbbell, Flag, Medal, Scale, Skull, Star } from 'lucide-react';
 import { ScreenHeader } from '../../../components/game/AppShell';
 import { useGame } from '../../../components/game/GameProvider';
 import { Chip, Meter, Stepper } from '../../../components/game/kit';
 import { ActNode, ActStatus } from '../../../utils/protocolEngine';
+
+/** Each kind of goal wears its own icon until it is reached. */
+const NODE_ICON: Record<ActNode['kind'], React.ComponentType<{ className?: string }>> = {
+  weight: Scale,
+  lift: Dumbbell,
+  boss: Skull,
+  skill: Medal,
+  tower: Castle,
+  tier: Star,
+  milestone: Flag,
+};
 
 /**
  * The campaign as one climb: act I at the bottom, the last act at the summit.
@@ -175,10 +187,11 @@ export default function MapPage() {
                 >
                   {node.done ? (
                     <Check className="w-5 h-5 text-earned" strokeWidth={3} />
-                  ) : placed.index === layout.nodes.length - 1 ? (
-                    <Crown className={`w-5 h-5 ${future ? 'text-aura-soft' : 'text-act'}`} />
                   ) : (
-                    <span className={`w-2.5 h-2.5 rounded-full ${future ? 'bg-aura/60' : 'bg-act'}`} />
+                    (() => {
+                      const Icon = NODE_ICON[node.kind] ?? Crown;
+                      return <Icon className={`w-[18px] h-[18px] ${future ? 'text-aura-soft' : 'text-act'}`} />;
+                    })()
                   )}
                 </button>
                 <span
@@ -221,12 +234,19 @@ export default function MapPage() {
               className="absolute z-10 w-[220px] p-3 rounded-2xl bg-[#0e1220] border-[1.5px] shadow-[0_14px_30px_rgba(0,0,0,0.6)] anim-fade"
               style={{
                 left: Math.max(10, Math.min(W - 230, open.x - 110)),
-                top: Math.max(8, open.y - 23 - 96),
+                top: Math.max(8, open.y - 23 - (open.node.href ? 150 : open.node.done ? 96 : 110)),
                 borderColor: open.node.done ? '#ffc247' : '#3ee8ff',
               }}
             >
               <p className="text-[13px] font-semibold text-fg-2">{open.node.label}</p>
               <p className={`font-display font-bold text-base ${open.node.done ? 'text-earned' : 'text-act'}`}>{open.node.detail}</p>
+              {!open.node.done && <Meter value={open.node.progress} tone="act" className="h-1.5 mt-1.5" label={`${Math.round(open.node.progress * 100)}% of the way`} />}
+              {open.node.href && (
+                <Link href={open.node.href} className="mt-2 h-9 px-3 rounded-xl bg-act text-act-deep font-display font-bold text-sm inline-flex items-center gap-1.5">
+                  {open.node.kind === 'boss' ? 'Fight' : open.node.kind === 'tower' || open.node.kind === 'skill' ? 'Climb' : 'Log it'}
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
+              )}
             </div>
           )}
         </div>
