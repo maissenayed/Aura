@@ -105,7 +105,7 @@ function liftAssessment(ctx: AttributeContext, exercises: PlanExercise[]): Asses
   const lifts = liftsOf(ctx, exercises);
   if (lifts.length === 0) return null;
   const parts: AttributePart[] = lifts.map((lift) => {
-    const current = ctx.save.stats[lift.id] ?? lift.baseline;
+    const current = ctx.save.records?.[lift.id] ?? ctx.save.stats[lift.id] ?? lift.baseline;
     if (!lift.endgame) return { label: lift.name, detail: 'No end-game number — not counted', share: null };
     if (!lift.hasBaseline && current === 0) return { label: lift.name, detail: 'Not logged yet — left out until you log it', share: null };
     return {
@@ -271,7 +271,7 @@ export const ATTRIBUTES: AttributeDef[] = [
       },
       test: (ctx) =>
         liftsOf(ctx, tagged(ctx, 'power')).some(
-          (lift) => lift.endgame !== null && (ctx.save.stats[lift.id] ?? lift.baseline) >= (lift.endgame * 2) / 3,
+          (lift) => lift.endgame !== null && (ctx.save.records?.[lift.id] ?? ctx.save.stats[lift.id] ?? lift.baseline) >= (lift.endgame * 2) / 3,
         ),
     },
   },

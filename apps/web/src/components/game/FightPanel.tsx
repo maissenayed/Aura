@@ -132,7 +132,7 @@ export const FightPanel: React.FC<{ status: BossStatus; showBack?: boolean }> = 
 };
 
 const WeakPoint: React.FC<{ req: RequirementStatus; locked: boolean }> = ({ req, locked }) => {
-  const { save, logStat, toggleMilestone, derived } = useGame();
+  const { save, logStat, toggleMilestone, weighIn, derived } = useGame();
   const done = req.met;
   const kind = req.requirement.kind;
 
@@ -151,6 +151,44 @@ const WeakPoint: React.FC<{ req: RequirementStatus; locked: boolean }> = ({ req,
           ariaLabel={`${lift.name}, log a new best`}
           onCommit={(next) => logStat(lift.id, next)}
         />
+      );
+    }
+  } else if (kind === 'multiple' && req.lift) {
+    const lift = req.lift;
+    value = `${formatStatValue(req.current, lift.unit)} / ${formatStatValue(req.target, lift.unit)} at ${save.bodyWeightKg} kg`;
+    if (!done && !locked) {
+      action = (
+        <Stepper
+          value={req.current}
+          step={lift.step}
+          unit={unitLabel(lift.unit)}
+          prefix={lift.unit === 'added-kg' ? '+' : ''}
+          ariaLabel={`${lift.name}, log a new best`}
+          onCommit={(next) => logStat(lift.id, next)}
+        />
+      );
+    }
+  } else if (kind === 'scale') {
+    value = `${save.bodyWeightKg} kg / ${req.target} kg`;
+    if (!done && !locked) {
+      action = <Stepper value={save.bodyWeightKg} step={0.1} min={30} max={250} unit="kg" ariaLabel="Today's bodyweight" onCommit={weighIn} />;
+    }
+  } else if (kind === 'skill' && req.climb) {
+    const climb = req.climb;
+    value = `${climb.mastered} / ${climb.floors} skills mastered`;
+    if (!done && !locked && climb.next.length) {
+      action = (
+        <span className="basis-full flex flex-wrap gap-1.5" aria-label="Master next">
+          {climb.next.slice(0, 4).map((skill) => (
+            <Link
+              key={skill.id}
+              href={`/?tree=${climb.tree}&skill=${encodeURIComponent(skill.id)}`}
+              className="min-h-9 px-3 py-1.5 rounded-[12px] border-[1.5px] border-act/60 text-act text-[12.5px] font-semibold flex items-center"
+            >
+              L{skill.level} · {skill.name}
+            </Link>
+          ))}
+        </span>
       );
     }
   } else if (req.requirement.kind === 'milestone') {

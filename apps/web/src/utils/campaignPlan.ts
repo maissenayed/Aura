@@ -30,6 +30,13 @@ import {
   formatDose,
 } from '../data/campaignCatalog';
 import { resolveExerciseId } from '../data/exerciseAliases';
+import { ARMOR_SLOTS, ArmorSlot, BossSpec, GoalV3, Metric, PLAN_FORMAT_V3, PlanSpecV3, SkillTreeRef, SpecDayV3, TowerSpec, TrackedLift, WarmUp } from './campaignV3';
+import { migrateSpec } from './migrateV2';
+import { metricOf, recordKeyOf, stepOf } from './records';
+import { floorsOf, skillOf } from './treeIndex';
+
+/** The stored plan format the app reads and writes: v3. */
+export type PlanSpec = PlanSpecV3;
 
 /* ------------------------------------------------------------------ */
 /* Shared types                                                        */
@@ -69,7 +76,9 @@ export type ActGoal =
   | { id: string; kind: 'lift'; lift: string; target: number; label?: string }
   | { id: string; kind: 'boss'; boss: string }
   | { id: string; kind: 'tier'; tier: string }
-  | { id: string; kind: 'milestone'; milestone: string };
+  | { id: string; kind: 'milestone'; milestone: string }
+  | { id: string; kind: 'skill'; tree: SkillTreeRef; skill: string; label?: string }
+  | { id: string; kind: 'tower'; tower: string };
 
 export interface Act {
   id: string;
@@ -131,7 +140,8 @@ export interface SpecTree {
   targets?: Record<string, TargetOverride>;
 }
 
-export interface PlanSpec {
+/** The v2 stored format, kept so older plans can be read and converted. */
+export interface PlanSpecV2 {
   version: 2;
   name: string;
   bodyweight: BodyweightPlan;
@@ -216,7 +226,13 @@ export interface Milestone {
 export type BossRequirement =
   | ({ kind: 'lift'; label?: string } & LiftTarget)
   | { kind: 'milestone'; milestone: string; label?: string }
-  | { kind: 'boss'; boss: string; label?: string };
+  | { kind: 'boss'; boss: string; label?: string }
+  /** Master a skill in the tree; the skills leading to it are its weak points. */
+  | { kind: 'skill'; tree: SkillTreeRef; skill: string; label?: string }
+  /** Lift `multiple` × bodyweight on a lift (bodyweight plus added load for added-kg lifts). */
+  | { kind: 'multiple'; lift: string; multiple: number; label?: string }
+  /** Reach a body weight. */
+  | { kind: 'scale'; kg: number; label?: string };
 
 export interface Boss {
   id: string;
@@ -233,6 +249,8 @@ export interface SkillTier {
   subtitle: string;
   gates: LiftTarget[];
   preCleared?: boolean;
+  /** A tower floor: cleared when this skill is mastered. */
+  skill?: { tree: SkillTreeRef; id: string };
 }
 
 export interface SkillTree {
@@ -243,6 +261,8 @@ export interface SkillTree {
   bossLabel: string;
   /** Bottom rung first. */
   tiers: SkillTier[];
+  /** A tower of the skill tree: its floors are the summit and every skill below it. */
+  tower?: { tree: SkillTreeRef; summit: string };
 }
 
 export interface CampaignPlan {
@@ -333,6 +353,10 @@ export function repsOptions(exerciseId: string): string[] {
 
 /** Seven rest days and nothing else — for building a plan from scratch. */
 export function blankSpec(bodyWeightKg = 70): PlanSpec {
+  return { ...blankSpecV2(bodyWeightKg), version: PLAN_FORMAT_V3, lifts: [], armor: [], bosses: [], trees: [], acts: [], days: blankSpecV2(bodyWeightKg).days.map((day) => ({ ...day, warmUps: [] })) };
+}
+
+function blankSpecV2(bodyWeightKg = 70): PlanSpecV2 {
   return {
     version: 2,
     name: 'My Campaign',
@@ -418,7 +442,7 @@ function overrides(raw: unknown, valid: (key: string) => boolean): Record<string
  * Turns anything stored or edited into a spec that can be trusted. The
  * fallback is used when the input is not a plan at all.
  */
-export function normalizeSpec(raw: unknown, fallback: PlanSpec): PlanSpec {
+export function normalizeSpecV2(raw: unknown, fallback: PlanSpecV2): PlanSpecV2 {
   if (!isRecord(raw) || raw.version !== 2) return fallback;
 
   const bw = isRecord(raw.bodyweight) ? raw.bodyweight : {};
@@ -612,8 +636,8 @@ function applyOverride(base: LiftTarget, override: TargetOverride | undefined): 
   return { lift: base.lift, target, atGoal: override?.atGoal ?? base.atGoal };
 }
 
-/** The full plan the game reads, built from the player's choices and the catalog. Expects a normalized spec. */
-export function resolvePlan(spec: PlanSpec): CampaignPlan {
+/** A v2 plan resolved the v2 way (used to read and convert old plans). Expects a normalized v2 spec. */
+export function resolvePlanV2(spec: PlanSpecV2): CampaignPlan {
   const lifts: Lift[] = spec.lifts.flatMap((entry) => {
     const lift = LIFT_BY_ID.get(entry.lift);
     if (!lift) return [];
@@ -760,23 +784,387 @@ export function allExercises(plan: CampaignPlan): (PlanExercise & { day: DayId }
 }
 
 /** Where else in the plan something is used, in words — shown before removing it. */
-export function usesOf(plan: CampaignPlan, kind: 'lift' | 'boss' | 'tier', id: string): string[] {
+export function usesOf(plan: CampaignPlan, kind: 'lift' | 'boss' | 'tower', id: string): string[] {
   const uses: string[] = [];
   const count = (n: number, one: string, many: string) => n > 0 && uses.push(`${n} ${n === 1 ? one : many}`);
   const goals = plan.acts.flatMap((act) => act.goals);
 
   if (kind === 'lift') {
-    count(allExercises(plan).filter((exercise) => exercise.lift === id).length, 'exercise', 'exercises');
-    count(plan.bosses.filter((boss) => boss.requirements.some((req) => req.kind === 'lift' && req.lift === id)).length, 'boss', 'bosses');
-    count(plan.trees.filter((tree) => tree.tiers.some((tier) => tier.gates.some((gate) => gate.lift === id))).length, 'skill tree', 'skill trees');
+    count(allExercises(plan).filter((exercise) => exercise.lift === id).length, 'mission', 'missions');
+    count(
+      plan.bosses.filter((boss) => boss.requirements.some((req) => (req.kind === 'lift' || req.kind === 'multiple') && req.lift === id)).length,
+      'boss',
+      'bosses',
+    );
     count(goals.filter((goal) => goal.kind === 'lift' && goal.lift === id).length, 'map goal', 'map goals');
   }
   if (kind === 'boss') {
     count(plan.bosses.filter((boss) => boss.requirements.some((req) => req.kind === 'boss' && req.boss === id)).length, 'other boss', 'other bosses');
     count(goals.filter((goal) => goal.kind === 'boss' && goal.boss === id).length, 'map goal', 'map goals');
   }
-  if (kind === 'tier') {
-    count(goals.filter((goal) => goal.kind === 'tier' && goal.tier === id).length, 'map goal', 'map goals');
+  if (kind === 'tower') {
+    count(goals.filter((goal) => goal.kind === 'tower' && goal.tower === id).length, 'map goal', 'map goals');
   }
   return uses;
+}
+
+/* ------------------------------------------------------------------ */
+/* v3: normalising and resolving                                       */
+/* ------------------------------------------------------------------ */
+
+const METRICS: { id: Metric }[] = [{ id: 'kg' }, { id: 'added-kg' }, { id: 'reps' }, { id: 'seconds' }];
+const TREES: { id: SkillTreeRef }[] = [{ id: 'calisthenics' }, { id: 'bouldering' }];
+const SAFE_ID = /^[A-Za-z0-9_:-]{1,60}$/;
+
+/** An exercise the campaign can track: in the catalogue or the skill tree. */
+export function isKnownExercise(id: string): boolean {
+  return EXERCISE_BY_ID.has(resolveExerciseId(id)) || EXERCISE_BY_ID.has(recordKeyOf(id)) || Boolean(skillOf('calisthenics', id));
+}
+
+/** The name a record is shown under: the catalogue's, else the skill tree's. */
+export function recordName(key: string): string {
+  return EXERCISE_BY_ID.get(key)?.name ?? skillOf('calisthenics', key)?.name ?? key;
+}
+
+function branchOfRecord(key: string): Branch {
+  const category = EXERCISE_BY_ID.get(key)?.category;
+  if (category === 'push' || category === 'pull' || category === 'legs' || category === 'core') return category;
+  const lane = skillOf('calisthenics', key)?.swimlane?.toLowerCase();
+  return lane === 'push' || lane === 'pull' || lane === 'legs' ? lane : 'core';
+}
+
+/** A short id unique within `used`, kept from the stored value when it is safe. */
+function idIn(used: Set<string>, value: unknown, prefix: string): string {
+  let id = typeof value === 'string' && SAFE_ID.test(value) ? value : newId(prefix);
+  while (used.has(id)) id = newId(prefix);
+  used.add(id);
+  return id;
+}
+
+/**
+ * Turns anything stored or edited into a v3 spec that can be trusted. A v2
+ * plan is converted on the way in; anything else gives the fallback.
+ */
+export function normalizeSpec(raw: unknown, fallback: PlanSpec): PlanSpec {
+  if (!isRecord(raw)) return fallback;
+  if (raw.version === 2) return normalizeV3(migrateSpec(normalizeSpecV2(raw, blankSpecV2(fallback.bodyweight.start))).spec, fallback);
+  if (raw.version !== PLAN_FORMAT_V3) return fallback;
+  return normalizeV3(raw, fallback);
+}
+
+function normalizeV3(source: unknown, fallback: PlanSpec): PlanSpec {
+  const raw = source as Record<string, unknown>;
+  const bw = isRecord(raw.bodyweight) ? raw.bodyweight : {};
+  const start = num(bw.start, fallback.bodyweight.start, 20, 400);
+  const bodyweight: BodyweightPlan = {
+    start,
+    goal: num(bw.goal, start, 20, 400),
+    weeklyChangeKg: Math.abs(num(bw.weeklyChangeKg, fallback.bodyweight.weeklyChangeKg, 0.01, 5)),
+    proteinGrams: optionalNum(bw.proteinGrams, 0, 1000) ?? null,
+    calories: text(bw.calories, '', 60),
+  };
+
+  /* Days: catalogue exercises only; every mission and warm-up with a unique id. */
+  const usedIds = new Set<string>();
+  const rawDays = list(raw.days, 7).filter(isRecord);
+  const days: SpecDayV3[] = DAY_IDS.map((dayId, index) => {
+    const day = rawDays.find((entry) => entry.id === dayId) ?? rawDays[index] ?? {};
+    const kind = oneOf(day.kind, DAY_KINDS, 'rest');
+    const purpose = optionalText(day.purpose, 200);
+    return {
+      id: dayId,
+      title: text(day.title, kind === 'rest' ? 'Rest' : 'Training', 60),
+      kind,
+      ...(purpose ? { purpose } : {}),
+      warmUps: list(day.warmUps, LIMITS.warmUps).flatMap((entry): WarmUp[] => {
+        const choice = dose(entry);
+        return choice && isRecord(entry) ? [{ id: idIn(usedIds, entry.id ?? `${dayId}_warm_${choice.exercise}`, `${dayId}_warm`), ...choice }] : [];
+      }),
+      exercises: list(day.exercises, LIMITS.exercisesPerDay).flatMap((entry) => {
+        const choice = dose(entry);
+        return choice && isRecord(entry) ? [{ id: idIn(usedIds, entry.id, 'ex'), ...choice }] : [];
+      }),
+    };
+  });
+
+  const lifts: TrackedLift[] = unique(
+    list(raw.lifts, LIMITS.lifts).flatMap((entry): TrackedLift[] => {
+      if (!isRecord(entry) || typeof entry.exercise !== 'string' || !isKnownExercise(entry.exercise)) return [];
+      const exercise = recordKeyOf(entry.exercise);
+      const endgame = entry.endgame === null ? null : optionalNum(entry.endgame, 0);
+      return [
+        {
+          exercise,
+          metric: oneOf(entry.metric, METRICS, metricOf(exercise)),
+          baseline: optionalNum(entry.baseline, 0) ?? null,
+          endgame: endgame && endgame > 0 ? endgame : null,
+        },
+      ];
+    }),
+    (lift) => lift.exercise,
+  );
+
+  const armor = unique(
+    list(raw.armor, ARMOR_SLOTS.length).filter((slot): slot is ArmorSlot => ARMOR_SLOTS.includes(slot as ArmorSlot)),
+    (slot) => slot,
+  );
+
+  /* Bosses, each of one kind; `after` may only name another boss of the plan. */
+  const bossIdsUsed = new Set<string>();
+  const bosses: BossSpec[] = list(raw.bosses, LIMITS.bosses).flatMap((entry): BossSpec[] => {
+    if (!isRecord(entry)) return [];
+    const base = {
+      id: idIn(bossIdsUsed, entry.id, 'boss'),
+      name: text(entry.name, '', 60),
+      category: oneOf(entry.category, BRANCHES, 'push'),
+      ...(Array.isArray(entry.after) ? { after: entry.after.filter((id): id is string => typeof id === 'string') } : {}),
+    };
+    if (entry.kind === 'skill') {
+      const tree = oneOf(entry.tree, TREES, 'calisthenics');
+      const skill = typeof entry.skill === 'string' ? skillOf(tree, entry.skill) : undefined;
+      return skill ? [{ ...base, name: base.name || `The ${skill.name}`, kind: 'skill', tree, skill: skill.id }] : [];
+    }
+    if (entry.kind === 'reps') {
+      if (typeof entry.exercise !== 'string' || !isKnownExercise(entry.exercise)) return [];
+      const exercise = recordKeyOf(entry.exercise);
+      const target = num(entry.target, 0, 0, 100_000);
+      return target > 0 ? [{ ...base, name: base.name || `${target} ${recordName(exercise)}`, kind: 'reps', exercise, target }] : [];
+    }
+    if (entry.kind === 'bodyweight' && entry.mode === 'scale') {
+      const kg = num(entry.kg, bodyweight.goal, 20, 400);
+      return [{ ...base, name: base.name || `Reach ${kg} kg`, kind: 'bodyweight', mode: 'scale', kg }];
+    }
+    if (entry.kind === 'bodyweight') {
+      if (typeof entry.exercise !== 'string' || !isKnownExercise(entry.exercise)) return [];
+      const exercise = recordKeyOf(entry.exercise);
+      const multiple = Math.round(num(entry.multiple, 1, 0.1, 5) * 100) / 100;
+      return [{ ...base, name: base.name || `${recordName(exercise)} ${multiple}× bodyweight`, kind: 'bodyweight', mode: 'multiple', exercise, multiple }];
+    }
+    return [];
+  });
+  const bossIds = new Set(bosses.map((boss) => boss.id));
+  for (const boss of bosses) {
+    if (boss.after) {
+      const after = [...new Set(boss.after.filter((id) => id !== boss.id && bossIds.has(id)))];
+      if (after.length) boss.after = after;
+      else delete boss.after;
+    }
+  }
+
+  const towerIdsUsed = new Set<string>();
+  const towers: TowerSpec[] = list(raw.trees, LIMITS.trees).flatMap((entry): TowerSpec[] => {
+    if (!isRecord(entry) || typeof entry.summit !== 'string') return [];
+    const tree = oneOf(entry.tree, TREES, 'calisthenics');
+    const summit = skillOf(tree, entry.summit);
+    if (!summit) return [];
+    return [{ id: idIn(towerIdsUsed, entry.id, 'tower'), name: text(entry.name, `The ${summit.name} Tower`, 60), tree, summit: summit.id }];
+  });
+  const towerIds = new Set(towers.map((tower) => tower.id));
+
+  const goalIds = new Set<string>();
+  const actIds = new Set<string>();
+  const acts = list(raw.acts, LIMITS.acts)
+    .filter(isRecord)
+    .map((act) => ({
+      id: idIn(actIds, act.id, 'act'),
+      name: text(act.name, 'Untitled act', 60),
+      tagline: text(act.tagline, '', 200),
+      goals: list(act.goals, LIMITS.goals)
+        .filter(isRecord)
+        .flatMap((goal): GoalV3[] => {
+          switch (goal.kind) {
+            case 'weight': {
+              const week = optionalNum(goal.week, 1, 520);
+              return [
+                {
+                  id: idIn(goalIds, goal.id, 'goal'),
+                  kind: 'weight',
+                  label: text(goal.label, 'Weight goal', 40),
+                  kg: num(goal.kg, bodyweight.goal, 20, 400),
+                  ...(week === undefined ? {} : { week: Math.round(week) }),
+                },
+              ];
+            }
+            case 'record': {
+              if (typeof goal.exercise !== 'string' || !isKnownExercise(goal.exercise)) return [];
+              const label = optionalText(goal.label, 60);
+              return [{ id: idIn(goalIds, goal.id, 'goal'), kind: 'record', exercise: recordKeyOf(goal.exercise), target: num(goal.target, 0, 0), ...(label ? { label } : {}) }];
+            }
+            case 'boss':
+              return typeof goal.boss === 'string' && bossIds.has(goal.boss) ? [{ id: idIn(goalIds, goal.id, 'goal'), kind: 'boss', boss: goal.boss }] : [];
+            case 'skill': {
+              const tree = oneOf(goal.tree, TREES, 'calisthenics');
+              const skill = typeof goal.skill === 'string' ? skillOf(tree, goal.skill) : undefined;
+              const label = optionalText(goal.label, 60);
+              return skill ? [{ id: idIn(goalIds, goal.id, 'goal'), kind: 'skill', tree, skill: skill.id, ...(label ? { label } : {}) }] : [];
+            }
+            case 'tower':
+              return typeof goal.tower === 'string' && towerIds.has(goal.tower) ? [{ id: idIn(goalIds, goal.id, 'goal'), kind: 'tower', tower: goal.tower }] : [];
+            default:
+              return [];
+          }
+        }),
+    }));
+
+  return { version: PLAN_FORMAT_V3, name: text(raw.name, fallback.name, 60), bodyweight, lifts, days, armor, bosses, trees: towers, acts };
+}
+
+function epithetOf(boss: BossSpec): string {
+  if (boss.kind === 'skill') return `Master ${skillOf(boss.tree, boss.skill)?.name ?? 'the skill'} in the skill tree`;
+  if (boss.kind === 'reps') {
+    const metric = metricOf(boss.exercise);
+    return `${boss.target}${metric === 'seconds' ? ' s' : ' reps'} of ${recordName(boss.exercise)} in one go`;
+  }
+  if (boss.mode === 'scale') return `Reach ${boss.kg} kg on the scale`;
+  return `${recordName(boss.exercise)} at ${boss.multiple}× your bodyweight`;
+}
+
+/**
+ * A mission whose number is worth tracking: reps, a hold, or a load. Mobility
+ * minutes, climbing volume and recovery are ticked, not measured.
+ */
+function measuresProgress(exerciseId: string): boolean {
+  const exercise = EXERCISE_BY_ID.get(exerciseId);
+  if (!exercise || exercise.category === 'recovery' || exercise.category === 'warmup') return false;
+  return Boolean(exercise.lift || exercise.load) || exercise.dose === 'reps' || exercise.dose === 'seconds';
+}
+
+/** The full plan the game reads, built from a normalized v3 spec and the catalogue. */
+export function resolvePlan(spec: PlanSpec): CampaignPlan {
+  /* Every exercise the plan logs is a lift: the ones with the player's own numbers first, then the rest. */
+  const explicit = new Map(spec.lifts.map((lift) => [lift.exercise, lift]));
+  const order: string[] = [...explicit.keys()];
+  const want = (key: string) => {
+    if (!order.includes(key)) order.push(key);
+  };
+  spec.days.forEach((day) =>
+    day.exercises.forEach((entry) => {
+      if (measuresProgress(entry.exercise)) want(recordKeyOf(entry.exercise));
+    }),
+  );
+  spec.bosses.forEach((boss) => {
+    if (boss.kind === 'reps' || (boss.kind === 'bodyweight' && boss.mode === 'multiple')) want(boss.exercise);
+  });
+  spec.acts.forEach((act) => act.goals.forEach((goal) => goal.kind === 'record' && want(goal.exercise)));
+  const lifts: Lift[] = order.map((key) => {
+    const own = explicit.get(key);
+    const unit = own?.metric ?? metricOf(key);
+    const name = recordName(key);
+    return {
+      id: key,
+      name,
+      short: name,
+      unit,
+      branch: branchOfRecord(key),
+      baseline: own?.baseline ?? 0,
+      hasBaseline: own?.baseline != null,
+      endgame: own?.endgame ?? null,
+      step: stepOf(unit),
+      measure: unit === 'reps' ? 'max reps' : unit === 'seconds' ? 'longest hold' : unit === 'added-kg' ? 'added load' : 'working weight',
+      note: '',
+    };
+  });
+
+  const liftIds = new Set(lifts.map((lift) => lift.id));
+
+  const bosses: Boss[] = spec.bosses.map((boss) => {
+    const requirements: BossRequirement[] = (boss.after ?? []).map((id) => ({
+      kind: 'boss' as const,
+      boss: id,
+      label: `${spec.bosses.find((other) => other.id === id)?.name ?? 'Another boss'} defeated`,
+    }));
+    if (boss.kind === 'skill') requirements.push({ kind: 'skill', tree: boss.tree, skill: boss.skill, label: `Master ${skillOf(boss.tree, boss.skill)?.name ?? 'the skill'}` });
+    else if (boss.kind === 'reps') requirements.push({ kind: 'lift', lift: boss.exercise, target: boss.target, label: recordName(boss.exercise) });
+    else if (boss.mode === 'multiple') requirements.push({ kind: 'multiple', lift: boss.exercise, multiple: boss.multiple, label: `${recordName(boss.exercise)} · ${boss.multiple}× bodyweight` });
+    else requirements.push({ kind: 'scale', kg: boss.kg, label: `${boss.kg} kg on the scale` });
+    return { id: boss.id, name: boss.name, epithet: epithetOf(boss), branch: boss.category, requirements };
+  });
+
+  const towerBranch = (tree: SkillTreeRef, summit: string): Branch => {
+    const lane = skillOf(tree, summit)?.swimlane?.toLowerCase();
+    return lane === 'push' || lane === 'pull' || lane === 'legs' ? lane : 'core';
+  };
+  const trees: SkillTree[] = spec.trees.map((tower) => {
+    const summit = skillOf(tower.tree, tower.summit);
+    return {
+      id: tower.id,
+      name: tower.name,
+      tagline: `Every skill up to ${summit?.name ?? 'the summit'}`,
+      branch: towerBranch(tower.tree, tower.summit),
+      bossLabel: summit?.name ?? 'Summit',
+      tower: { tree: tower.tree, summit: tower.summit },
+      tiers: floorsOf(tower.tree, tower.summit).map((floor) => ({
+        id: floor.id,
+        rung: `${tower.tree === 'bouldering' ? 'V' : 'L'}${floor.level}`,
+        name: floor.name,
+        subtitle: floor.subCategory,
+        gates: [],
+        skill: { tree: tower.tree, id: floor.id },
+      })),
+    };
+  });
+
+  const days: PlanDay[] = spec.days.map((day) => ({
+    id: day.id,
+    title: day.title,
+    kind: day.kind,
+    ...(day.purpose ? { purpose: day.purpose } : {}),
+    warmUps: day.warmUps.flatMap((choice) => {
+      const exercise = EXERCISE_BY_ID.get(choice.exercise);
+      if (!exercise) return [];
+      const dosed = formatDose(exercise, choice.sets, choice.reps, true);
+      return [dosed ? `${exercise.name} — ${dosed}` : exercise.name];
+    }),
+    exercises: day.exercises.flatMap((choice): PlanExercise[] => {
+      const exercise = EXERCISE_BY_ID.get(choice.exercise);
+      if (!exercise) return [];
+      const lift = recordKeyOf(exercise.id);
+      // An exercise feeds every boss that reads its record, and every skill boss it is a step towards.
+      const fed = spec.bosses
+        .filter((boss) =>
+          boss.kind === 'skill'
+            ? floorsOf(boss.tree, boss.skill).some((floor) => floor.id === lift)
+            : boss.kind === 'reps' || (boss.kind === 'bodyweight' && boss.mode === 'multiple')
+              ? boss.exercise === lift
+              : false,
+        )
+        .map((boss) => boss.id);
+      return [
+        {
+          id: choice.id,
+          exercise: exercise.id,
+          name: exercise.name,
+          target: formatDose(exercise, choice.sets, choice.reps),
+          focus: exercise.focus,
+          ...(liftIds.has(lift) ? { lift } : {}),
+          ...(exercise.note ? { note: exercise.note } : {}),
+          ...(fed.length ? { bosses: fed } : {}),
+          ...(exercise.armor ? { armor: true } : {}),
+          ...(exercise.trains.length ? { trains: [...exercise.trains] } : {}),
+        },
+      ];
+    }),
+  }));
+
+  return {
+    name: spec.name,
+    bodyweight: { ...spec.bodyweight },
+    lifts,
+    days,
+    armor: spec.armor.flatMap((slot) => {
+      const piece = ARMOR_BY_ID.get(`armor_${slot}`);
+      return piece ? [{ ...piece }] : [];
+    }),
+    bosses,
+    milestones: [],
+    trees,
+    acts: spec.acts.map((act) => ({
+      ...act,
+      goals: act.goals.map((goal): ActGoal =>
+        goal.kind === 'record'
+          ? { id: goal.id, kind: 'lift', lift: goal.exercise, target: goal.target, ...(goal.label ? { label: goal.label } : {}) }
+          : { ...goal },
+      ),
+    })),
+  };
 }

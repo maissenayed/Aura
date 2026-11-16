@@ -8,6 +8,7 @@ import {
   GameEvent,
   LogEntry,
   ProtocolSave,
+  badgesDue,
   currentOf,
   dayIdOf,
   derive,
@@ -25,8 +26,9 @@ import {
   useCampaign,
   useTodayIso,
 } from '../../utils/protocolStore';
+import { HISTORY_LIMIT, HistoryPoint } from '../../utils/campaignV3';
+import { V2_LIFT_OF_RECORD } from '../../utils/records';
 import { adoptDeviceProgress } from '../../utils/skillProgressStore';
-import { v3ShadowReport } from '../../utils/v3Shadow';
 import { Toast, ToastStack } from '../protocol/Toasts';
 import { MomentOverlay } from './MomentOverlay';
 
@@ -108,16 +110,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (snapshot.gate === 'ready' && snapshot.sync === 'synced') adoptDeviceProgress();
   }, [snapshot.gate, snapshot.sync]);
 
-  // Shadow mode for the v3 campaign: what the conversion would make of this account, written nowhere.
-  useEffect(() => {
-    if (snapshot.gate !== 'ready' || snapshot.sync !== 'synced') return;
-    try {
-      (window as unknown as { __auraV3Report?: unknown }).__auraV3Report = v3ShadowReport(snapshot.spec, snapshot.save, snapshot.plan);
-    } catch (error) {
-      (window as unknown as { __auraV3Report?: unknown }).__auraV3Report = { error: String(error) };
-    }
-  }, [snapshot.gate, snapshot.sync, snapshot.spec, snapshot.save, snapshot.plan]);
-
   const [weekOverride, setWeekOverride] = useState<number | null>(null);
   const [dayOverride, setDayOverride] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -176,6 +168,24 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [announce, currentWeek, plan, todayIso, viewWeek],
   );
 
+  // Badges are handed out whenever the save has earned one, wherever it was earned (the
+  // tree page masters skills outside the campaign). The first look after loading hands out
+  // what was already earned quietly, so opening the app never sets off a burst of them.
+  const badgesPrimed = useRef(false);
+  useEffect(() => {
+    if (snapshot.gate !== 'ready' || (!badgesPrimed.current && snapshot.sync !== 'synced')) return;
+    const due = badgesDue(save, derived, plan);
+    const quiet = !badgesPrimed.current;
+    badgesPrimed.current = true;
+    if (!due.length) return;
+    const date = todayIso ?? toIsoDate(new Date());
+    const current = peekSave();
+    commitSave({ ...current, badges: { ...current.badges, ...Object.fromEntries(due.map((badge) => [badge.id, date])) } });
+    // A boss badge comes with the boss's own moment.
+    const shown = due.filter((badge) => badge.kind !== 'boss');
+    if (!quiet && shown.length) announce(shown.map((badge) => ({ kind: 'badge', key: `badge_${badge.id}`, title: `Badge — ${badge.title}`, detail: badge.detail })));
+  }, [announce, derived, plan, save, snapshot.gate, snapshot.sync, todayIso]);
+
   const logStat = useCallback(
     (id: string, value: number) => {
       const stat = liftOf(plan, id);
@@ -193,9 +203,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
               },
             ]
           : [];
-      play((current) => ({ ...current, stats: { ...current.stats, [id]: value } }), extra);
+      const date = todayIso ?? toIsoDate(new Date());
+      play((current) => {
+        // One point per day: logging again the same day replaces it.
+        const points: HistoryPoint[] = [...(current.history[id] ?? []).filter(([day]) => day !== date), [date, value]];
+        points.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+        const v2 = V2_LIFT_OF_RECORD[id];
+        return {
+          ...current,
+          records: { ...current.records, [id]: value },
+          history: { ...current.history, [id]: points.slice(-HISTORY_LIMIT) },
+          // Older versions of the app still read the v2 stats.
+          ...(v2 ? { stats: { ...current.stats, [v2]: value } } : {}),
+        };
+      }, extra);
     },
-    [plan, play],
+    [plan, play, todayIso],
   );
 
   const logLoad = useCallback(

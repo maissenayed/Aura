@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Act, ActGoal, CampaignPlan, PlanSpec, newId } from '../../utils/campaignPlan';
+import { CampaignPlan, PlanSpec, newId } from '../../utils/campaignPlan';
+import { ActV3 as Act, GoalV3 as ActGoal } from '../../utils/campaignV3';
+import { SkillSelect } from './pickers';
 import {
   AddButton,
   DeleteButton,
@@ -20,10 +22,10 @@ type GoalKind = ActGoal['kind'];
 
 const GOAL_KINDS: { id: GoalKind; label: string }[] = [
   { id: 'weight', label: 'Bodyweight' },
-  { id: 'lift', label: 'Lift number' },
+  { id: 'record', label: 'Lift number' },
   { id: 'boss', label: 'Boss' },
-  { id: 'tier', label: 'Skill-tree tier' },
-  { id: 'milestone', label: 'Milestone' },
+  { id: 'skill', label: 'Skill' },
+  { id: 'tower', label: 'Tower' },
 ];
 
 const NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
@@ -43,7 +45,7 @@ export const MapEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
 
   const add = () => {
     const act: Act = { id: newId('act'), name: 'New act', tagline: '', goals: [] };
-    setActs([...plan.acts, act]);
+    setActs([...spec.acts, act]);
     setOpenId(act.id);
   };
 
@@ -84,7 +86,7 @@ export const MapEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
       </Group>
 
       <Group
-        title={`Acts · ${plan.acts.length}`}
+        title={`Acts · ${spec.acts.length}`}
         hint="The campaign map, played in order. An act is complete when every goal on it is reached; the first unfinished act is the one shown in the header."
       >
         <ul className="space-y-2">
@@ -123,20 +125,22 @@ interface ActCardProps {
 
 const ActCard: React.FC<ActCardProps> = ({ plan, act, index, count, open, onToggle, onChange, onMove, onDelete }) => {
   const setGoals = (goals: ActGoal[]) => onChange({ ...act, goals });
-  const tiers = plan.trees.flatMap((tree) => tree.tiers.map((tier) => ({ id: tier.id, label: `${tree.name} · ${tier.rung} · ${tier.name}` })));
 
   const blank = (kind: GoalKind, id = newId('goal')): ActGoal | null => {
     switch (kind) {
       case 'weight':
         return { id, kind, label: 'Weight goal', kg: plan.bodyweight.goal };
-      case 'lift':
-        return plan.lifts[0] ? { id, kind, lift: plan.lifts[0].id, target: plan.lifts[0].endgame ?? 0 } : null;
+      case 'record':
+        return plan.lifts[0] ? { id, kind, exercise: plan.lifts[0].id, target: plan.lifts[0].endgame ?? 0 } : null;
       case 'boss':
         return plan.bosses[0] ? { id, kind, boss: plan.bosses[0].id } : null;
-      case 'tier':
-        return tiers[0] ? { id, kind, tier: tiers[0].id } : null;
-      case 'milestone':
-        return plan.milestones[0] ? { id, kind, milestone: plan.milestones[0].id } : null;
+      case 'skill': {
+        // The first skill boss's summit, else the first tower's: something already in the plan.
+        const tower = plan.trees.find((tree) => tree.tower)?.tower;
+        return tower ? { id, kind, tree: tower.tree, skill: tower.summit } : { id, kind, tree: 'calisthenics', skill: 'ex_45' };
+      }
+      case 'tower':
+        return plan.trees[0] ? { id, kind, tower: plan.trees[0].id } : null;
     }
   };
 
@@ -207,20 +211,20 @@ const ActCard: React.FC<ActCardProps> = ({ plan, act, index, count, open, onTogg
               </div>
             )}
 
-            {goal.kind === 'lift' && (
+            {goal.kind === 'record' && (
               <>
                 <div className="grid gap-2 grid-cols-2 sm:grid-cols-[2fr_1fr]">
                   <SelectField
                     className="col-span-2 sm:col-span-1"
                     label="Lift"
-                    value={goal.lift}
+                    value={goal.exercise}
                     options={plan.lifts.map((lift) => ({ id: lift.id, label: lift.name }))}
-                    onChange={(lift) => setGoals(setAt(act.goals, goalIndex, { ...goal, lift }))}
+                    onChange={(exercise) => setGoals(setAt(act.goals, goalIndex, { ...goal, exercise }))}
                   />
                   <NumberField
                     label="Target"
                     suffix={(() => {
-                      const unit = plan.lifts.find((lift) => lift.id === goal.lift)?.unit;
+                      const unit = plan.lifts.find((lift) => lift.id === goal.exercise)?.unit;
                       return unit === 'reps' ? 'reps' : unit === 'seconds' ? 's' : unit === 'added-kg' ? '+kg' : 'kg';
                     })()}
                     value={goal.target}
@@ -246,16 +250,25 @@ const ActCard: React.FC<ActCardProps> = ({ plan, act, index, count, open, onTogg
               />
             )}
 
-            {goal.kind === 'tier' && (
-              <SelectField label="Tier" value={goal.tier} options={tiers} onChange={(tier) => setGoals(setAt(act.goals, goalIndex, { ...goal, tier }))} />
+            {goal.kind === 'skill' && (
+              <>
+                <SkillSelect tree={goal.tree} label="Skill" value={goal.skill} onChange={(skill) => setGoals(setAt(act.goals, goalIndex, { ...goal, skill }))} hint="Reached when you master it on the skill tree." />
+                <TextField
+                  label="Label (optional)"
+                  value={goal.label ?? ''}
+                  maxLength={60}
+                  placeholder="Skill"
+                  onChange={(label) => setGoals(setAt(act.goals, goalIndex, { ...goal, label }))}
+                />
+              </>
             )}
 
-            {goal.kind === 'milestone' && (
+            {goal.kind === 'tower' && (
               <SelectField
-                label="Milestone"
-                value={goal.milestone}
-                options={plan.milestones.map((milestone) => ({ id: milestone.id, label: milestone.name }))}
-                onChange={(milestone) => setGoals(setAt(act.goals, goalIndex, { ...goal, milestone }))}
+                label="Tower"
+                value={goal.tower}
+                options={plan.trees.map((tower) => ({ id: tower.id, label: tower.name }))}
+                onChange={(tower) => setGoals(setAt(act.goals, goalIndex, { ...goal, tower }))}
               />
             )}
           </div>

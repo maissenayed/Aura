@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CalendarCheck, Check, Crown, Flag, Hexagon, Scale, Sparkles, Star, TrendingUp, Trophy, X } from 'lucide-react';
+import { CalendarCheck, Check, Crown, Flag, Hexagon, Medal, Scale, Sparkles, Star, TrendingUp, Trophy, X } from 'lucide-react';
 import { EventKind, GameEvent } from '../../utils/protocolEngine';
 
 interface EventVisual {
@@ -26,6 +26,7 @@ export const EVENT_VISUAL: Record<EventKind, EventVisual> = {
   week: { icon: <Trophy className={ICON} />, label: 'Perfect week', text: 'text-neon-gold', border: 'border-amber-400/60', bg: 'bg-amber-950/70' },
   attribute: { icon: <Hexagon className={ICON} />, label: 'Character', text: 'text-neon-purple', border: 'border-purple-400/60', bg: 'bg-purple-950/70' },
   skill: { icon: <Check className={ICON} strokeWidth={3} />, label: 'Skill mastered', text: 'text-neon-emerald', border: 'border-emerald-500/50', bg: 'bg-emerald-950/60' },
+  badge: { icon: <Medal className={ICON} />, label: 'Badge earned', text: 'text-neon-gold', border: 'border-amber-400/60', bg: 'bg-amber-950/70' },
 };
 
 export interface Toast extends GameEvent {

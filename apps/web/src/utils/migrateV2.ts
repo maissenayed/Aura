@@ -1,83 +1,17 @@
-import { resolveExerciseId } from '../data/exerciseAliases';
-import { CampaignPlan, PlanSpec, resolvePlan } from './campaignPlan';
-import {
-  ArmorSlot,
-  ActV3,
-  BossSpec,
-  GoalV3,
-  Metric,
-  PLAN_FORMAT_V3,
-  PlanSpecV3,
-  SaveV3Fields,
-  SpecDayV3,
-  TowerSpec,
-  TrackedLift,
-} from './campaignV3';
-import { ProtocolSave, evaluateBosses } from './protocolEngine';
-import { floorsOf } from './treeIndex';
+import { BOSS_BY_ID } from '../data/campaignCatalog';
+import type { PlanSpecV2 } from './campaignPlan';
+import { ArmorSlot, ActV3, BossSpec, GoalV3, PLAN_FORMAT_V3, PlanSpecV3, SpecDayV3, TowerSpec, TrackedLift } from './campaignV3';
+import { LIFT_RECORD } from './records';
 
 /**
- * Turns a v2 campaign (plan + save) into v3 without losing anything logged.
- * Pure and safe to run twice: a v3 plan or save comes back as it is. What it
- * cannot map is listed in the report, never dropped silently.
+ * Turns a v2 campaign plan into v3 (the save has its own half in
+ * migrateSaveV2.ts). Pure and safe to run twice: a v3 plan comes back as it
+ * is. What it cannot map is listed in the report, never dropped silently.
  */
 
 /* ------------------------------------------------------------------ */
 /* Mapping tables                                                      */
 /* ------------------------------------------------------------------ */
-
-/** v2 lift → the exercise its numbers belong to now, and how they are measured. */
-export const LIFT_RECORD: Record<string, { exercise: string; metric: Metric }> = {
-  dips: { exercise: 'weighted_dips', metric: 'added-kg' },
-  inclineBench: { exercise: 'incline_bench', metric: 'kg' },
-  dbPress: { exercise: 'db_press', metric: 'kg' },
-  benchPress: { exercise: 'bench_press', metric: 'kg' },
-  overheadPress: { exercise: 'overhead_press', metric: 'kg' },
-  pushUpReps: { exercise: 'ex_7', metric: 'reps' },
-  dipReps: { exercise: 'ex_50', metric: 'reps' },
-  hspuReps: { exercise: 'ex_92', metric: 'reps' },
-  handstandHold: { exercise: 'ex_62', metric: 'seconds' },
-  cableRow: { exercise: 'cable_row', metric: 'kg' },
-  chinUps: { exercise: 'weighted_chins', metric: 'added-kg' },
-  weightedPullUps: { exercise: 'weighted_pullups', metric: 'added-kg' },
-  pullUpReps: { exercise: 'ex_45', metric: 'reps' },
-  muscleUpReps: { exercise: 'ex_112', metric: 'reps' },
-  barbellRow: { exercise: 'barbell_row', metric: 'kg' },
-  latPulldown: { exercise: 'lat_pulldown', metric: 'kg' },
-  frontLeverHold: { exercise: 'ex_205', metric: 'seconds' },
-  hangTime: { exercise: 'ex_439', metric: 'seconds' },
-  splitSquat: { exercise: 'split_squat', metric: 'kg' },
-  legCurl: { exercise: 'leg_curl', metric: 'kg' },
-  backSquat: { exercise: 'back_squat', metric: 'kg' },
-  deadlift: { exercise: 'deadlift', metric: 'kg' },
-  pistolReps: { exercise: 'ex_81', metric: 'reps' },
-  lsitHold: { exercise: 'ex_42', metric: 'seconds' },
-};
-
-/**
- * Campaign exercises that log the same number as a skill-tree exercise: max
- * pull-ups are max pull-ups whichever card logged them.
- */
-const RECORD_OF: Record<string, string> = {
-  bw_pullups: 'ex_45',
-  pullups_amrap: 'ex_45',
-  pushups_amrap: 'ex_7',
-  bw_dips: 'ex_50',
-  hspu: 'ex_92',
-  muscle_ups: 'ex_112',
-  pistol_squats: 'ex_81',
-  front_lever_holds: 'ex_205',
-  handstand_practice: 'ex_62',
-  lsit_max: 'ex_42',
-  lsit_holds: 'ex_42',
-  dead_hang: 'ex_439',
-};
-
-/** The key an exercise's numbers are kept under. */
-export function recordKeyOf(exerciseId: string): string {
-  const id = resolveExerciseId(exerciseId);
-  return RECORD_OF[id] ?? id;
-}
 
 type BossShape =
   | { kind: 'skill'; skill: string }
@@ -85,7 +19,7 @@ type BossShape =
   | { kind: 'bodyweight'; mode: 'multiple'; exercise: string; multiple: number };
 
 /** v2 catalogue boss → what it is in v3. Its id and name stay, so map goals and badges still point at it. */
-const BOSS_V3: Record<string, BossShape> = {
+export const BOSS_V3: Record<string, BossShape> = {
   boss_planche: { kind: 'skill', skill: 'ex_299' },
   boss_frontlever: { kind: 'skill', skill: 'ex_205' },
   boss_hspu: { kind: 'skill', skill: 'ex_92' },
@@ -119,7 +53,7 @@ const TREE_TOWER: Record<string, { name: string; summit: string }> = {
 };
 
 /** v2 tree tier → the skill it stands for, or a record to reach. */
-const TIER_GOAL: Record<string, { skill: string } | { exercise: string; target: number }> = {
+export const TIER_GOAL: Record<string, { skill: string } | { exercise: string; target: number }> = {
   planche_0: { skill: 'ex_48' },
   planche_1: { skill: 'ex_105' },
   planche_2: { skill: 'ex_142' },
@@ -148,7 +82,7 @@ const TIER_GOAL: Record<string, { skill: string } | { exercise: string; target: 
 };
 
 /** Claimed v2 milestones → the skill they prove. */
-const MILESTONE_SKILL: Record<string, string> = {
+export const MILESTONE_SKILL: Record<string, string> = {
   ms_dragonflag: 'ex_161',
   ms_backlever: 'ex_172',
   ms_oneArmPushup: 'ex_215',
@@ -176,7 +110,7 @@ export interface MigrationReport {
 
 const isV3Plan = (spec: { version: number }): spec is PlanSpecV3 => spec.version === PLAN_FORMAT_V3;
 
-export function migrateSpec(spec: PlanSpec | PlanSpecV3): { spec: PlanSpecV3; report: MigrationReport } {
+export function migrateSpec(spec: PlanSpecV2 | PlanSpecV3): { spec: PlanSpecV3; report: MigrationReport } {
   const report: MigrationReport = { mapped: [], unmapped: [] };
   if (isV3Plan(spec)) return { spec, report };
 
@@ -211,13 +145,13 @@ export function migrateSpec(spec: PlanSpec | PlanSpecV3): { spec: PlanSpecV3; re
     return slot ? [slot] : [];
   });
 
-  const plan: CampaignPlan = resolvePlan(spec);
   const kept = new Set(spec.bosses.map((entry) => entry.boss));
   const bosses: BossSpec[] = [];
-  for (const boss of plan.bosses) {
-    const shape = BOSS_V3[boss.id];
-    if (!shape) {
-      report.unmapped.push(`boss ${boss.id} (${boss.name}): nothing in the tree or the lifts matches it`);
+  for (const entry of spec.bosses) {
+    const boss = BOSS_BY_ID.get(entry.boss);
+    const shape = BOSS_V3[entry.boss];
+    if (!boss || !shape) {
+      report.unmapped.push(`boss ${entry.boss}${boss ? ` (${boss.name})` : ''}: nothing in the tree or the lifts matches it`);
       continue;
     }
     const after = boss.requirements.flatMap((req) => (req.kind === 'boss' && kept.has(req.boss) && BOSS_V3[req.boss] ? [req.boss] : []));
@@ -287,71 +221,3 @@ function describeBoss(shape: BossShape): string {
   return `${shape.multiple}× bodyweight on ${shape.exercise}`;
 }
 
-/* ------------------------------------------------------------------ */
-/* Save                                                                */
-/* ------------------------------------------------------------------ */
-
-export type SaveV3 = ProtocolSave & SaveV3Fields;
-
-const isV3Save = (save: ProtocolSave): save is SaveV3 => (save as Partial<SaveV3Fields>).version === PLAN_FORMAT_V3;
-
-/** Marks a skill and everything it needs as mastered, keeping dates already there. */
-function master(skills: Record<string, string>, skill: string, date: string): number {
-  let added = 0;
-  for (const floor of floorsOf('calisthenics', skill)) {
-    const key = `calisthenics:${floor.id}`;
-    if (!skills[key]) {
-      skills[key] = date;
-      added += 1;
-    }
-  }
-  return added;
-}
-
-export function migrateSave(save: ProtocolSave, spec: PlanSpec, today: string): { save: SaveV3; report: MigrationReport } {
-  const report: MigrationReport = { mapped: [], unmapped: [] };
-  if (isV3Save(save)) return { save, report };
-
-  const records: Record<string, number> = {};
-  const keep = (key: string, value: number) => {
-    if (!(key in records) || value > records[key]) records[key] = value;
-  };
-  for (const [lift, value] of Object.entries(save.stats)) {
-    const to = LIFT_RECORD[lift];
-    if (to) {
-      keep(to.exercise, value);
-      report.mapped.push(`stat ${lift} ${value} → record ${to.exercise}`);
-    } else report.unmapped.push(`stat ${lift} ${value}: no exercise (kept in stats)`);
-  }
-  const exerciseOfInstance = new Map(spec.days.flatMap((day) => day.exercises.map((entry) => [entry.id, entry.exercise] as const)));
-  for (const [instance, value] of Object.entries(save.loads)) {
-    const exercise = exerciseOfInstance.get(instance);
-    if (exercise) {
-      keep(recordKeyOf(exercise), value);
-      report.mapped.push(`working weight ${instance} ${value} kg → record ${recordKeyOf(exercise)}`);
-    } else report.unmapped.push(`working weight ${instance} ${value} kg: its exercise left the plan (kept in loads)`);
-  }
-  const history = Object.fromEntries(Object.entries(records).map(([key, value]) => [key, [[today, value] as [string, number]]]));
-
-  const skills = { ...save.skills };
-  for (const [milestone, claimed] of Object.entries(save.milestones)) {
-    if (!claimed) continue;
-    const skill = MILESTONE_SKILL[milestone];
-    if (skill) report.mapped.push(`milestone ${milestone} → mastered ${skill} (+${master(skills, skill, today)} skills)`);
-    else report.unmapped.push(`milestone ${milestone}: no skill proves it (kept in milestones)`);
-  }
-  for (const entry of spec.trees) {
-    for (const tier of entry.cleared ?? []) {
-      const tierGoal = TIER_GOAL[tier];
-      if (tierGoal && 'skill' in tierGoal) report.mapped.push(`owned tier ${tier} → mastered ${tierGoal.skill} (+${master(skills, tierGoal.skill, today)} skills)`);
-    }
-  }
-
-  // Bosses beaten in v2 stay beaten on the badge wall, whatever v3 makes of them.
-  const badges: Record<string, string> = {};
-  for (const status of evaluateBosses(save, resolvePlan(spec))) {
-    if (status.defeated) badges[`boss:${status.boss.id}`] = today;
-  }
-
-  return { save: { ...save, skills, version: PLAN_FORMAT_V3, records, history, badges }, report };
-}

@@ -53,3 +53,8 @@ export function masteredIn(skills: Record<string, string> | undefined, tree: Ski
       .map((key) => canonicalSkill(tree, key.slice(prefix.length))),
   );
 }
+
+/** Every skill of a tree, easiest first. */
+export function allSkills(tree: SkillTreeRef): TreeSkill[] {
+  return [...graphOf(tree).byId.values()].sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+}

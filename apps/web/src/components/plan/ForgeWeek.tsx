@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, HeartPulse, Minus, Moon, Mountain, Plus, Search, Shield, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Flame, HeartPulse, Minus, Moon, Mountain, Plus, Search, Shield, X } from 'lucide-react';
 import { ARMOR_CATALOG, DISCIPLINES, Discipline, EXERCISE_BY_ID, EXERCISE_CATALOG } from '../../data/campaignCatalog';
 import {
   DAY_IDS,
@@ -10,12 +10,12 @@ import {
   DayId,
   DayKind,
   PlanSpec,
-  SpecDay,
   SpecExercise,
   choiceFor,
   newId,
   normalizeSpec,
 } from '../../utils/campaignPlan';
+import { ArmorSlot, SpecDayV3 as SpecDay, WarmUp } from '../../utils/campaignV3';
 import { figureForExercise } from '../game/figures';
 import { Figure } from '../game/kit';
 import { repsChoices } from './catalogOptions';
@@ -47,6 +47,10 @@ const KIND_ICON: Record<DayKind, React.ComponentType<{ className?: string }>> = 
 };
 
 const MAX_EXERCISES = 20;
+const MAX_WARM_UPS = 10;
+
+/** Where the catalogue drops what is picked: the day's missions or its warm-up. */
+type Target = 'missions' | 'warmups';
 
 interface Props {
   spec: PlanSpec;
@@ -58,8 +62,10 @@ export const ForgeWeek: React.FC<Props> = ({ spec, onChange, initialDay = 'mon' 
   const [dayId, setDayId] = useState<DayId>(initialDay);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
+  const [target, setTarget] = useState<Target>('missions');
   const dayIndex = DAY_IDS.indexOf(dayId);
   const day = spec.days[dayIndex];
+  const full = target === 'warmups' ? day.warmUps.length >= MAX_WARM_UPS : day.exercises.length >= MAX_EXERCISES;
 
   /** Changes that can pull in a lift go through the normaliser, which adds it. */
   const setDayAt = (index: number, next: SpecDay, structural = false) => {
@@ -68,10 +74,16 @@ export const ForgeWeek: React.FC<Props> = ({ spec, onChange, initialDay = 'mon' 
   };
 
   const add = (exerciseId: string) => {
-    if (day.exercises.length >= MAX_EXERCISES) return;
-    const exercise: SpecExercise = { id: newId('ex'), ...choiceFor(exerciseId) };
-    const kind = day.kind === 'rest' ? kindFor(exerciseId) : day.kind;
-    setDayAt(dayIndex, { ...day, kind, exercises: [...day.exercises, exercise] }, true);
+    if (full) return;
+    if (target === 'warmups') {
+      if (day.warmUps.some((entry) => entry.exercise === exerciseId)) return;
+      const warmUp: WarmUp = { id: `${day.id}_warm_${exerciseId}`, ...choiceFor(exerciseId) };
+      setDayAt(dayIndex, { ...day, warmUps: [...day.warmUps, warmUp] }, true);
+    } else {
+      const exercise: SpecExercise = { id: newId('ex'), ...choiceFor(exerciseId) };
+      const kind = day.kind === 'rest' ? kindFor(exerciseId) : day.kind;
+      setDayAt(dayIndex, { ...day, kind, exercises: [...day.exercises, exercise] }, true);
+    }
     setFlash(exerciseId);
     window.setTimeout(() => setFlash((current) => (current === exerciseId ? null : current)), 800);
   };
@@ -89,8 +101,10 @@ export const ForgeWeek: React.FC<Props> = ({ spec, onChange, initialDay = 'mon' 
     });
   };
 
-  const toggleArmor = (id: string) =>
-    onChange({ ...spec, armor: spec.armor.includes(id) ? spec.armor.filter((other) => other !== id) : [...spec.armor, id] });
+  const toggleArmor = (slot: ArmorSlot) =>
+    onChange({ ...spec, armor: spec.armor.includes(slot) ? spec.armor.filter((other) => other !== slot) : [...spec.armor, slot] });
+
+  const targetPicker = <TargetPicker target={target} onPick={setTarget} />;
 
   return (
     <div className="flex flex-col gap-4">
@@ -123,15 +137,22 @@ export const ForgeWeek: React.FC<Props> = ({ spec, onChange, initialDay = 'mon' 
           onDay={(next, structural) => setDayAt(dayIndex, next, structural)}
           onMoveToDay={(index, target) => moveToDay(dayIndex, index, target)}
         />
-        {day.exercises.length < MAX_EXERCISES && (
-          <button
-            type="button"
-            onClick={() => setPickerOpen(true)}
-            className="h-14 rounded-[18px] border-[1.5px] border-dashed border-[#17566a] bg-act/5 text-act font-display font-bold tracking-[0.04em] flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Plus className="w-[18px] h-[18px]" strokeWidth={2.8} /> ADD TO {DAY_NAMES[dayId].slice(0, 3).toUpperCase()}
-          </button>
-        )}
+        <div className="grid grid-cols-2 gap-2">
+          {(['missions', 'warmups'] as const).map((kind) => (
+            <button
+              key={kind}
+              type="button"
+              onClick={() => {
+                setTarget(kind);
+                setPickerOpen(true);
+              }}
+              className="h-14 rounded-[18px] border-[1.5px] border-dashed border-[#17566a] bg-act/5 text-act font-display font-bold text-sm tracking-[0.04em] flex items-center justify-center gap-2 cursor-pointer"
+            >
+              {kind === 'missions' ? <Plus className="w-[18px] h-[18px]" strokeWidth={2.8} /> : <Flame className="w-[18px] h-[18px]" />}
+              {kind === 'missions' ? 'MISSION' : 'WARM-UP'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Desktop: the whole week as a board, catalogue alongside. */}
@@ -151,7 +172,7 @@ export const ForgeWeek: React.FC<Props> = ({ spec, onChange, initialDay = 'mon' 
           </div>
         </div>
         <div className="w-[300px] shrink-0 sticky top-6">
-          <Catalogue dayName={DAY_NAMES[dayId]} dayExercises={day.exercises} flash={flash} onPick={add} />
+          <Catalogue dayName={DAY_NAMES[dayId]} picked={target === 'warmups' ? day.warmUps : day.exercises} flash={flash} onPick={add} target={target} header={targetPicker} />
         </div>
       </div>
 
@@ -163,12 +184,13 @@ export const ForgeWeek: React.FC<Props> = ({ spec, onChange, initialDay = 'mon' 
           <div role="dialog" aria-label="Add an exercise" className="lg:hidden fixed z-50 inset-x-0 bottom-0 h-[82dvh] rounded-t-[30px] bg-ink-900 border-t border-ink-600 p-4 pt-2.5 flex flex-col gap-3 anim-sheet">
             <span className="self-center w-11 h-[5px] rounded-full bg-ink-600" aria-hidden="true" />
             <div className="flex items-center gap-2">
-              <span className="flex-1 font-display font-bold text-xl">Add to {DAY_NAMES[dayId].slice(0, 3)}</span>
+              <span className="flex-1 font-display font-bold text-xl">{target === 'warmups' ? 'Warm-up' : 'Mission'} · {DAY_NAMES[dayId].slice(0, 3)}</span>
               <button type="button" onClick={() => setPickerOpen(false)} aria-label="Close" className="w-11 h-11 rounded-[14px] border border-ink-600 bg-ink-800 text-fg-3 flex items-center justify-center cursor-pointer">
                 <X className="w-[18px] h-[18px]" />
               </button>
             </div>
-            <Catalogue dayName={DAY_NAMES[dayId]} dayExercises={day.exercises} flash={flash} onPick={add} grid />
+            {targetPicker}
+            <Catalogue dayName={DAY_NAMES[dayId]} picked={target === 'warmups' ? day.warmUps : day.exercises} flash={flash} onPick={add} target={target} grid />
           </div>
         </>
       )}
@@ -231,6 +253,7 @@ const DayCard: React.FC<{
       </label>
       <KindPicker kind={day.kind} onPick={(kind) => onDay({ ...day, kind })} />
     </div>
+    <WarmUps warmUps={day.warmUps} onChange={(warmUps) => onDay({ ...day, warmUps })} />
     {day.kind === 'rest' ? (
       <div className="h-[110px] rounded-[20px] border-[1.5px] border-dashed border-ink-600 flex flex-col items-center justify-center gap-2 text-fg-4">
         <Moon className="w-7 h-7" />
@@ -275,6 +298,7 @@ const DayColumn: React.FC<{
         <span className="text-[11px] font-semibold text-fg-4 leading-tight line-clamp-2 min-h-[26px]">{day.title}</span>
       </button>
       {selected && <KindPicker kind={day.kind} onPick={(kind) => onDay({ ...day, kind })} compact />}
+      <WarmUps warmUps={day.warmUps} onChange={(warmUps) => onDay({ ...day, warmUps })} compact />
       {day.kind === 'rest' ? (
         <div className="flex-1 min-h-[120px] rounded-xl border-[1.5px] border-dashed border-ink-600 flex flex-col items-center justify-center gap-1.5 text-fg-5">
           <Moon className="w-5 h-5" />
@@ -419,14 +443,21 @@ const Dose: React.FC<{
 
 const Catalogue: React.FC<{
   dayName: string;
-  dayExercises: SpecExercise[];
+  /** What the day already has where picks land, so those show as added. */
+  picked: { exercise: string }[];
   flash: string | null;
   onPick: (id: string) => void;
+  target: Target;
+  header?: React.ReactNode;
   grid?: boolean;
-}> = ({ dayName, dayExercises, flash, onPick, grid = false }) => {
-  const [discipline, setDiscipline] = useState<Discipline>('calisthenics');
+}> = ({ dayName, picked, flash, onPick, target, header, grid = false }) => {
+  const [chosen, setChosen] = useState<Discipline>('calisthenics');
+  // Warm-ups open on the warm-up drills; any shelf can still be browsed.
+  const [warmShelf, setWarmShelf] = useState<Discipline>('prep');
+  const discipline = target === 'warmups' ? warmShelf : chosen;
+  const pickShelf = target === 'warmups' ? setWarmShelf : setChosen;
   const [query, setQuery] = useState('');
-  const onDay = new Set(dayExercises.map((exercise) => exercise.exercise));
+  const onDay = new Set(picked.map((exercise) => exercise.exercise));
 
   const results = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -446,6 +477,7 @@ const Catalogue: React.FC<{
           <span className="h-[26px] px-2.5 rounded-full bg-act text-act-deep font-display font-bold text-[13px] leading-[26px]">→ {dayName.slice(0, 3)}</span>
         </div>
       )}
+      {header}
       <label className="flex items-center gap-2 h-11 px-3 rounded-[14px] bg-ink-950 border border-ink-700 focus-within:border-act">
         <Search className="w-4 h-4 text-fg-5" />
         <span className="sr-only">Search exercises</span>
@@ -463,7 +495,7 @@ const Catalogue: React.FC<{
             <button
               key={entry.id}
               type="button"
-              onClick={() => setDiscipline(entry.id)}
+              onClick={() => pickShelf(entry.id)}
               aria-pressed={entry.id === discipline}
               className={`h-8 px-3 rounded-full border text-xs font-bold cursor-pointer ${
                 entry.id === discipline ? 'bg-act border-act text-act-deep' : 'bg-ink-850 border-ink-700 text-fg-3'
@@ -511,7 +543,7 @@ const Catalogue: React.FC<{
   );
 };
 
-const ArmorRow: React.FC<{ armor: string[]; onToggle: (id: string) => void }> = ({ armor, onToggle }) => (
+const ArmorRow: React.FC<{ armor: ArmorSlot[]; onToggle: (slot: ArmorSlot) => void }> = ({ armor, onToggle }) => (
   <section aria-label="Weekly tendon armor" className="flex flex-col gap-2.5 p-3.5 rounded-[20px] bg-ink-900 border border-ink-700">
     <div className="flex items-center gap-2">
       <Shield className="w-4 h-4 text-act" />
@@ -523,14 +555,15 @@ const ArmorRow: React.FC<{ armor: string[]; onToggle: (id: string) => void }> = 
     </div>
     <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
       {ARMOR_CATALOG.map((piece) => {
-        const on = armor.includes(piece.id);
+        const slot = piece.id.replace(/^armor_/, '') as ArmorSlot;
+        const on = armor.includes(slot);
         return (
           <button
             key={piece.id}
             type="button"
             role="switch"
             aria-checked={on}
-            onClick={() => onToggle(piece.id)}
+            onClick={() => onToggle(slot)}
             title={`${piece.drill} — ${piece.when}`}
             className={`h-[58px] rounded-2xl border-[1.5px] flex flex-col items-center justify-center gap-1 cursor-pointer ${
               on ? 'bg-act/10 border-act text-act' : 'bg-ink-850 border-dashed border-ink-600 text-fg-5'
@@ -544,3 +577,59 @@ const ArmorRow: React.FC<{ armor: string[]; onToggle: (id: string) => void }> = 
     </div>
   </section>
 );
+
+const TargetPicker: React.FC<{ target: Target; onPick: (target: Target) => void }> = ({ target, onPick }) => (
+  <div role="radiogroup" aria-label="Add to" className="grid grid-cols-2 gap-1 p-1 rounded-[14px] bg-ink-950 border border-ink-700">
+    {(['missions', 'warmups'] as const).map((id) => (
+      <button
+        key={id}
+        type="button"
+        role="radio"
+        aria-checked={id === target}
+        onClick={() => onPick(id)}
+        className={`h-9 rounded-[10px] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
+          id === target ? 'bg-act text-act-deep' : 'text-fg-3'
+        }`}
+      >
+        {id === 'missions' ? <Plus className="w-3.5 h-3.5" strokeWidth={3} /> : <Flame className="w-3.5 h-3.5" />}
+        {id === 'missions' ? 'Missions' : 'Warm-up'}
+      </button>
+    ))}
+  </div>
+);
+
+/** The day's warm-up: done before the missions, ticked on the quest board. */
+const WarmUps: React.FC<{ warmUps: WarmUp[]; onChange: (warmUps: WarmUp[]) => void; compact?: boolean }> = ({ warmUps, onChange, compact = false }) => {
+  if (!warmUps.length) return null;
+  return (
+    <div className={`flex flex-col ${compact ? 'gap-1' : 'gap-1.5 p-3 rounded-[18px] bg-ink-900 border border-ink-750'}`} aria-label="Warm-up">
+      {!compact && (
+        <span className="flex items-center gap-1.5 text-[11px] font-extrabold tracking-[0.1em] uppercase text-earned-soft">
+          <Flame className="w-3.5 h-3.5" /> Warm-up
+        </span>
+      )}
+      <ul className="flex flex-wrap gap-1">
+        {warmUps.map((warmUp, index) => {
+          const name = EXERCISE_BY_ID.get(warmUp.exercise)?.name ?? 'Warm-up';
+          return (
+            <li
+              key={warmUp.id}
+              className={`list-none flex items-center gap-1 rounded-full border border-[#4a3a18] bg-[#14100a] text-earned-soft ${compact ? 'pl-2 pr-0.5 h-6 text-[10.5px] max-w-full' : 'pl-2.5 pr-1 h-8 text-xs'}`}
+            >
+              {compact && <Flame className="w-3 h-3 shrink-0" />}
+              <span className="truncate font-semibold">{name}</span>
+              <button
+                type="button"
+                onClick={() => onChange(removeAt(warmUps, index))}
+                aria-label={`Remove ${name} from the warm-up`}
+                className={`${compact ? 'w-5 h-5' : 'w-6 h-6'} shrink-0 rounded-full flex items-center justify-center hover:bg-[#2a2010] cursor-pointer`}
+              >
+                <X className="w-3 h-3" strokeWidth={2.8} />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+};

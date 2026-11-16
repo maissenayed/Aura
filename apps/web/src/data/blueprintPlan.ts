@@ -8,7 +8,7 @@
  * says "log it" instead of giving a starting number, the baseline is left empty.
  */
 
-import { PlanSpec, resolvePlan } from '../utils/campaignPlan';
+import { PlanSpec, PlanSpecV2, blankSpec, normalizeSpec, resolvePlan } from '../utils/campaignPlan';
 
 const BOSS_IDS = [
   'boss_planche',
@@ -23,7 +23,7 @@ const BOSS_IDS = [
   'boss_oap',
 ];
 
-export const BLUEPRINT_SPEC: PlanSpec = {
+export const BLUEPRINT_SPEC_V2: PlanSpecV2 = {
   version: 2,
   name: 'The Hybrid Calisthenics Engine',
 
@@ -174,6 +174,9 @@ export const BLUEPRINT_SPEC: PlanSpec = {
     },
   ],
 };
+
+/** The blueprint in the current format, converted the same way a stored v2 plan is. */
+export const BLUEPRINT_SPEC: PlanSpec = normalizeSpec(BLUEPRINT_SPEC_V2, blankSpec(BLUEPRINT_SPEC_V2.bodyweight.start));
 
 /** The blueprint as the game reads it. */
 export const BLUEPRINT_PLAN = resolvePlan(BLUEPRINT_SPEC);
