@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#06070b" />
-    <title>Aura · Offline</title>
+    <title>Aura · Needs a connection</title>
     <style>
       :root {
         color-scheme: dark;
@@ -46,16 +46,33 @@
         font-size: 15px;
         line-height: 1.5;
       }
-      button {
+      .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        max-width: 240px;
         margin-top: 4px;
+      }
+      a,
+      button {
+        display: block;
         padding: 12px 28px;
-        border: 0;
         border-radius: 999px;
-        background: #a77bff;
-        color: #06070b;
         font: inherit;
         font-weight: 700;
+        text-decoration: none;
         cursor: pointer;
+      }
+      a {
+        border: 0;
+        background: #a77bff;
+        color: #06070b;
+      }
+      button {
+        border: 1px solid #2a2f42;
+        background: transparent;
+        color: #e8e9f2;
       }
     </style>
   </head>
@@ -66,8 +83,11 @@
       <path d="M364 128 C369 160 381 172 412 177 C381 182 369 194 364 226 C359 194 347 182 316 177 C347 172 359 160 364 128 Z" fill="#3ee8ff" />
       <circle cx="160" cy="364" r="13" fill="#ffc247" />
     </svg>
-    <h1>You're offline</h1>
-    <p>Aura needs a connection to load your quests. Check your signal and try again.</p>
-    <button type="button" onclick="location.reload()">Try again</button>
+    <h1>This screen needs a connection</h1>
+    <p>You're offline and this screen isn't saved on this device yet. Camp, your quests and your progress still work.</p>
+    <div class="actions">
+      <a href="/camp">Back to Camp</a>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </div>
   </body>
 </html>

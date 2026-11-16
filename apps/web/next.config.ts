@@ -13,10 +13,15 @@ import type { NextConfig } from 'next';
 const backendOrigin = process.env.BACKEND_ORIGIN ?? (process.env.VERCEL ? null : 'http://localhost:3002');
 
 const nextConfig: NextConfig = {
+  env: {
+    // Names this build. The service worker is registered under it, so every deploy reinstalls the
+    // worker and stores that deploy's screens for offline use.
+    AURA_BUILD_ID: process.env.VERCEL_DEPLOYMENT_ID || process.env.VERCEL_GIT_COMMIT_SHA || `local-${Date.now()}`,
+  },
   async headers() {
     return [
       {
-        // The service worker that makes Aura installable: never cached, so a fix reaches installed phones on their next visit.
+        // The service worker that keeps Aura on the phone: never cached, so a fix reaches installed phones on their next visit.
         source: '/sw.js',
         headers: [
           { key: 'Content-Type', value: 'application/javascript; charset=utf-8' },

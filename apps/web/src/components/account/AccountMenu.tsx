@@ -29,8 +29,9 @@ export const AccountMenu: React.FC = () => {
     };
   }, [open]);
 
-  // Before the owner exists there is nobody to sign in as, so the header stays quiet.
-  if (mode === 'open' || status === 'loading' || setupRequired) return null;
+  // Before the owner exists there is nobody to sign in as, so the header stays quiet. Offline, before
+  // the server said who is signed in, nobody is known yet either: no "Sign in" over a board that is playing.
+  if (mode === 'open' || status === 'loading' || setupRequired || (status === 'offline' && !account)) return null;
 
   if (!account) {
     return (
