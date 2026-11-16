@@ -132,7 +132,7 @@ export const FightPanel: React.FC<{ status: BossStatus; showBack?: boolean }> = 
 };
 
 const WeakPoint: React.FC<{ req: RequirementStatus; locked: boolean }> = ({ req, locked }) => {
-  const { save, logStat, toggleMilestone, weighIn, derived } = useGame();
+  const { save, logStat, weighIn, derived } = useGame();
   const done = req.met;
   const kind = req.requirement.kind;
 
@@ -189,24 +189,6 @@ const WeakPoint: React.FC<{ req: RequirementStatus; locked: boolean }> = ({ req,
             </Link>
           ))}
         </span>
-      );
-    }
-  } else if (req.requirement.kind === 'milestone') {
-    const id = req.requirement.milestone;
-    const claimed = Boolean(save.milestones[id]);
-    value = claimed ? 'Claimed' : 'Milestone';
-    if (!locked) {
-      action = (
-        <button
-          type="button"
-          onClick={() => toggleMilestone(id)}
-          aria-pressed={claimed}
-          className={`h-11 px-4 rounded-[14px] font-display font-bold text-sm cursor-pointer transition ${
-            claimed ? 'bg-earned text-earned-deep' : 'bg-act text-act-deep'
-          }`}
-        >
-          {claimed ? 'UNDO' : 'CLAIM'}
-        </button>
       );
     }
   } else if (req.requirement.kind === 'boss') {

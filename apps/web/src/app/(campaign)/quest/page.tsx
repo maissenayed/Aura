@@ -219,7 +219,7 @@ const MissionCard: React.FC<{ exercise: PlanExercise; dayKind: string; done: boo
 }) => {
   const { plan, derived } = useGame();
   const [xpFloat, setXpFloat] = useState(0);
-  const logs = Boolean(liftOf(plan, exercise.lift) || exercise.load);
+  const logs = Boolean(liftOf(plan, exercise.lift));
   const { sets, reps } = splitTarget(exercise.target);
   const bosses = bossesOfExercise(derived.bosses, exercise);
 
