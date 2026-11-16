@@ -27,6 +27,7 @@ import {
   leverToPlanche,
   lPullUp,
   lSit,
+  maltese,
   muscleUp,
   nordic,
   oneArmPushUp,
@@ -43,6 +44,7 @@ import {
   reverseHyper,
   ringLPull,
   ringsHandstand,
+  ringsFlow,
   ringsHandstandPushUp,
   ringsToSupport,
   ropeClimb,
@@ -68,7 +70,7 @@ import {
  * Which drawing each calisthenics exercise gets: a movement family from
  * `calisthenicsFamilies.ts` with the options that make it this exercise.
  * Keyed by exercise id from the built-in dataset; an exercise without an
- * entry has no drawing. Covers levels 1–10 (Beginner, Intermediate and Advanced).
+ * entry has no drawing. Covers every level, 1 to 16 (Beginner through Elite).
  */
 
 /* ------------------------------------------------------------------ */
@@ -518,7 +520,108 @@ const ADVANCED: Record<string, () => FigureSpec> = {
   ex_286: () => kneelingQuad('sissy', { oneLeg: true }),
 };
 
-const FIGURES: Record<string, () => FigureSpec> = { ...BEGINNER, ...INTERMEDIATE, ...ADVANCED };
+/* ------------------------------------------------------------------ */
+/* Levels 11–16                                                        */
+/* ------------------------------------------------------------------ */
+
+const ELITE: Record<string, () => FigureSpec> = {
+  // Push-ups with the feet up
+  ex_300: () => pushUp({ grip: 'pseudo', lean: 0.5, feetUp: true, rings: true }),
+  ex_317: () => pushUp({ grip: 'pseudo', lean: 1, feetUp: true }),
+  ex_325: () => pushUp({ grip: 'pseudo', lean: 1, feetUp: true, rings: true }),
+
+  // Planche
+  ex_299: () => planche({ legs: 'full' }),
+  ex_314: () => planche({ legs: 'half-lay', rings: true }),
+  ex_333: () => planche({ legs: 'full', rings: true }),
+  ex_338: () => planche({ legs: 'full', rings: true }),
+  ex_358: () => planche({ legs: 'full', oneArm: true }),
+  ex_315: () => planche({ legs: 'half-lay', press: true }),
+  ex_334: () => planche({ legs: 'full', press: true }),
+  ex_316: () => planche({ legs: 'straddle', rings: true, press: true }),
+  ex_335: () => planche({ legs: 'half-lay', rings: true, press: true }),
+  ex_352: () => planche({ legs: 'full', rings: true, press: true }),
+  ex_313: () => pressToHandstand('straddle-planche'),
+  ex_332: () => pressToHandstand('straddle-planche', { rings: true }),
+  ex_351: () => pressToHandstand('full-planche', { rings: true }),
+  ex_354: () => maltese(),
+
+  // Dips: "90+x" leans the body x degrees past horizontal
+  ex_301: () => dip({ rings: true, turnedOut: true, lean: 140 }),
+  ex_318: () => dip({ rings: true, turnedOut: true, lean: 155 }),
+  ex_326: () => dip({ rings: true, turnedOut: true, lean: 165 }),
+  ex_336: () => dip({ rings: true, turnedOut: true, lean: 172 }),
+  ex_353: () => dip({ rings: true, turnedOut: true, lean: 178 }),
+  ex_302: () => dip({ extra: 'plate', plate: 12.5 }),
+
+  // Pull-ups
+  ex_296: () => pullUp({ extra: 'plate', plate: 12.5 }),
+  ex_295: () => pullUp({ kind: 'one-arm', extra: 'plate', plate: 5.5 }),
+  ex_297: () => pullUp({ kind: 'clap-behind' }),
+
+  // Muscle-ups and ring transitions
+  ex_355: () => muscleUp(),
+  ex_345: barPullover,
+  ex_303: () => leverToPlanche('straddle'),
+  ex_319: () => ringsFlow('inverted-straight', 'handstand', { direction: 'backward' }),
+  ex_337: () => ringsFlow('inverted-straight', 'handstand'),
+  ex_304: () => ringsFlow('inverted-pike', 'handstand', { direction: 'backward' }),
+  ex_320: () => ringsFlow('inverted-pike', 'handstand', { direction: 'backward' }),
+  ex_347: () => ringsFlow('inverted-straight', 'handstand'),
+  ex_305: () => ringsFlow('inverted-pike', 'straddle-l', { direction: 'backward' }),
+  ex_346: () => ringsFlow('inverted-pike', 'planche', { direction: 'backward' }),
+  ex_327: () => ringsFlow('inverted-pike', 'cross'),
+  ex_328: () => ringsFlow('inverted-straight', 'cross'),
+  ex_339: () => ringsFlow('inverted-pike', 'cross', { direction: 'backward' }),
+  ex_298: () => ringsFlow('cross', 'back-lever', { direction: 'none' }),
+  ex_292: () => ringsFlow('handstand', 'back-lever', { direction: 'none' }),
+  ex_307: () => hefesto({ from: 'back-lever' }),
+  ex_321: () => hefesto(),
+
+  // Levers
+  ex_293: () => frontLever('full', { toInverted: 'from-lever' }),
+  ex_294: () => frontLever('full', { rows: true }),
+  ex_373: () => frontLever('full', { rows: true }),
+  ex_322: () => frontLever('full', { oneArm: true }),
+  ex_331: () => backLever('full', { from: 'pull-up', rings: true }),
+
+  // Rings statics
+  ex_324: () => ironCross({ pullout: true }),
+  ex_350: () => ironCross({ from: 'hang' }),
+  ex_356: () => ironCross({ inverted: true }),
+  ex_308: () => victorian('hold'),
+  ex_329: () => victorian('hold'),
+  ex_348: () => victorian('hold', { rings: true }),
+  ex_357: () => victorian('floor'),
+  ex_349: () => victorian('press'),
+  ex_330: () => victorian('press', { oneArm: true }),
+
+  // Handstands and presses
+  ex_415: () => handstand('one-arm-prep'),
+  ex_416: () => handstand('one-arm'),
+  ex_417: () => handstand('one-arm-straight'),
+  ex_418: () => handstand('hold'),
+  ex_289: () => pressToHandstand('elbow-lever', { rings: true }),
+  ex_310: () => pressToHandstand('bars-dip', { rings: true }),
+  ex_290: () => pressToHandstand('l-sit', { rings: true }),
+  ex_311: () => pressToHandstand('straddle-stand', { rings: true }),
+  ex_288: () => overheadPress(12),
+
+  // V-sit to manna
+  ex_391: () => vSit(120),
+  ex_392: () => vSit(140),
+  ex_291: () => vSit(155),
+  ex_393: () => vSit(155),
+  ex_312: () => vSit(170),
+  ex_394: () => vSit(170),
+  ex_323: () => vSit(178),
+
+  // Legs
+  ex_306: () => pistol(10),
+  ex_309: () => kneelingQuad('matrix', { oneLeg: true }),
+};
+
+const FIGURES: Record<string, () => FigureSpec> = { ...BEGINNER, ...INTERMEDIATE, ...ADVANCED, ...ELITE };
 
 /** Built on first use: over three hundred figures, most of which a visit never shows. */
 const built = new Map<string, FigureSpec>();

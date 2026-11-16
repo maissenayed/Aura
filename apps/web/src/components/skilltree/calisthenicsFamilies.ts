@@ -316,7 +316,7 @@ export interface DipOptions {
   tempo?: 'even' | 'slow-return';
   /** bent: knees bent behind · l-sit: legs held level in front · pike: legs angled down in front · straight: legs hanging straight. */
   legs?: 'bent' | 'l-sit' | 'pike' | 'straight';
-  /** Torso lean from vertical in degrees: 45, 75, 90, 120 (hips above the shoulders). */
+  /** Torso lean from vertical in degrees: 45, 75, 90, up to about 180 (hips above the shoulders, nearly inverted). */
   lean?: number;
   /** One arm only, the other resting on the hip. */
   oneArm?: boolean;
@@ -324,7 +324,8 @@ export interface DipOptions {
 }
 
 export function dip({ rings = false, depth = 'full', shoulders = 'behind-wrist', extra, plate = 5, tempo, legs = 'bent', lean = 0, oneArm = false, turnedOut = false }: DipOptions = {}): FigureSpec {
-  const hands: Pt = [50, 49.5];
+  // Steep leans put the legs high above the rings, so the rings hang lower.
+  const hands: Pt = [50, lean > 125 ? 49.5 + Math.min(lean - 110, 26) : 49.5];
   const radians = (lean * Math.PI) / 180;
   const along: Pt = [-Math.sin(radians), Math.cos(radians)];
   // Leaning past 45° the legs follow the body, as in a planche.
@@ -358,7 +359,7 @@ export function dip({ rings = false, depth = 'full', shoulders = 'behind-wrist',
     return person;
   };
   const leaning = (neck: Pt) => pose(neck, add(neck, mul(along, 22)), [36, 68]);
-  const top = lean > 0 ? leaning(lean > 50 ? [60, 30] : [57, 29]) : pose([50, 26.5], [48, 48.5], [42, 74]);
+  const top = lean > 0 ? leaning(add(hands, lean > 50 ? [10, -19.5] : [7, -20.5])) : pose([50, 26.5], [48, 48.5], [42, 74]);
   const forearmShoulders: Record<NonNullable<DipOptions['shoulders']>, Pt> = {
     'front-of-wrist': [56, 41],
     'behind-wrist': [47, 40.5],
@@ -374,10 +375,11 @@ export function dip({ rings = false, depth = 'full', shoulders = 'behind-wrist',
       : depth === 'partial'
         ? pose([53.5, 34], [46, 54.5], [39, 79])
         : lean > 0
-          ? leaning(lean > 50 ? [63, 41] : [61, 41])
+          ? leaning(add(hands, lean > 50 ? [13, -8.5] : [11, -8.5]))
           : pose([55, 40], [44, 59], [36, 82]);
   const wall = rings ? FLOOR : `${PARALLEL_BARS} ${extra === 'floor' ? FLOOR : ''}`;
-  const arrows: Arrow[] = turnedOut ? [{ d: 'M58,58 Q62,53 58,48', kind: 'force' }] : [];
+  const [ax, ay] = [hands[0] + 8, hands[1] + 8.5];
+  const arrows: Arrow[] = turnedOut ? [{ d: `M${ax},${ay} Q${ax + 4},${ay - 5} ${ax},${ay - 10}`, kind: 'force' }] : [];
   return clip({ scene: rings ? 'rings' : 'bars', wall, start: top, end: bottom, tempo, seconds: tempo ? 3.4 : 2.6, arrows });
 }
 
@@ -467,9 +469,9 @@ export interface PullUpOptions {
    * explosive: pull so hard the hands come off the bar · clap: …and clap at the top ·
    * scapular: straight arms, shoulders only · typewriter: slide side to side at the top ·
    * archer: pull to one hand, the other arm straight · one-arm: one hand ·
-   * slap: let go at the top and slap the thighs.
+   * slap: let go at the top and slap the thighs · clap-behind: let go and clap behind the back.
    */
-  kind?: 'pull' | 'explosive' | 'clap' | 'slap' | 'scapular' | 'typewriter' | 'archer' | 'one-arm';
+  kind?: 'pull' | 'explosive' | 'clap' | 'slap' | 'clap-behind' | 'scapular' | 'typewriter' | 'archer' | 'one-arm';
   tempo?: 'even' | 'slow-return';
   rings?: boolean;
   wide?: boolean;
@@ -513,6 +515,9 @@ export function pullUp({ extra, plate = 5.5, kind = 'pull', tempo, rings = false
       return clip({ scene, wall, start: pose([50, hangY]), end: pose([50, 16], [[48, 2], [52, 2]], true), seconds: 1.8, arrows: [{ d: 'M80,40 L80,22' }] });
     case 'slap':
       return clip({ scene, wall, start: pose([50, hangY]), end: pose([50, 16], [[43.5, 50], [56.5, 50]]), seconds: 1.8, arrows: [{ d: 'M80,40 L80,22' }] });
+    case 'clap-behind':
+      // The hands meet behind the lower back, just showing either side of the hips.
+      return clip({ scene, wall, start: pose([50, hangY]), end: pose([50, 16], [[47, 37], [53, 37]]), seconds: 1.8, arrows: [{ d: 'M80,40 L80,22' }] });
     case 'typewriter':
       return clip({ scene, wall, start: pose([39, 19]), end: pose([61, 19]), seconds: 2.6 });
     case 'archer':
@@ -591,16 +596,19 @@ export function muscleUp(tempo?: 'slow-return', kip = false, oneArm = false): Fi
     : clip({ scene: 'bar', wall, start: hang, end: support, seconds: 2.4, arrows });
 }
 
-/** From a straddle front lever under the bar, through a muscle-up, to an advanced tuck planche on top. */
-export function leverToPlanche(): FigureSpec {
+/** From a straddle front lever under the bar, through a muscle-up, to a planche on top (advanced tuck or straddle). */
+export function leverToPlanche(top: 'advanced-tuck' | 'straddle' = 'advanced-tuck'): FigureSpec {
   const bar: Pt = [50, 40];
   const k = 0.72;
   const lever = S({ neck: [55, 63], pelvis: [33, 63], lHand: bar, rHand: behind(bar), lFoot: [4, 63], rFoot: [5, 68], bend: { lArm: 'down', rArm: 'down' } }, ['torso', 'lArm', 'rArm']);
-  const top = S(
-    { neck: [59, 19], pelvis: [37, 21], lHand: bar, rHand: behind(bar), lFoot: [24, 33], rFoot: [22.5, 33], bend: { lArm: 'left', rArm: 'left' }, joints: { lLeg: [37, 36], rLeg: [35.5, 36] } },
-    ['torso', 'lArm', 'rArm'],
-  );
-  return clip({ scene: 'bar', wall: BAR_ACROSS(bar[1]), start: scaled(lever, k, bar), end: scaled(top, k, bar), seconds: 3 });
+  const planche =
+    top === 'straddle'
+      ? S({ neck: [59, 19], pelvis: [37, 20], lHand: bar, rHand: behind(bar), lFoot: [8, 21], rFoot: [9.5, 26], bend: { lArm: 'left', rArm: 'left' } }, ['torso', 'lArm', 'rArm'])
+      : S(
+          { neck: [59, 19], pelvis: [37, 21], lHand: bar, rHand: behind(bar), lFoot: [24, 33], rFoot: [22.5, 33], bend: { lArm: 'left', rArm: 'left' }, joints: { lLeg: [37, 36], rLeg: [35.5, 36] } },
+          ['torso', 'lArm', 'rArm'],
+        );
+  return clip({ scene: 'bar', wall: BAR_ACROSS(bar[1]), start: scaled(lever, k, bar), end: scaled(planche, k, bar), seconds: 3 });
 }
 
 /** Bar pullover: from a hang, the hips swing up and over the bar into support. */
@@ -770,11 +778,14 @@ export interface FrontLeverOptions {
   rings?: boolean;
   /** From the lever (or from a dead hang) pull on through to an inverted hang. */
   toInverted?: 'from-lever' | 'from-hang';
+  /** One hand on the bar, the other along the side. */
+  oneArm?: boolean;
 }
 
-export function frontLever(legs: LeverLegs, { rows = false, rings = false, toInverted }: FrontLeverOptions = {}): FigureSpec {
+export function frontLever(legs: LeverLegs, { rows = false, rings = false, toInverted, oneArm = false }: FrontLeverOptions = {}): FigureSpec {
   const bar: Pt = [56, 18];
   const hold = (person: Drawn) => (rings ? onRings(person, [bar]) : person);
+  const other = (pelvis: Pt): Pt => (oneArm ? [pelvis[0] + 7, pelvis[1] + 3] : behind(bar));
   const at = (y: number) => {
     const neck: Pt = [60, y];
     const pelvis: Pt = [38, y];
@@ -787,9 +798,9 @@ export function frontLever(legs: LeverLegs, { rows = false, rings = false, toInv
       full: { l: [8.5, y], r: [8.5, y + 1.5] },
     };
     const { l, r, lKnee, rKnee } = shape[legs];
-    return hold(S({ neck, pelvis, lHand: bar, rHand: behind(bar), lFoot: l, rFoot: r, bend: { lArm: 'down', rArm: 'down' }, joints: { ...(lKnee ? { lLeg: lKnee } : {}), ...(rKnee ? { rLeg: rKnee } : {}) } }, ['torso', 'lArm', 'rArm']));
+    return hold(S({ neck, pelvis, lHand: bar, rHand: other(pelvis), lFoot: l, rFoot: r, bend: { lArm: 'down', rArm: 'down' }, joints: { ...(lKnee ? { lLeg: lKnee } : {}), ...(rKnee ? { rLeg: rKnee } : {}) } }, ['torso', 'lArm', 'rArm']));
   };
-  const hang = hold(S({ neck: [56, 41.5], pelvis: [56, 63.5], lHand: bar, rHand: behind(bar), lFoot: [56, 92], rFoot: [54.5, 92] }, ['torso', 'lArm', 'rArm']));
+  const hang = hold(S({ neck: [56, 41.5], pelvis: [56, 63.5], lHand: bar, rHand: oneArm ? [59.5, 61] : behind(bar), lFoot: [56, 92], rFoot: [54.5, 92] }, ['torso', 'lArm', 'rArm']));
   const inverted = hold(S({ neck: [57, 41.5], pelvis: [58, 19.5], lHand: bar, rHand: behind(bar), lFoot: [60, -9], rFoot: [58.5, -9] }, ['torso', 'lArm', 'rArm']));
   const scene: Scene = rings ? 'rings' : 'bar';
   const holds = rings ? undefined : BAR_HOLD(bar[0], bar[1]);
@@ -1228,14 +1239,16 @@ export function overheadPress(load: number): FigureSpec {
 
 export interface PlancheOptions {
   /** straight-frog: knees resting on straight arms · tuck · advanced-tuck: back flat, hips open. */
-  legs: 'straight-frog' | 'tuck' | 'advanced-tuck' | 'straddle' | 'half-lay';
+  legs: 'straight-frog' | 'tuck' | 'advanced-tuck' | 'straddle' | 'half-lay' | 'full';
   rings?: boolean;
   /** Lower and press back up while holding the shape. */
   press?: boolean;
+  /** One hand on the floor, the other along the side (the one-arm planche). */
+  oneArm?: boolean;
 }
 
 /** Shoulders leaning well past the hands, hips lifted; from feet on the floor into the hold, or press-ups in it. */
-export function planche({ legs, rings = false, press = false }: PlancheOptions): FigureSpec {
+export function planche({ legs, rings = false, press = false, oneArm = false }: PlancheOptions): FigureSpec {
   const lift = rings ? 13 : 0;
   const up = (p: Pt): Pt => [p[0], p[1] - lift];
   const hands = up([56, G]);
@@ -1245,10 +1258,10 @@ export function planche({ legs, rings = false, press = false }: PlancheOptions):
         neck: up(neck),
         pelvis: up(pelvis),
         lHand: hands,
-        rHand: behind(hands, -1.5),
+        rHand: oneArm ? up([pelvis[0] + 6, pelvis[1] + 4]) : behind(hands, -1.5),
         lFoot: up(feet),
         rFoot: behind(up(feet), 1.5),
-        bend: { lArm: 'left', rArm: 'left' },
+        bend: { lArm: 'left', rArm: oneArm ? 'down' : 'left' },
         joints: knee ? { lLeg: up(knee), rLeg: behind(up(knee), 1.5) } : undefined,
       },
       ['lArm', 'rArm', 'torso'],
@@ -1261,6 +1274,7 @@ export function planche({ legs, rings = false, press = false }: PlancheOptions):
     'advanced-tuck': { neck: [65, 62], pelvis: [43, 62], feet: [29, 75], knee: [43, 77] },
     straddle: { neck: [65, 62], pelvis: [43, 62], feet: [13.5, 63], knee: [28.5, 62.5] },
     'half-lay': { neck: [65, 62], pelvis: [43, 62], feet: [28, 76.5], knee: [28, 62] },
+    full: { neck: [65, 62], pelvis: [43, 62], feet: [13.5, 62], knee: [28.5, 62] },
   };
   const hold = shapes[legs];
   const shape = pose(hold.neck, hold.pelvis, hold.feet, hold.knee);
@@ -1380,7 +1394,7 @@ const handstandPose = (hands: Pt, sway = 0, focus: Part[] = ['lArm', 'rArm', 'to
   );
 
 /** Freestanding handstand: kicking up from a lunge, holding with small corrections, or shifting toward one arm. */
-export function handstand(kind: 'kick' | 'hold' | 'one-arm-prep' | 'one-arm' | 'tuck'): FigureSpec {
+export function handstand(kind: 'kick' | 'hold' | 'one-arm-prep' | 'one-arm' | 'one-arm-straight' | 'tuck'): FigureSpec {
   const hands: Pt = [56, G];
   if (kind === 'hold') return clip({ scene: 'floor', wall: FLOOR, start: handstandPose(hands, -1.5), end: handstandPose(hands, 1.5), seconds: 2.4 });
   if (kind === 'tuck') {
@@ -1397,12 +1411,20 @@ export function handstand(kind: 'kick' | 'hold' | 'one-arm-prep' | 'one-arm' | '
     return clip({ scene: 'floor', wall: FLOOR, start: lunge, end: handstandPose(hands, 0, ['lLeg', 'rLeg', 'torso']), seconds: 2.4 });
   }
   // Seen from the front, upside down: the left hand is on the right of the picture.
-  const pose = (shift: number, freeHand: Pt) =>
+  const pose = (shift: number, freeHand: Pt, legsTogether = false) =>
     FRONT(
-      { neck: [50 - shift, 60], pelvis: [50 - shift * 1.6, 38], lHand: [57, G], rHand: freeHand, lFoot: [72 - shift * 2, 16], rFoot: [28 - shift * 2, 16] },
+      {
+        neck: [50 - shift, 60],
+        pelvis: [50 - shift * 1.6, 38],
+        lHand: [57, G],
+        rHand: freeHand,
+        lFoot: legsTogether ? [52.5 - shift * 2, 9.5] : [72 - shift * 2, 16],
+        rFoot: legsTogether ? [47.5 - shift * 2, 9.5] : [28 - shift * 2, 16],
+      },
       ['lArm', 'rArm', 'torso'],
     );
   if (kind === 'one-arm') return clip({ scene: 'floor', wall: FLOOR, start: pose(-5, [30, 62]), end: pose(-6.5, [28, 58]), seconds: 2.4 });
+  if (kind === 'one-arm-straight') return clip({ scene: 'floor', wall: FLOOR, start: pose(-5, [30, 62], true), end: pose(-6.5, [28, 58], true), seconds: 2.4 });
   return clip({ scene: 'floor', wall: FLOOR, start: pose(0, [43, G]), end: pose(-4, [40, G - 6]), seconds: 2.8 });
 }
 
@@ -1495,7 +1517,9 @@ export type PressStart =
   | 'straight-body'
   | 'elbow-lever'
   | 'bars-dip'
-  | 'straddle-stand';
+  | 'straddle-stand'
+  | 'straddle-planche'
+  | 'full-planche';
 
 /**
  * Press to handstand from different starts: a crouch, an L-sit, a straddle on a box,
@@ -1513,6 +1537,9 @@ export function pressToHandstand(from: PressStart, { rings = false }: { rings?: 
     'elbow-lever': S({ neck: [62.5, 70.5], pelvis: [40.5, 70.5], lHand: hands, rHand: behind(hands, -1.5), lFoot: [11, 70.5], rFoot: [11, 72], joints: { lArm: [55, 72], rArm: [53.5, 72] } }, CORE),
     'straddle-stand': S({ neck: [58, 61], pelvis: [46, 44], lHand: hands, rHand: behind(hands, -1.5), lFoot: [36, G], rFoot: [34.5, G] }, CORE),
     chair: S({ neck: [54, 61], pelvis: [55, 83], lHand: hands, rHand: behind(hands, -1.5), lFoot: [64, 90], rFoot: [62.5, 90], joints: { lLeg: [68, 76], rLeg: [66.5, 76] } }, CORE),
+    // Straight arms from the planche: the hips rise over the hands and the legs swing up.
+    'straddle-planche': S({ neck: [65, 62], pelvis: [43, 62], lHand: hands, rHand: behind(hands, -1.5), lFoot: [13.5, 63], rFoot: [15, 67], bend: { lArm: 'left', rArm: 'left' } }, CORE),
+    'full-planche': S({ neck: [65, 62], pelvis: [43, 62], lHand: hands, rHand: behind(hands, -1.5), lFoot: [13.5, 62], rFoot: [13.5, 63.5], bend: { lArm: 'left', rArm: 'left' } }, CORE),
   };
   if (from === 'wall-straddle') {
     const wallHands: Pt = [72, G];
@@ -1701,16 +1728,18 @@ export function abWheel(
 /* Advanced holds and transitions                                      */
 /* ------------------------------------------------------------------ */
 
-/** V-sit: from an L-sit the legs rise to `angle` degrees above level (past 90 they pass the face). On the floor or rings. */
+/** V-sit: from an L-sit the legs rise to `angle` degrees above level (past 90 they pass the face; about 180 is the manna). On the floor or rings. */
 export function vSit(angle: number, { rings = false }: { rings?: boolean } = {}): FigureSpec {
   const raise = rings ? 20 : 0;
   const hands: Pt = [48, G - raise];
   const rad = (degrees: number) => (degrees * Math.PI) / 180;
   const pose = (degrees: number) => {
-    // The torso leans back as the legs rise, always leaving a clear gap
-    // between chest and thighs; the straight arms lean back half as far.
-    const tilt = Math.max(Math.min((degrees - 30) * 0.5, 50), degrees - 55, 0);
-    const armLean = rad(tilt / 2);
+    // The torso leans back as the legs rise, leaving a gap between chest and
+    // thighs until, at the manna, it is level with the legs folded over it.
+    // The straight arms stay near upright under the shoulders, so the hips
+    // travel forward off the hands and up to shoulder height.
+    const tilt = Math.min(Math.max(Math.min((degrees - 30) * 0.5, 50), degrees - 55, 0), 105);
+    const armLean = rad(Math.min(tilt / 2, 12));
     const neck: Pt = [hands[0] - Math.sin(armLean) * 26.5, hands[1] - Math.cos(armLean) * 26.5];
     const pelvis: Pt = [neck[0] + Math.sin(rad(tilt)) * 22, neck[1] + Math.cos(rad(tilt)) * 22];
     const feet: Pt = [pelvis[0] + Math.cos(rad(degrees)) * 29.5, pelvis[1] - Math.sin(rad(degrees)) * 29.5];
@@ -1753,6 +1782,65 @@ export function ringsToSupport({
   return clip({ scene: 'rings', wall: FLOOR, start: from, end: to, seconds: 2.8, arrows: [arrow] });
 }
 
+/** Body shapes on the rings, as offsets from the hands (side view, facing right). */
+export type RingShape = 'hang' | 'inverted-pike' | 'inverted-straight' | 'support' | 'straddle-l' | 'cross' | 'back-lever' | 'planche' | 'handstand';
+const RING_SHAPES: Record<RingShape, { neck: Pt; pelvis: Pt; feet: Pt; far?: Pt; straightArms?: boolean }> = {
+  hang: { neck: [0, 23.5], pelvis: [0, 45.5], feet: [0, 75], straightArms: true },
+  'inverted-pike': { neck: [0, 23], pelvis: [1, 1], feet: [12, 27] },
+  'inverted-straight': { neck: [0, 23], pelvis: [1, 1], feet: [2, -28.4] },
+  support: { neck: [0, -22], pelvis: [-1, 0], feet: [-0.5, 29.4] },
+  'straddle-l': { neck: [0, -22], pelvis: [-1, 0], feet: [28.4, 1], far: [24, 8] },
+  // From the side the arms of a cross point at the viewer: the rings sit at the shoulders.
+  cross: { neck: [0, 2], pelvis: [0, 24], feet: [0, 53.4], straightArms: true },
+  'back-lever': { neck: [22, 7], pelvis: [0, 7], feet: [-29.5, 7] },
+  planche: { neck: [9, -21.5], pelvis: [-13, -21.5], feet: [-42.5, -20.5], far: [-41, -16.5] },
+  handstand: { neck: [0, -23.5], pelvis: [1, -45.5], feet: [2, -74.5] },
+};
+
+/**
+ * From one shape on the rings to another — kips and felges up to a cross, a
+ * planche or a handstand, a cross down to a back lever — with the drawing
+ * scaled and placed so both shapes fit. The arrow shows which way the body turns.
+ */
+export function ringsFlow(from: RingShape, to: RingShape, { direction = 'forward' }: { direction?: 'forward' | 'backward' | 'none' } = {}): FigureSpec {
+  const shapes = [RING_SHAPES[from], RING_SHAPES[to]];
+  const extent = shapes.flatMap((shape) => [
+    shape.neck,
+    shape.pelvis,
+    shape.feet,
+    add(shape.neck, mul(unit(sub(shape.neck, shape.pelvis)), 9)),
+    ...(shape.far ? [shape.far] : []),
+    [0, 0] as Pt,
+  ]);
+  const xs = extent.map((p) => p[0]);
+  const ys = extent.map((p) => p[1]);
+  const [minX, maxX, minY, maxY] = [Math.min(...xs) - 4, Math.max(...xs) + 4, Math.min(...ys) - 4, Math.max(...ys) + 4];
+  const k = Math.min(0.9, 80 / (maxY - minY), 92 / (maxX - minX));
+  // Centred between the top of the picture and the floor.
+  const hands: Pt = [50 - (k * (minX + maxX)) / 2, 44 - (k * (minY + maxY)) / 2];
+  const at = (shape: (typeof shapes)[number]) => {
+    const neck = add(hands, shape.neck);
+    const lFoot = add(hands, shape.feet);
+    const person = S(
+      {
+        neck,
+        pelvis: add(hands, shape.pelvis),
+        lHand: hands,
+        rHand: behind(hands, -1.5),
+        lFoot,
+        rFoot: shape.far ? add(hands, shape.far) : behind(lFoot, 1.5),
+        bend: { lArm: 'up', rArm: 'up' },
+        joints: shape.straightArms ? { lArm: mul(add(neck, hands), 0.5), rArm: mul(add(neck, behind(hands, -1.5)), 0.5) } : undefined,
+      },
+      CORE,
+    );
+    return scaled(onRings(person, [hands]), k, hands);
+  };
+  const arrows: Arrow[] = direction === 'forward' ? [{ d: 'M80,62 Q88,44 76,30' }] : direction === 'backward' ? [{ d: 'M20,62 Q12,44 24,30' }] : [];
+  // No floor: scaled to fit, the rings can sit low in the picture and the body should read as hanging.
+  return clip({ scene: 'rings', start: at(shapes[0]), end: at(shapes[1]), seconds: 3, arrows });
+}
+
 /** Hefesto: from a German hang (or a back lever) under the rings, curl up and over into support. */
 export function hefesto({ from = 'german', tempo }: { from?: 'german' | 'back-lever'; tempo?: 'slow-return' } = {}): FigureSpec {
   const hands: Pt = [50, 40];
@@ -1766,8 +1854,14 @@ export function hefesto({ from = 'german', tempo }: { from?: 'german' | 'back-le
     : clip({ scene: 'rings', wall: FLOOR, start: below, end: support, seconds: 3, arrows: [{ d: 'M78,60 Q86,40 72,26' }] });
 }
 
-/** Iron cross on rings, seen from the front: from support, the arms open out to the sides; `partial` stops halfway. */
-export function ironCross({ partial = false }: { partial?: boolean } = {}): FigureSpec {
+/**
+ * Iron cross on rings, seen from the front. From support the arms open out to
+ * the sides (`partial` stops halfway); `from: 'hang'` pulls up into it from a
+ * hang below the rings; `pullout` presses back up from the cross to support;
+ * `inverted` is the upside-down cross, lowered from a rings handstand.
+ */
+export function ironCross({ partial = false, from = 'support', pullout = false, inverted = false }: { partial?: boolean; from?: 'support' | 'hang'; pullout?: boolean; inverted?: boolean } = {}): FigureSpec {
+  const straightArm = (shoulder: Pt, hand: Pt): Pt => [(shoulder[0] + hand[0]) / 2, (shoulder[1] + hand[1]) / 2];
   const pose = (neckY: number, spread: number, drop: number) => {
     const l: Pt = [50 - spread, neckY + drop];
     const r: Pt = [50 + spread, neckY + drop];
@@ -1780,7 +1874,7 @@ export function ironCross({ partial = false }: { partial?: boolean } = {}): Figu
           rHand: r,
           lFoot: [48, neckY + 50],
           rFoot: [52, neckY + 50],
-          joints: { lArm: [(44.4 + l[0]) / 2, (neckY + l[1]) / 2], rArm: [(55.6 + r[0]) / 2, (neckY + r[1]) / 2], lLeg: [48.5, neckY + 36], rLeg: [51.5, neckY + 36] },
+          joints: { lArm: straightArm([44.4, neckY], l), rArm: straightArm([55.6, neckY], r), lLeg: [48.5, neckY + 36], rLeg: [51.5, neckY + 36] },
         },
         ['lArm', 'rArm', 'torso'],
       ),
@@ -1788,20 +1882,96 @@ export function ironCross({ partial = false }: { partial?: boolean } = {}): Figu
       [24, 76],
     );
   };
+  if (inverted) {
+    // Upside down: the neck sits at ring height, the legs straight up; drawn smaller to fit.
+    const rings = 72;
+    const upside = (spread: number, rise: number) => {
+      const neckY = rings - rise;
+      const l: Pt = [50 - spread, rings];
+      const r: Pt = [50 + spread, rings];
+      const person = FRONT(
+        {
+          neck: [50, neckY],
+          pelvis: [50, neckY - 22],
+          lHand: l,
+          rHand: r,
+          lFoot: [48.5, neckY - 50],
+          rFoot: [51.5, neckY - 50],
+          joints: { lArm: straightArm([44.4, neckY], l), rArm: straightArm([55.6, neckY], r), lLeg: [48.8, neckY - 36], rLeg: [51.2, neckY - 36] },
+        },
+        ['lArm', 'rArm', 'torso'],
+      );
+      return scaled(onRings(person, [l, r], [30, 70]), 0.78, [50, rings]);
+    };
+    return clip({ scene: 'rings', wall: FLOOR, start: upside(7, 23), end: upside(29, 0), seconds: 3.2 });
+  }
   const support = pose(30, 10, 22);
   const cross = partial ? pose(34, 22, 12) : pose(36, 29, 0);
-  return clip({ scene: 'rings', wall: FLOOR, start: support, end: cross, seconds: 3 });
+  if (from === 'hang') {
+    // Rings higher up and the drawing smaller: hanging below them, then pulled up level with the shoulders.
+    const fit = (person: Drawn) => scaled(moved(person, 0, -14), 0.8, [50, 22]);
+    return clip({ scene: 'rings', wall: FLOOR, start: fit(pose(59.5, 7, -23.5)), end: fit(cross), seconds: 3.2 });
+  }
+  return pullout
+    ? clip({ scene: 'rings', wall: FLOOR, start: cross, end: support, seconds: 3 })
+    : clip({ scene: 'rings', wall: FLOOR, start: support, end: cross, seconds: 3 });
 }
 
-/** Victorian cross on parallel bars: from support, lowered to a level, face-up body with the arms at the sides; or pressed back up. */
-export function victorian(kind: 'hold' | 'press'): FigureSpec {
+/** Maltese: the body held level just above the hands, the arms straight back by the hips; lowered from a planche. */
+export function maltese({ rings = false }: { rings?: boolean } = {}): FigureSpec {
+  const lift = rings ? 16 : 0;
+  const hands: Pt = [46, G - lift];
+  const pose = (neck: Pt, pelvis: Pt, feet: Pt) => {
+    const person = S(
+      { neck, pelvis, lHand: hands, rHand: behind(hands, -1.5), lFoot: feet, rFoot: behind(feet, 0, 1.5), bend: { lArm: 'left', rArm: 'left' } },
+      ['lArm', 'rArm', 'torso'],
+    );
+    return rings ? onRings(person, [hands]) : person;
+  };
+  const y = hands[1];
+  return clip({
+    scene: rings ? 'rings' : 'floor',
+    wall: FLOOR,
+    start: pose([55, y - 21.5], [33, y - 21.5], [3.5, y - 20.5]),
+    end: pose([68, y - 6.5], [46, y - 6.5], [16.5, y - 6]),
+    seconds: 3,
+  });
+}
+
+/**
+ * Victorian cross: from support, lowered to a level, face-up body with the arms
+ * at the sides (or pressed back up). On parallel bars or rings; `floor` holds
+ * the body level above the floor on the forearms.
+ */
+export function victorian(kind: 'hold' | 'press' | 'floor', { rings = false, oneArm = false }: { rings?: boolean; oneArm?: boolean } = {}): FigureSpec {
+  if (kind === 'floor') {
+    const hand: Pt = [44, G];
+    const elbow: Pt = [56, G - 1];
+    const pose = (y: number) =>
+      S(
+        {
+          neck: [62, y],
+          pelvis: [40, y],
+          lHand: hand,
+          rHand: behind(hand, -1.5),
+          lFoot: [10.5, y],
+          rFoot: [10.5, y + 1.5],
+          joints: { lArm: elbow, rArm: behind(elbow, -1.5) },
+        },
+        ['lArm', 'rArm', 'torso'],
+      );
+    return clip({ scene: 'floor', wall: FLOOR, start: pose(78), end: pose(70.5), seconds: 2.8 });
+  }
   const grip: Pt = [38, 49.5];
-  const support = S({ neck: [38, 26.5], pelvis: [37, 48.5], lHand: grip, rHand: behind(grip, -1.5), lFoot: [36, 77], rFoot: [37.5, 77] }, ['lArm', 'rArm', 'torso']);
-  const level = S({ neck: [61, 46], pelvis: [39, 46], lHand: grip, rHand: behind(grip, -1.5), lFoot: [10, 46], rFoot: [10, 47.5] }, ['lArm', 'rArm', 'torso']);
-  const wall = `${PARALLEL_BARS} ${FLOOR}`;
+  const other = (pelvis: Pt): Pt => (oneArm ? [pelvis[0] + 4, pelvis[1] + 3] : behind(grip, -1.5));
+  const hold = (person: Drawn) => (rings ? onRings(person, oneArm ? [grip] : [grip, behind(grip, -1.5)]) : person);
+  const support = hold(S({ neck: [38, 26.5], pelvis: [37, 48.5], lHand: grip, rHand: oneArm ? [41, 46.5] : behind(grip, -1.5), lFoot: [36, 77], rFoot: [37.5, 77] }, ['lArm', 'rArm', 'torso']));
+  const level = hold(S({ neck: [61, 46], pelvis: [39, 46], lHand: grip, rHand: other([39, 46]), lFoot: [10, 46], rFoot: [10, 47.5] }, ['lArm', 'rArm', 'torso']));
+  const scene: Scene = rings ? 'rings' : 'bars';
+  const wall = rings ? FLOOR : `${PARALLEL_BARS} ${FLOOR}`;
   return kind === 'press'
-    ? clip({ scene: 'bars', wall, start: level, end: support, seconds: 3 })
-    : clip({ scene: 'bars', wall, start: support, end: level, seconds: 3 });
+    ? clip({ scene, wall, start: level, end: support, seconds: 3 })
+    : clip({ scene, wall, start: support, end: level, seconds: 3 });
 }
 
 /** Rope climb with the legs held in an advanced tuck: hand over hand up the rope. */

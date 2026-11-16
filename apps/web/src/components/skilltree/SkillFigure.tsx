@@ -204,8 +204,8 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
     timing &&
     target && (
       <>
-        <animate attributeName="cx" values={loop(String(disc.at[0]), String(target.at[0]))} {...timing} />
-        <animate attributeName="cy" values={loop(String(disc.at[1]), String(target.at[1]))} {...timing} />
+        <animate attributeName="cx" values={loop(String(at2(disc.at[0])), String(at2(target.at[0])))} {...timing} />
+        <animate attributeName="cy" values={loop(String(at2(disc.at[1])), String(at2(target.at[1])))} {...timing} />
       </>
     );
 
@@ -269,8 +269,8 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
             {layer.discs.map(({ disc, target }, index) => (
               <circle
                 key={`d${index}`}
-                cx={disc.at[0]}
-                cy={disc.at[1]}
+                cx={at2(disc.at[0])}
+                cy={at2(disc.at[1])}
                 r={disc.r}
                 fill={disc.tone === 'ghost' ? 'none' : colourOf(disc.tone)}
                 stroke={colourOf(disc.tone)}
@@ -305,15 +305,15 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
 
         {equipment.map(({ disc, target }, index) =>
           disc.kind === 'ring' ? (
-            <circle key={index} cx={disc.at[0]} cy={disc.at[1]} r={disc.r} fill="none" stroke={INK.plate} strokeWidth={compact ? 2 : 1.6}>
+            <circle key={index} cx={at2(disc.at[0])} cy={at2(disc.at[1])} r={disc.r} fill="none" stroke={INK.plate} strokeWidth={compact ? 2 : 1.6}>
               {follow(disc, target)}
             </circle>
           ) : (
             <g key={index}>
-              <circle cx={disc.at[0]} cy={disc.at[1]} r={disc.r} fill={INK.wall} stroke={INK.plate} strokeWidth={compact ? 1.8 : 1.4}>
+              <circle cx={at2(disc.at[0])} cy={at2(disc.at[1])} r={disc.r} fill={INK.wall} stroke={INK.plate} strokeWidth={compact ? 1.8 : 1.4}>
                 {follow(disc, target)}
               </circle>
-              <circle cx={disc.at[0]} cy={disc.at[1]} r={Math.max(0.9, disc.r * 0.22)} fill={INK.plate}>
+              <circle cx={at2(disc.at[0])} cy={at2(disc.at[1])} r={Math.max(0.9, disc.r * 0.22)} fill={INK.plate}>
                 {follow(disc, target)}
               </circle>
             </g>
@@ -359,6 +359,13 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
     </svg>
   );
 };
+
+/**
+ * Coordinates are written to two decimals, as paths are: the poses use sin and
+ * cos, which can differ in the last digit between server and browser, and the
+ * rendered markup has to match for hydration.
+ */
+const at2 = (value: number) => Math.round(value * 100) / 100;
 
 const toPath = (pts: Pt[], closed?: boolean) =>
   pts.map(([x, y], index) => `${index === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`).join(' ') + (closed ? ' Z' : '');
