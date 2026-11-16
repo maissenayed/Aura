@@ -2,12 +2,12 @@
 
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Header } from '../components/Header';
-import { Toast, ToastStack } from '../components/protocol/Toasts';
-import { FocusRequest, SkillCanvas } from '../components/skilltree/SkillCanvas';
+import { AppShell } from '../components/game/AppShell';
+import { useGame } from '../components/game/GameProvider';
+import { ClimbBoard, FocusRequest, linesOf } from '../components/skilltree/ClimbBoard';
 import { SkillPanel } from '../components/skilltree/SkillPanel';
-import { SkillToolbar } from '../components/skilltree/SkillToolbar';
 import { SKILL_TREES, SkillTreeDef } from '../components/skilltree/skillTrees';
+import { TreeBar } from '../components/skilltree/TreeBar';
 import { GameEvent } from '../utils/protocolEngine';
 import {
   SkillTreeId,
@@ -18,37 +18,30 @@ import {
   useMasteredIds,
   useRememberedTree,
 } from '../utils/skillProgressStore';
-import { SkillStatus, ancestorsOf, bandForLevel, buildGraph, statusOf, summarize } from '../utils/skillTree';
-
-const TOAST_LIMIT = 3;
-const TOAST_MS = 5200;
+import { ancestorsOf, buildGraph, statusOf, summarize } from '../utils/skillTree';
 
 const reportedDroppedLinks = new Set<SkillTreeId>();
 
 /**
  * The skill tree page. Which tree is shown comes from `?tree=` when the link
- * says so, otherwise from the last one picked on this device. Reading the URL
- * needs a Suspense boundary: without it the static shell could not be prerendered.
+ * says so, otherwise from the last one picked on this device; `?skill=` opens
+ * one skill. Reading the URL needs a Suspense boundary: without it the static
+ * shell could not be prerendered.
  */
 export default function SkillTreePage() {
   return (
-    <Suspense fallback={<PageShell />}>
+    <Suspense fallback={<AppShell>{null}</AppShell>}>
       <SkillTreeRoute />
     </Suspense>
   );
 }
-
-const PageShell: React.FC = () => (
-  <div className="h-[100dvh] flex flex-col overflow-hidden bg-dark-950 text-slate-100">
-    <Header />
-  </div>
-);
 
 function SkillTreeRoute() {
   const params = useSearchParams();
   const remembered = useRememberedTree();
   const fromUrl = params.get('tree');
   const treeId: SkillTreeId = isSkillTreeId(fromUrl) ? fromUrl : remembered;
+  const skillFromUrl = params.get('skill');
 
   // Opening a link to a tree counts as picking it.
   useEffect(() => {
@@ -58,22 +51,29 @@ function SkillTreeRoute() {
   const switchTree = (next: SkillTreeId) => {
     rememberTree(next);
     const query = new URLSearchParams(window.location.search);
+    query.delete('skill');
     if (next === 'calisthenics') query.delete('tree');
     else query.set('tree', next);
     const search = query.toString();
     window.history.replaceState(null, '', `${window.location.pathname}${search ? `?${search}` : ''}`);
   };
 
-  // A new tree starts from a clean view: filters, selection and path belong to the tree they were set on.
-  return <SkillTreeScreen key={treeId} tree={SKILL_TREES[treeId]} onTreeChange={switchTree} />;
+  // A new tree starts from a clean view: lane, selection and path belong to the tree they were set on.
+  return (
+    <AppShell className="h-dvh lg:h-dvh overflow-hidden">
+      <SkillTreeScreen key={treeId} tree={SKILL_TREES[treeId]} initialSkillId={skillFromUrl} onTreeChange={switchTree} />
+    </AppShell>
+  );
 }
 
 interface SkillTreeScreenProps {
   tree: SkillTreeDef;
+  initialSkillId: string | null;
   onTreeChange: (tree: SkillTreeId) => void;
 }
 
-function SkillTreeScreen({ tree, onTreeChange }: SkillTreeScreenProps) {
+function SkillTreeScreen({ tree, initialSkillId, onTreeChange }: SkillTreeScreenProps) {
+  const { announce } = useGame();
   const exercises = useExercises();
   const skills = tree.skills ?? exercises;
   const masteredIds = useMasteredIds(tree.id);
@@ -83,21 +83,15 @@ function SkillTreeScreen({ tree, onTreeChange }: SkillTreeScreenProps) {
   const mastered = useMemo(() => new Set(masteredIds), [masteredIds]);
   const summary = useMemo(() => summarize(graph, mastered, rules), [graph, mastered, rules]);
 
-  const [lane, setLane] = useState<string>('All');
-  const [bandOverride, setBandOverride] = useState<string | null>(null);
-  const [status, setStatus] = useState<SkillStatus | 'all'>('all');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const initial = initialSkillId ? graph.byId.get(initialSkillId) : undefined;
+  const [lane, setLane] = useState<string>(
+    () => initial?.swimlane ?? summary.lanes.find((entry) => entry.ready > 0)?.lane ?? summary.lanes[0]?.lane ?? '',
+  );
+  const [selectedId, setSelectedId] = useState<string | null>(initial?.id ?? null);
   const [pathTargetId, setPathTargetId] = useState<string | null>(null);
-  const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
+  const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(initial ? { id: initial.id, nonce: 0 } : null);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const sequence = useRef(0);
-
-  const firstLevel = rules.bands[0]?.min ?? 0;
-
-  // Until the athlete picks a range, open on the levels where their next skill is.
-  const bandId = bandOverride ?? bandForLevel(summary.ready[0]?.level ?? firstLevel, rules.bands).id;
-  const band = rules.bands.find((entry) => entry.id === bandId) ?? rules.bands[0];
+  const sequence = useRef(1);
 
   const selected = selectedId ? graph.byId.get(selectedId) ?? null : null;
   const pathTarget = pathTargetId ? graph.byId.get(pathTargetId) ?? null : null;
@@ -109,71 +103,30 @@ function SkillTreeScreen({ tree, onTreeChange }: SkillTreeScreenProps) {
     return ids;
   }, [graph, pathTarget]);
 
-  const { visible, levels } = useMemo(() => {
-    if (pathIds) {
-      // A path only uses some levels; drawing just those keeps it short enough to read.
-      const onPath = graph.exercises.filter((exercise) => pathIds.has(exercise.id));
-      return { visible: onPath, levels: [...new Set(onPath.map((exercise) => exercise.level))].sort((a, b) => a - b) };
-    }
-    return {
-      visible: graph.exercises.filter(
-        (exercise) =>
-          (lane === 'All' || exercise.swimlane === lane) &&
-          exercise.level >= band.min &&
-          exercise.level <= band.max &&
-          (status === 'all' || statusOf(exercise, mastered) === status),
-      ),
-      levels: Array.from({ length: band.max - band.min + 1 }, (_, index) => band.min + index),
-    };
-  }, [graph, pathIds, lane, band, status, mastered]);
+  // A path shows every line it runs through, whatever the lane; otherwise the lane's lines.
+  const lines = useMemo(() => {
+    const all = linesOf(graph.exercises);
+    if (pathIds) return all.filter((line) => line.skills.some((skill) => pathIds.has(skill.id)));
+    return all.filter((line) => line.lane === lane);
+  }, [graph, lane, pathIds]);
 
   const basicsRemaining = useMemo(
     () => graph.exercises.filter((exercise) => exercise.level <= tree.basicsMax && !mastered.has(exercise.id)).length,
     [graph, mastered, tree.basicsMax],
   );
 
-  /* ---------------------------------------------------------------- */
-  /* Feedback                                                          */
-  /* ---------------------------------------------------------------- */
-
-  const dismissToast = (id: number) => setToasts((current) => current.filter((toast) => toast.id !== id));
-
-  const announce = (events: GameEvent[]) => {
-    const fresh = events.map((event) => ({ ...event, id: (sequence.current += 1) }));
-    setToasts((current) => [...current, ...fresh].slice(-TOAST_LIMIT));
-    fresh.forEach((toast) => window.setTimeout(() => dismissToast(toast.id), TOAST_MS));
-  };
-
-  /* ---------------------------------------------------------------- */
-  /* Navigation                                                        */
-  /* ---------------------------------------------------------------- */
-
-  /** Select a skill and bring it into view, widening the filters if they were hiding it. */
+  /** Select a skill and bring it into view, switching to its lane if needed. */
   const goTo = (id: string) => {
     const exercise = graph.byId.get(id);
     if (!exercise) return;
-
-    if (pathIds) {
-      if (!pathIds.has(id)) setPathTargetId(null);
-    }
-    const hiddenByFilters =
-      (lane !== 'All' && exercise.swimlane !== lane) ||
-      exercise.level < band.min ||
-      exercise.level > band.max ||
-      (status !== 'all' && statusOf(exercise, mastered) !== status);
-
-    if ((!pathIds || !pathIds.has(id)) && hiddenByFilters) {
-      if (lane !== 'All' && exercise.swimlane !== lane) setLane('All');
-      if (exercise.level < band.min || exercise.level > band.max) setBandOverride(bandForLevel(exercise.level, rules.bands).id);
-      setStatus('all');
-    }
-
+    if (pathIds && !pathIds.has(id)) setPathTargetId(null);
+    if (!pathIds || !pathIds.has(id)) setLane(exercise.swimlane);
     setSelectedId(id);
     setSheetOpen(false);
     setFocusRequest({ id, nonce: (sequence.current += 1) });
   };
 
-  /** Narrow the canvas to what leads to one skill, opening on the athlete's next step along it. */
+  /** Narrow the board to what leads to one skill, opening on the athlete's next step along it. */
   const togglePath = (id: string) => {
     if (pathTargetId === id) {
       setPathTargetId(null);
@@ -188,8 +141,7 @@ function SkillTreeScreen({ tree, onTreeChange }: SkillTreeScreenProps) {
     setFocusRequest({ id: steps[0]?.id ?? id, nonce: (sequence.current += 1) });
   };
 
-  const selectOnCanvas = useCallback((id: string) => setSelectedId(id), []);
-  const clearSelection = useCallback(() => setSelectedId(null), []);
+  const select = useCallback((id: string) => setSelectedId(id), []);
 
   const closePanel = () => {
     setSelectedId(null);
@@ -216,10 +168,6 @@ function SkillTreeScreen({ tree, onTreeChange }: SkillTreeScreenProps) {
       console.info(`${tree.label} skill tree ignored ${graph.dropped.length} impossible prerequisite links:`, graph.dropped);
     }
   }, [graph, tree]);
-
-  /* ---------------------------------------------------------------- */
-  /* Progress                                                          */
-  /* ---------------------------------------------------------------- */
 
   const toggleMastered = (id: string) => {
     const exercise = graph.byId.get(id);
@@ -258,6 +206,7 @@ function SkillTreeScreen({ tree, onTreeChange }: SkillTreeScreenProps) {
     announce(events);
   };
 
+  const firstLevel = rules.bands[0]?.min ?? 0;
   const skipBasics = () => {
     const basics = graph.exercises.filter((exercise) => exercise.level <= tree.basicsMax && !mastered.has(exercise.id));
     setMasteredIds(tree.id, [...masteredIds, ...basics.map((exercise) => exercise.id)]);
@@ -274,68 +223,39 @@ function SkillTreeScreen({ tree, onTreeChange }: SkillTreeScreenProps) {
     setMasteredIds(tree.id, []);
     setSelectedId(null);
     setPathTargetId(null);
-    setBandOverride(null);
   };
 
-  const viewKey = pathTargetId ? `path:${pathTargetId}` : `${lane}|${bandId}|${status}`;
-
   return (
-    <div className="h-[100dvh] flex flex-col overflow-hidden bg-dark-950 text-slate-100">
-      <Header />
-
-      <SkillToolbar
+    <div className="flex-1 min-h-0 flex flex-col">
+      <TreeBar
         tree={tree}
         graph={graph}
         mastered={mastered}
-        lanes={summary.lanes}
+        summary={summary}
         lane={lane}
-        bandId={bandId}
-        status={status}
         pathTarget={pathTarget}
         pathLength={pathIds ? pathIds.size - 1 : 0}
-        readyCount={summary.ready.length}
         onTreeChange={onTreeChange}
-        onLaneChange={setLane}
-        onBandChange={setBandOverride}
-        onStatusChange={setStatus}
-        onExitPath={() => setPathTargetId(null)}
+        onLaneChange={(next) => {
+          setLane(next);
+          setFocusRequest(null);
+        }}
         onGoTo={goTo}
         onOpenProgress={() => setSheetOpen(true)}
+        onExitPath={() => setPathTargetId(null)}
       />
 
       <div className="flex-1 min-h-0 flex">
-        <main className="flex-1 min-w-0 min-h-0" aria-label={`${tree.label} skill tree`}>
-          <SkillCanvas
+        <main className="flex-1 min-w-0 min-h-0 flex flex-col" aria-label={`${tree.label} skill tree`}>
+          <ClimbBoard
             tree={tree}
             graph={graph}
-            visible={visible}
+            lines={lines}
             mastered={mastered}
-            levels={levels}
-            lanes={summary.lanes}
             selectedId={selectedId}
+            pathIds={pathIds}
             focusRequest={focusRequest}
-            viewKey={viewKey}
-            onSelect={selectOnCanvas}
-            onClearSelection={clearSelection}
-            emptyState={
-              <div className="p-5 rounded-2xl bg-dark-900 border border-slate-800">
-                <p className="text-sm font-bold text-white">Nothing matches these filters</p>
-                <p className="mt-1 text-xs text-slate-400">
-                  No {status === 'all' ? '' : `${status} `}
-                  {noun.many} in this branch and {tree.levelWord} range.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLane('All');
-                    setStatus('all');
-                  }}
-                  className="mt-3 h-10 px-4 rounded-xl text-xs font-bold text-neon-cyan border border-cyan-500/40 hover:bg-cyan-950/40 transition cursor-pointer"
-                >
-                  Clear branch and status filters
-                </button>
-              </div>
-            }
+            onSelect={select}
           />
         </main>
 
@@ -355,10 +275,9 @@ function SkillTreeScreen({ tree, onTreeChange }: SkillTreeScreenProps) {
           onTogglePath={togglePath}
           onShowReady={() => {
             setPathTargetId(null);
-            setLane('All');
-            setBandOverride('all');
-            setStatus('ready');
-            setSheetOpen(false);
+            const first = summary.ready[0];
+            if (first) goTo(first.id);
+            else setSheetOpen(false);
           }}
           onLaneFilter={(next) => {
             setPathTargetId(null);
@@ -369,8 +288,6 @@ function SkillTreeScreen({ tree, onTreeChange }: SkillTreeScreenProps) {
           onReset={reset}
         />
       </div>
-
-      <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }

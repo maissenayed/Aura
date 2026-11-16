@@ -58,13 +58,13 @@ export const SkillPanel: React.FC<SkillPanelProps> = (props) => {
 
   return (
     <>
-      {open && <div className="lg:hidden fixed inset-0 z-30 bg-black/60" onClick={onClose} aria-hidden />}
+      {open && <div className="lg:hidden fixed inset-0 z-[45] bg-black/60 anim-fade" onClick={onClose} aria-hidden />}
 
       <aside
         aria-label={selected ? `${capitalise(tree.noun.one)} details` : 'Your progress'}
         className={`${
           open ? 'flex' : 'hidden'
-        } lg:flex flex-col fixed lg:static inset-x-0 bottom-0 z-40 lg:z-auto w-full lg:w-[380px] lg:shrink-0 max-h-[84dvh] lg:max-h-none lg:h-full rounded-t-3xl lg:rounded-none border-t lg:border-t-0 lg:border-l border-slate-800 bg-dark-900 shadow-2xl lg:shadow-none`}
+        } lg:flex flex-col fixed lg:static inset-x-0 bottom-0 z-50 lg:z-auto w-full lg:w-[380px] lg:shrink-0 max-h-[88dvh] lg:max-h-none lg:h-full rounded-t-[30px] lg:rounded-none border-t lg:border-t-0 lg:border-l border-slate-800 bg-dark-900 shadow-2xl lg:shadow-none anim-sheet lg:animate-none`}
       >
         <div className="lg:hidden flex justify-center pt-2.5 pb-1" aria-hidden>
           <span className="w-10 h-1 rounded-full bg-slate-700" />
