@@ -2,7 +2,8 @@ import { RawExercise, Exercise } from '@aura/types';
 import { rawExercises } from '../data/rawExercisesData';
 import { enrichExercises } from '../data/exercisesData';
 
-const CUSTOM_EXERCISES_STORAGE_KEY = 'aura_calisthenics_custom_exercises_v3';
+// v4: the calisthenics tree was rebuilt, so a list saved under v3 describes the old tree and is left behind.
+const CUSTOM_EXERCISES_STORAGE_KEY = 'aura_calisthenics_custom_exercises_v4';
 
 // Load raw exercises from localStorage or default
 export function getRawExercises(): RawExercise[] {

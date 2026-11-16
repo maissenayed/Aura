@@ -79,8 +79,8 @@ export function enrichExercises(rawList: RawExercise[]): Exercise[] {
   };
 
   return rawList.map(raw => {
-    const swimlane = getSwimlane(raw.category, raw.subCategory);
-    
+    const swimlane = raw.swimlane ?? getSwimlane(raw.category, raw.subCategory);
+
     // Use explicit prerequisites if provided, otherwise compute default prerequisites
     let allPrereqs: string[];
     if (Array.isArray(raw.prerequisites)) {
@@ -107,6 +107,8 @@ export function enrichExercises(rawList: RawExercise[]): Exercise[] {
     } else {
       req = "Pro Level: Execute 5 sets of max effort holds/reps with pristine alignment.";
     }
+    // The tree's own standard, where the coaches gave one, beats the generic one for the level.
+    if (raw.standard) req = raw.standard;
 
     const defaultSteps = [
       `1. Position your body in the starting ${raw.name} setup with active tension.`,

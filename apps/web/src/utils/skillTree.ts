@@ -91,7 +91,8 @@ export const LEVEL_BANDS: LevelBand[] = [
   { id: 'intermediate', label: 'Intermediate · 4–6', min: 4, max: 6 },
   { id: 'advanced', label: 'Advanced · 7–10', min: 7, max: 10 },
   { id: 'elite', label: 'Elite · 11–16', min: 11, max: 16 },
-  { id: 'all', label: 'All levels', min: 1, max: 16 },
+  { id: 'world', label: 'World class · 17–20', min: 17, max: 20 },
+  { id: 'all', label: 'All levels', min: 1, max: 20 },
 ];
 
 const RANKS: Rank[] = [
