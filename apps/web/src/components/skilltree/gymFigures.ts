@@ -568,6 +568,12 @@ const FIGURES: Record<string, FigureSpec | undefined> = {
   gym_farmers_bodyweight: farmersCarry(6),
 };
 
+/* Lifts added when the tree was rebuilt borrow the drawing of the lift below them. */
+FIGURES['gym_bench_2x'] = FIGURES['gym_bench_1_5x'];
+FIGURES['gym_assisted_pullup'] = FIGURES['lat_pulldown'];
+FIGURES['gym_squat_2_5x'] = FIGURES['gym_squat_2x'];
+FIGURES['gym_deadlift_3x'] = FIGURES['gym_deadlift_2_5x'];
+
 export function gymFigure(id: string): FigureSpec | undefined {
   return FIGURES[id];
 }
