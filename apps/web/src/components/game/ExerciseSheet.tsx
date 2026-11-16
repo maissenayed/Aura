@@ -33,7 +33,7 @@ export const ExerciseSheet: React.FC<{
   const closeRef = useRef<HTMLButtonElement>(null);
   const info = exerciseInfo(exercise.exercise);
   const bosses = bossesOfExercise(derived.bosses, exercise);
-  const logs = Boolean(liftOf(plan, exercise.lift) || exercise.load);
+  const logs = Boolean(liftOf(plan, exercise.lift));
   const { sets, reps } = splitTarget(exercise.target);
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { PlanExercise, PlanSpec, liftOf } from '../../utils/campaignPlan';
+import { PlanSpec, liftOf } from '../../utils/campaignPlan';
 import {
   Derived,
   EventKind,
@@ -65,9 +65,7 @@ export interface GameValue extends CampaignSnapshot {
   setSelectedDay: (dayId: string | null) => void;
   jumpToToday: () => void;
   logStat: (id: string, value: number) => void;
-  logLoad: (exercise: PlanExercise, value: number) => void;
   toggleQuest: (key: string) => void;
-  toggleMilestone: (id: string) => void;
   weighIn: (kg: number) => void;
   resetCampaign: () => void;
   /** Plan edits not saved yet; kept here so leaving the Forge does not lose them. */
@@ -221,33 +219,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [plan, play, todayIso],
   );
 
-  const logLoad = useCallback(
-    (exercise: PlanExercise, value: number) => {
-      const previous = peekSave().loads[exercise.id] ?? exercise.load?.start ?? 0;
-      const extra: GameEvent[] =
-        value > previous
-          ? [
-              {
-                kind: 'pr',
-                key: `pr_${exercise.id}`,
-                title: previous === 0 ? `First log — ${exercise.name}` : `New PR — ${exercise.name}`,
-                detail: `${formatStatValue(value, 'kg')} working weight`,
-              },
-            ]
-          : [];
-      play((current) => ({ ...current, loads: { ...current.loads, [exercise.id]: value } }), extra);
-    },
-    [play],
-  );
-
   const toggleQuest = useCallback(
     (key: string) => play((current) => ({ ...current, quests: { ...current.quests, [key]: !current.quests[key] } })),
-    [play],
-  );
-
-  const toggleMilestone = useCallback(
-    (id: string) =>
-      play((current) => ({ ...current, milestones: { ...current.milestones, [id]: !current.milestones[id] } })),
     [play],
   );
 
@@ -277,9 +250,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setDayOverride(null);
     },
     logStat,
-    logLoad,
     toggleQuest,
-    toggleMilestone,
     weighIn,
     resetCampaign,
     planDraft,
