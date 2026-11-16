@@ -19,6 +19,7 @@
  * protocolEngine can depend on each other without a runtime cycle.
  */
 
+import { forgedIn, lastTickedWeek } from './armor';
 import { formatStatValue } from './campaignPlan';
 import type { CampaignPlan, PlanExercise, TrainableAttribute } from './campaignPlan';
 import type { BossStatus, LadderStatus, ProtocolSave } from './protocolEngine';
@@ -219,7 +220,7 @@ export const ATTRIBUTES: AttributeDef[] = [
     short: 'Straight-Arm',
     kind: 'strength',
     blurb: 'Force through a locked elbow — what planche and front lever are made of.',
-    unlock: { label: () => 'Earn your first skill-tree tier', test: (ctx) => earnedTiers(ctx) >= 1 },
+    unlock: { label: () => 'Clear the first floor of a tower', test: (ctx) => earnedTiers(ctx) >= 1 },
   },
   {
     id: 'compression',
@@ -235,7 +236,7 @@ export const ATTRIBUTES: AttributeDef[] = [
     short: 'Balance',
     kind: 'strength',
     blurb: 'Control while inverted — the pressing strength that holds a handstand up.',
-    unlock: { label: () => 'Earn two skill-tree tiers', test: (ctx) => earnedTiers(ctx) >= 2 },
+    unlock: { label: () => 'Clear five tower floors', test: (ctx) => earnedTiers(ctx) >= 5 },
   },
   {
     id: 'grip',
@@ -252,7 +253,8 @@ export const ATTRIBUTES: AttributeDef[] = [
     kind: 'conditioning',
     blurb: 'Connective tissue that keeps up with the muscle — it adapts ten times slower.',
     unlock: {
-      label: (ctx) => (ctx.plan.armor.length ? 'Forge every armor piece in one week' : 'Add tendon armor to your plan, then forge it all in one week'),
+      label: (ctx) =>
+        ctx.plan.armor.length ? 'Forge every armour piece in one week with your warm-ups' : 'Choose armour in the Forge, then forge it all in one week with your warm-ups',
       test: (ctx) => ctx.fullArmorWeeks >= 1,
     },
   },
@@ -284,7 +286,10 @@ export const ATTRIBUTES: AttributeDef[] = [
     kind: 'aura',
     blurb: 'Cannot be measured. Cannot be trained directly. Everyone in the gym can feel it.',
     secret: true,
-    unlock: { label: () => 'Defeat a final boss', test: (ctx) => ctx.bosses.some((boss) => boss.defeated) },
+    unlock: {
+      label: () => 'Earn your first boss badge',
+      test: (ctx) => ctx.bosses.some((boss) => boss.defeated) || Object.keys(ctx.save.badges ?? {}).some((id) => id.startsWith('boss:')),
+    },
   },
 ];
 
@@ -314,26 +319,21 @@ export interface AttributeStatus {
   sessions: number;
 }
 
-/** Missions ticked per exercise id, and weeks with every armor piece forged. */
+/** Missions ticked per exercise id, and weeks with every armour piece forged by warm-ups. */
 export function tally(save: ProtocolSave, plan: CampaignPlan): { ticks: Map<string, number>; fullArmorWeeks: number } {
   const ticks = new Map<string, number>();
-  const armorIds = new Set(plan.armor.map((piece) => piece.id));
-  const armorByWeek = new Map<number, number>();
-
   for (const [key, done] of Object.entries(save.quests)) {
     if (!done) continue;
     const match = /^w(\d+)_(.+)$/.exec(key);
-    if (!match) continue;
-    const id = match[2];
-    if (armorIds.has(id)) {
-      const week = Number(match[1]);
-      armorByWeek.set(week, (armorByWeek.get(week) ?? 0) + 1);
-    } else {
-      ticks.set(id, (ticks.get(id) ?? 0) + 1);
-    }
+    if (match) ticks.set(match[2], (ticks.get(match[2]) ?? 0) + 1);
   }
 
-  const fullArmorWeeks = armorIds.size ? [...armorByWeek.values()].filter((count) => count >= armorIds.size).length : 0;
+  let fullArmorWeeks = 0;
+  if (plan.armor.length) {
+    for (let week = 1, last = lastTickedWeek(save.quests); week <= last; week += 1) {
+      if (forgedIn(save.quests, plan, week).size >= plan.armor.length) fullArmorWeeks += 1;
+    }
+  }
   return { ticks, fullArmorWeeks };
 }
 

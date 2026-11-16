@@ -14,6 +14,7 @@ import {
   BossRequirement,
   CampaignPlan,
   DAY_NAMES,
+  DayId,
   Lift,
   Milestone,
   PlanDay,
@@ -22,7 +23,8 @@ import {
   liftOf,
 } from './campaignPlan';
 import { formatStatValue } from './campaignPlan';
-import { HistoryPoint, PLAN_FORMAT_V3, SkillTreeRef } from './campaignV3';
+import { forgedIn, lastTickedWeek, slotOfPiece } from './armor';
+import { ArmorSlot, HistoryPoint, PLAN_FORMAT_V3, SkillTreeRef } from './campaignV3';
 import { floorsOf, masteredIn } from './treeIndex';
 
 export { formatStatValue, unitLabel } from './campaignPlan';
@@ -619,8 +621,20 @@ export interface WeekStatus {
   total: number;
   progress: number;
   perfect: boolean;
-  armor: { piece: ArmorPiece; forged: boolean }[];
+  armor: ArmorStatus[];
   armorCount: number;
+  /** Warm-up ticks this week, by warm-up id. */
+  warmUpsDone: Set<string>;
+}
+
+export interface ArmorStatus {
+  piece: ArmorPiece;
+  slot: ArmorSlot;
+  forged: boolean;
+  /** Names of the warm-ups ticked this week that forged it. */
+  forgedBy: string[];
+  /** Names of the plan's warm-ups that guard it, and their days. */
+  guardedBy: { name: string; day: DayId }[];
 }
 
 function evaluateWeek(save: ProtocolSave, week: number, plan: CampaignPlan): WeekStatus {
@@ -632,10 +646,20 @@ function evaluateWeek(save: ProtocolSave, week: number, plan: CampaignPlan): Wee
 
   const done = days.reduce((sum, day) => sum + day.done, 0);
   const total = days.reduce((sum, day) => sum + day.total, 0);
-  const armor = plan.armor.map((piece) => ({
-    piece,
-    forged: Boolean(save.quests[questKey(week, piece.id)]),
-  }));
+  const forged = forgedIn(save.quests, plan, week);
+  const warmUps = plan.days.flatMap((day) => day.warmUps.map((warmUp) => ({ ...warmUp, day: day.id })));
+  const armor = plan.armor.map((piece): ArmorStatus => {
+    const slot = slotOfPiece(piece.id);
+    const by = forged.get(slot);
+    return {
+      piece,
+      slot,
+      forged: by !== undefined,
+      forgedBy: [...new Set((by ?? []).map((id) => warmUps.find((warmUp) => warmUp.id === id)?.name ?? ''))].filter(Boolean),
+      guardedBy: warmUps.filter((warmUp) => warmUp.guards.includes(slot)).map((warmUp) => ({ name: warmUp.name, day: warmUp.day })),
+    };
+  });
+  const warmUpsDone = new Set(warmUps.filter((warmUp) => save.quests[questKey(week, warmUp.id)]).map((warmUp) => warmUp.id));
 
   return {
     week,
@@ -646,6 +670,7 @@ function evaluateWeek(save: ProtocolSave, week: number, plan: CampaignPlan): Wee
     perfect: total > 0 && done === total,
     armor,
     armorCount: armor.filter((entry) => entry.forged).length,
+    warmUpsDone,
   };
 }
 
@@ -718,6 +743,8 @@ export const XP_RULES = {
   ironCheckpoint: 300,
   massMax: 1500,
   mission: 10,
+  warmUp: 5,
+  /** Each armour piece forged in a week. */
   armor: 15,
   perfectWeek: 150,
 };
@@ -777,13 +804,16 @@ function evaluateLevel(
     }
   }
 
+  // Warm-ups and hand-ticked armour are not missions; armour counts once per piece per week.
   let missions = 0;
-  let armor = 0;
+  let warmUps = 0;
   for (const [key, ticked] of Object.entries(save.quests)) {
-    if (!ticked) continue;
-    if (key.includes('_armor_')) armor += 1;
+    if (!ticked || key.includes('_armor_')) continue;
+    if (key.includes('_warm_')) warmUps += 1;
     else missions += 1;
   }
+  let armor = 0;
+  for (let week = 1, last = lastTickedWeek(save.quests); week <= last; week += 1) armor += forgedIn(save.quests, plan, week).size;
   const perfectWeeks = countPerfectWeeks(save, plan);
 
   const breakdown = [
@@ -794,7 +824,7 @@ function evaluateLevel(
     { label: 'Bosses', xp: bosses.filter((b) => b.defeated).length * XP_RULES.boss },
     { label: 'Lift checkpoints', xp: checkpoints.filter((c) => c.met).length * XP_RULES.ironCheckpoint },
     { label: 'Bodyweight', xp: Math.round(mass.finalProgress * XP_RULES.massMax) },
-    { label: 'Missions', xp: missions * XP_RULES.mission + armor * XP_RULES.armor },
+    { label: 'Missions', xp: missions * XP_RULES.mission + warmUps * XP_RULES.warmUp + armor * XP_RULES.armor },
     { label: 'Perfect weeks', xp: perfectWeeks * XP_RULES.perfectWeek },
   ];
 
