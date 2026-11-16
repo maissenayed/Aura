@@ -16,12 +16,15 @@ import {
   frontLever,
   frontRingDip,
   gluteBridge,
+  hefesto,
   hamstringSlide,
   handstand,
   hangingRaise,
   humanFlag,
+  ironCross,
   kipPullUp,
   kneelingQuad,
+  leverToPlanche,
   lPullUp,
   lSit,
   muscleUp,
@@ -41,6 +44,8 @@ import {
   ringLPull,
   ringsHandstand,
   ringsHandstandPushUp,
+  ringsToSupport,
+  ropeClimb,
   rotation,
   row,
   shrimp,
@@ -51,6 +56,8 @@ import {
   straddleLSit,
   support,
   verticalFlag,
+  victorian,
+  vSit,
   wallHandstand,
   wallHeadstand,
   wallPlank,
@@ -61,7 +68,7 @@ import {
  * Which drawing each calisthenics exercise gets: a movement family from
  * `calisthenicsFamilies.ts` with the options that make it this exercise.
  * Keyed by exercise id from the built-in dataset; an exercise without an
- * entry has no drawing. Covers levels 1–6 (Beginner and Intermediate).
+ * entry has no drawing. Covers levels 1–10 (Beginner, Intermediate and Advanced).
  */
 
 /* ------------------------------------------------------------------ */
@@ -221,9 +228,9 @@ const INTERMEDIATE: Record<string, () => FigureSpec> = {
 
   // Dips
   ex_76: () => dip({ legs: 'l-sit' }),
-  ex_109: () => dip({ lean: true }),
+  ex_109: () => dip({ lean: 45 }),
   ex_147: () => dip({ oneArm: true, legs: 'pike' }),
-  ex_89: () => dip({ depth: 'forearms' }),
+  ex_89: () => dip({ depth: 'forearms', shoulders: 'front-of-wrist' }),
   ex_77: () => dip({ rings: true }),
   ex_110: () => dip({ rings: true, legs: 'l-sit' }),
   ex_397: () => dip({ rings: true, turnedOut: true }),
@@ -238,7 +245,7 @@ const INTERMEDIATE: Record<string, () => FigureSpec> = {
   ex_104: () => pullUp({ kind: 'clap' }),
   ex_376: () => pullUp({ kind: 'typewriter' }),
   ex_377: () => pullUp({ kind: 'archer' }),
-  ex_378: () => pullUp({ kind: 'one-arm' }),
+  ex_378: () => pullUp({ kind: 'one-arm', tempo: 'slow-return' }),
   ex_71: () => pullUp({ extra: 'plate', plate: 6 }),
   ex_103: () => pullUp({ extra: 'plate', plate: 7 }),
   ex_140: () => pullUp({ extra: 'plate', plate: 8 }),
@@ -298,7 +305,7 @@ const INTERMEDIATE: Record<string, () => FigureSpec> = {
   ex_131: () => pressToHandstand('l-sit'),
   ex_95: () => pressToHandstand('wall-straddle'),
   ex_133: () => pressToHandstand('elevated-straddle'),
-  ex_132: () => pressToHandstand('chair'),
+  ex_132: () => pressToHandstand('chair', { rings: true }),
   ex_64: () => overheadPress(7),
   ex_93: () => overheadPress(8),
   ex_130: () => overheadPress(9),
@@ -345,9 +352,175 @@ const INTERMEDIATE: Record<string, () => FigureSpec> = {
   ex_122: () => reverseHyper('straight', { weighted: true }),
 };
 
-const FIGURES: Record<string, () => FigureSpec> = { ...BEGINNER, ...INTERMEDIATE };
+/* ------------------------------------------------------------------ */
+/* Levels 7–10                                                         */
+/* ------------------------------------------------------------------ */
 
-/** Built on first use: over two hundred figures, most of which a visit never shows. */
+const ADVANCED: Record<string, () => FigureSpec> = {
+  // Push-ups
+  ex_435: () => oneArmPushUp('floor'),
+  ex_215: () => oneArmPushUp('floor'),
+  ex_436: () => oneArmPushUp('floor', { rings: true }),
+  ex_246: () => oneArmPushUp('floor', { rings: true }),
+  ex_434: () => oneArmPushUp('straddle', { rings: true }),
+  ex_180: () => oneArmPushUp('straddle', { rings: true }),
+  ex_179: () => pushUp({ grip: 'pseudo', lean: 0.4, rings: true, turnedOut: true }),
+  ex_214: () => pushUp({ grip: 'pseudo', lean: 0.65, rings: true, turnedOut: true }),
+  ex_245: () => pushUp({ grip: 'pseudo', lean: 1, rings: true, turnedOut: true }),
+  ex_275: () => pushUp({ grip: 'pseudo', lean: 0.5, feetUp: true }),
+
+  // Planche
+  ex_210: () => planche({ legs: 'straddle' }),
+  ex_244: () => planche({ legs: 'half-lay' }),
+  ex_212: () => planche({ legs: 'advanced-tuck', press: true }),
+  ex_273: () => planche({ legs: 'straddle', press: true }),
+  ex_211: () => planche({ legs: 'advanced-tuck', rings: true }),
+  ex_272: () => planche({ legs: 'straddle', rings: true }),
+  ex_213: () => planche({ legs: 'tuck', rings: true, press: true }),
+  ex_274: () => planche({ legs: 'advanced-tuck', rings: true, press: true }),
+
+  // Dips
+  ex_181: () => dip({ oneArm: true, legs: 'pike' }),
+  ex_216: () => dip({ oneArm: true, legs: 'straight' }),
+  ex_247: () => dip({ oneArm: true, legs: 'straight' }),
+  ex_197: () => dip({ depth: 'forearms', shoulders: 'behind-wrist' }),
+  ex_230: () => dip({ depth: 'forearms', shoulders: 'above-elbow' }),
+  ex_287: () => dip({ depth: 'forearms', shoulders: 'behind-elbow' }),
+  ex_182: () => dip({ rings: true, turnedOut: true, lean: 45 }),
+  ex_400: () => dip({ rings: true, turnedOut: true, lean: 45 }),
+  ex_217: () => dip({ rings: true, turnedOut: true, lean: 75 }),
+  ex_248: () => dip({ rings: true, turnedOut: true, lean: 90 }),
+  ex_401: () => dip({ rings: true, turnedOut: true, lean: 90 }),
+  ex_276: () => dip({ rings: true, turnedOut: true, lean: 120 }),
+  ex_399: () => frontRingDip('wide'),
+  ex_183: () => dip({ extra: 'plate', plate: 9 }),
+  ex_218: () => dip({ extra: 'plate', plate: 10 }),
+  ex_249: () => dip({ extra: 'plate', plate: 11 }),
+  ex_277: () => dip({ extra: 'plate', plate: 12 }),
+
+  // Pull-ups
+  ex_379: () => pullUp({ kind: 'one-arm' }),
+  ex_240: () => pullUp({ kind: 'one-arm' }),
+  ex_207: () => pullUp({ kind: 'one-arm', tempo: 'slow-return' }),
+  ex_268: () => pullUp({ kind: 'one-arm', extra: 'plate', plate: 4.5 }),
+  ex_176: () => pullUp({ kind: 'archer', rings: true }),
+  ex_270: () => pullUp({ kind: 'slap' }),
+  ex_177: () => pullUp({ extra: 'plate', plate: 9 }),
+  ex_208: () => pullUp({ extra: 'plate', plate: 10 }),
+  ex_241: () => pullUp({ extra: 'plate', plate: 11 }),
+  ex_269: () => pullUp({ extra: 'plate', plate: 12 }),
+  ex_178: () => kipPullUp({ behindBack: true }),
+  ex_209: () => lPullUp({ slap: 'abs' }),
+  ex_242: () => lPullUp({ slap: 'thighs' }),
+  ex_175: () => row({ rings: true, arms: 'one' }),
+  ex_174: ropeClimb,
+
+  // Muscle-ups and ring transitions
+  ex_184: () => muscleUp(),
+  ex_250: () => muscleUp(undefined, false, true),
+  ex_219: leverToPlanche,
+  ex_278: () => ringsToSupport({ start: 'inverted-straight', direction: 'backward' }),
+  ex_190: () => ringsToSupport({ start: 'inverted-pike', end: 'l', direction: 'backward' }),
+  ex_282: () => ringsToSupport({ start: 'inverted-straight' }),
+  ex_189: () => ringsToSupport({ start: 'german', direction: 'backward' }),
+  ex_281: () => ringsToSupport({ start: 'german', end: 'l', direction: 'backward' }),
+  ex_253: () => ringsToSupport({ start: 'inverted-pike', end: 'l' }),
+  ex_227: () => hefesto({ tempo: 'slow-return' }),
+  ex_256: () => hefesto(),
+  ex_284: () => hefesto({ from: 'back-lever' }),
+  ex_195: () => pelicanCurl(false, { feetUp: true }),
+
+  // Levers
+  ex_173: () => frontLever('one-leg'),
+  ex_205: () => frontLever('full'),
+  ex_223: () => frontLever('full', { rings: true }),
+  ex_238: () => frontLever('full', { toInverted: 'from-lever' }),
+  ex_266: () => frontLever('full', { toInverted: 'from-hang' }),
+  ex_360: () => frontLever('full', { toInverted: 'from-hang' }),
+  ex_206: () => frontLever('straddle', { rows: true }),
+  ex_239: () => frontLever('straddle', { rows: true }),
+  ex_267: () => frontLever('full', { rows: true }),
+  ex_372: () => frontLever('tuck', { rows: true, rings: true }),
+  ex_172: () => backLever('full'),
+  ex_188: () => backLever('full', { rings: true }),
+  ex_229: () => backLever('full', { oneArm: true }),
+  ex_204: () => backLever('full', { from: 'pullout' }),
+  ex_237: () => backLever('full', { from: 'german-pullout' }),
+  ex_265: () => backLever('full', { from: 'pull-up' }),
+  ex_361: () => backLever('tuck', { from: 'pull-up' }),
+
+  // Rings statics
+  ex_243: () => ironCross({ partial: true }),
+  ex_271: () => ironCross(),
+  ex_280: () => ironCross(),
+  ex_257: () => victorian('hold'),
+  ex_285: () => victorian('press'),
+
+  // Handstands and presses
+  ex_165: () => freeHeadstandPushUp({ fromTop: true }),
+  ex_259: () => handstand('one-arm'),
+  ex_414: () => handstand('tuck'),
+  ex_164: () => ringsHandstand('hold'),
+  ex_166: () => ringsHandstandPushUp('wide'),
+  ex_231: () => ringsHandstandPushUp('wide'),
+  ex_198: () => ringsHandstandPushUp('strap'),
+  ex_168: () => pressToHandstand('bent-arm'),
+  ex_200: () => pressToHandstand('straight-body'),
+  ex_233: () => pressToHandstand('elbow-lever'),
+  ex_261: () => pressToHandstand('bars-dip'),
+  ex_170: () => pressToHandstand('straddle-stand'),
+  ex_202: () => pressToHandstand('l-sit'),
+  ex_235: () => pressToHandstand('l-sit'),
+  ex_169: () => pressToHandstand('chair', { rings: true }),
+  ex_201: () => pressToHandstand('bent-arm', { rings: true }),
+  ex_234: () => pressToHandstand('bars-dip', { rings: true }),
+  ex_262: () => pressToHandstand('straight-body', { rings: true }),
+  ex_263: () => pressToHandstand('l-sit', { rings: true }),
+  ex_167: () => overheadPress(10),
+  ex_199: () => overheadPress(10.5),
+  ex_232: () => overheadPress(11),
+  ex_260: () => overheadPress(11.5),
+
+  // Core
+  ex_187: () => abWheel('standing', { tempo: 'slow-return' }),
+  ex_222: () => abWheel('standing'),
+  ex_251: () => abWheel('standing', { weighted: true }),
+  ex_279: () => abWheel('standing', { oneArm: true }),
+  ex_194: () => dragonFlag('full', { weighted: true }),
+  ex_185: () => elbowLever({ oneArm: true }),
+  ex_220: () => elbowLever({ oneArm: true }),
+  ex_186: () => humanFlag('straddle'),
+  ex_221: () => humanFlag('full'),
+  ex_389: () => vSit(45),
+  ex_171: () => vSit(75),
+  ex_390: () => vSit(90),
+  ex_252: () => vSit(90, { rings: true }),
+  ex_203: () => vSit(100),
+  ex_236: () => vSit(120),
+  ex_264: () => vSit(140),
+  ex_411: () => backBridge('decline'),
+  ex_412: () => backBridge('one-leg'),
+  ex_413: () => backBridge('decline-one-leg'),
+
+  // Legs
+  ex_191: () => pistol(6),
+  ex_224: () => pistol(7),
+  ex_254: () => pistol(8),
+  ex_283: () => pistol(9),
+  ex_193: () => shrimp('advanced', { deficit: true }),
+  ex_226: () => shrimp('two-hands', { deficit: true }),
+  ex_255: () => shrimp('advanced', { deficit: true, load: 5 }),
+  ex_192: () => nordic('full', { armsOverhead: true }),
+  ex_225: () => nordic('full', { weighted: true }),
+  ex_196: () => kneelingQuad('matrix', { elevated: true }),
+  ex_228: () => kneelingQuad('matrix', { oneLeg: true }),
+  ex_258: () => kneelingQuad('leg-extension', { oneLeg: true }),
+  ex_286: () => kneelingQuad('sissy', { oneLeg: true }),
+};
+
+const FIGURES: Record<string, () => FigureSpec> = { ...BEGINNER, ...INTERMEDIATE, ...ADVANCED };
+
+/** Built on first use: over three hundred figures, most of which a visit never shows. */
 const built = new Map<string, FigureSpec>();
 
 export function calisthenicsFigure(id: string): FigureSpec | undefined {
