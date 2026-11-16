@@ -66,6 +66,8 @@ export default function ForgePage() {
     } else if (result === 'conflict') {
       setConflict(true);
       setNotice(null);
+    } else if (result === 'outdated') {
+      setNotice({ tone: 'warn', text: 'A newer version of Aura saved your campaign. Reload the app, then make this change again.' });
     } else {
       setNotice({ tone: 'error', text: 'The server refused this plan. Undo your last addition and save again.' });
     }

@@ -5,6 +5,7 @@ import { BLUEPRINT_PLAN, BLUEPRINT_SPEC } from '../data/blueprintPlan';
 import { getAccountState, refreshAccount, signOut, subscribeAccount } from './accountStore';
 import { CampaignPlan, PlanSpec, normalizeSpec, resolvePlan } from './campaignPlan';
 import { LogEntry, ProtocolSave, createInitialSave, mondayOf, toIsoDate } from './protocolEngine';
+import { resolveExerciseId } from '../data/exerciseAliases';
 
 /**
  * The signed-in athlete's campaign save, kept in step with the backend.
@@ -57,7 +58,13 @@ export interface CampaignSnapshot {
 }
 
 /** How saving the plan went. */
-export type PlanSaveResult = 'saved' | 'offline' | 'conflict' | 'invalid';
+/** `outdated`: the account's plan was saved by a newer version of the app; reload before editing it. */
+export type PlanSaveResult = 'saved' | 'offline' | 'conflict' | 'invalid' | 'outdated';
+
+/** The plan format this version of the app reads and writes. */
+const PLAN_VERSION = 2;
+/** The server holds a plan from a newer app; it is left alone until this tab reloads. */
+let planFromNewerApp = false;
 
 interface RemoteDoc {
   rev: number;
@@ -126,7 +133,16 @@ function normalizeSave(raw: unknown): ProtocolSave {
     }
   }
 
+  const skills: Record<string, string> = {};
+  if (isRecord(raw.skills)) {
+    for (const [key, date] of Object.entries(raw.skills)) {
+      if (typeof date === 'string') skills[key] = date;
+    }
+  }
+
   return {
+    // Fields a newer version of the app added ride along untouched, so this one never strips them.
+    ...extrasOf(raw),
     startedAt: typeof raw.startedAt === 'string' ? raw.startedAt : fresh.startedAt,
     bodyWeightKg:
       typeof raw.bodyWeightKg === 'number' && Number.isFinite(raw.bodyWeightKg) ? raw.bodyWeightKg : fresh.bodyWeightKg,
@@ -135,7 +151,16 @@ function normalizeSave(raw: unknown): ProtocolSave {
     milestones: isRecord(raw.milestones) ? (raw.milestones as Record<string, boolean>) : {},
     quests: isRecord(raw.quests) ? (raw.quests as Record<string, boolean>) : {},
     log: Array.isArray(raw.log) ? (raw.log as LogEntry[]) : [],
+    skills,
   };
+}
+
+/** The save fields this version of the app knows how to read. */
+const KNOWN_SAVE_FIELDS = new Set(['startedAt', 'bodyWeightKg', 'stats', 'loads', 'milestones', 'quests', 'log', 'skills']);
+
+/** Everything in a stored save that this version does not read. */
+function extrasOf(raw: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(raw).filter(([key]) => !KNOWN_SAVE_FIELDS.has(key)));
 }
 
 /** JSON with keys in a fixed order, so two saves with the same content compare equal. */
@@ -174,7 +199,18 @@ function mergeSaves(from: ProtocolSave, mine: ProtocolSave, theirs: ProtocolSave
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
     .slice(0, LOG_LIMIT);
 
+  // A field this version cannot read: this device's copy wins only if this device changed it.
+  const extras: Record<string, unknown> = {};
+  const fromExtras = extrasOf(from as unknown as Record<string, unknown>);
+  const mineExtras = extrasOf(mine as unknown as Record<string, unknown>);
+  const theirExtras = extrasOf(theirs as unknown as Record<string, unknown>);
+  for (const key of new Set([...Object.keys(mineExtras), ...Object.keys(theirExtras)])) {
+    const value = canonical(mineExtras[key]) === canonical(fromExtras[key]) ? theirExtras[key] : mineExtras[key];
+    if (value !== undefined) extras[key] = value;
+  }
+
   return {
+    ...extras,
     startedAt: mine.startedAt !== from.startedAt ? mine.startedAt : theirs.startedAt,
     bodyWeightKg: mine.bodyWeightKg !== from.bodyWeightKg ? mine.bodyWeightKg : theirs.bodyWeightKg,
     stats: mergeMap(from.stats, mine.stats, theirs.stats) as ProtocolSave['stats'],
@@ -182,6 +218,7 @@ function mergeSaves(from: ProtocolSave, mine: ProtocolSave, theirs: ProtocolSave
     milestones: mergeMap(from.milestones, mine.milestones, theirs.milestones),
     quests: mergeMap(from.quests, mine.quests, theirs.quests),
     log,
+    skills: mergeMap(from.skills, mine.skills, theirs.skills),
   };
 }
 
@@ -467,8 +504,13 @@ async function pullPlan(): Promise<void> {
     return;
   }
 
-  const spec = doc ? toSpec(doc.value) : BLUEPRINT_SPEC;
   planRev = doc?.rev ?? 0;
+  // A plan written by a newer version of the app: this one cannot read it, so it keeps
+  // showing what it has and never saves over it. Reloading picks up the newer app.
+  planFromNewerApp = isRecord(doc?.value) && typeof doc.value.version === 'number' && doc.value.version > PLAN_VERSION;
+  if (planFromNewerApp) return;
+
+  const spec = doc ? toSpec(doc.value) : BLUEPRINT_SPEC;
   if (canonical(spec) !== canonical(getSnapshot().spec)) update(planState(spec));
   persistPlan();
 }
@@ -561,11 +603,84 @@ export function commitSave(next: ProtocolSave): void {
   pushTimer = window.setTimeout(() => void (connected ? push() : sync()), PUSH_DEBOUNCE_MS);
 }
 
+/* ------------------------------------------------------------------ */
+/* Skill-tree mastery, kept in the save so it follows the account      */
+/* ------------------------------------------------------------------ */
+
+/** The save's key for a skill. Calisthenics ids merged in the rebuild count for the skill they became. */
+const skillKey = (tree: string, id: string) => `${tree}:${tree === 'calisthenics' ? resolveExerciseId(id) : id}`;
+
+const skillsCache = new Map<string, { save: ProtocolSave; ids: readonly string[] }>();
+
+/** An account's save is in hand (cached or fetched), so mastery reads and writes go to it. */
+const accountLoaded = () => Boolean(userId) && getSnapshot().gate === 'ready';
+
+/** One tree's mastered skills from the account's save; null while no account is loaded. Stable between changes. */
+export function syncedSkills(tree: string): readonly string[] | null {
+  if (!accountLoaded()) return null;
+  const { save } = getSnapshot();
+  const hit = skillsCache.get(tree);
+  if (hit && hit.save === save) return hit.ids;
+  const prefix = `${tree}:`;
+  const ids = Object.freeze(Object.keys(save.skills ?? {}).filter((key) => key.startsWith(prefix)).map((key) => key.slice(prefix.length)));
+  skillsCache.set(tree, { save, ids });
+  return ids;
+}
+
+/**
+ * Sets one tree's mastered skills in the account's save, keeping the date each
+ * skill was first mastered. False when no account is loaded.
+ */
+export function setSyncedSkills(tree: string, ids: readonly string[]): boolean {
+  if (!accountLoaded()) return false;
+  const save = getSnapshot().save;
+  const today = toIsoDate(new Date());
+  const prefix = `${tree}:`;
+  const next: Record<string, string> = {};
+  for (const [key, date] of Object.entries(save.skills ?? {})) if (!key.startsWith(prefix)) next[key] = date;
+  for (const id of ids) {
+    const key = skillKey(tree, id);
+    next[key] = save.skills?.[key] ?? today;
+  }
+  commitSave({ ...save, skills: next });
+  return true;
+}
+
+/**
+ * Brings skills mastered on this device before mastery was synced into the
+ * account's save. Adds only; returns how many were added.
+ */
+export function adoptDeviceSkills(tree: string, deviceIds: readonly string[]): number {
+  if (!accountLoaded() || deviceIds.length === 0) return 0;
+  const save = getSnapshot().save;
+  const today = toIsoDate(new Date());
+  const next = { ...(save.skills ?? {}) };
+  let added = 0;
+  for (const id of deviceIds) {
+    const key = skillKey(tree, id);
+    if (!next[key]) {
+      next[key] = today;
+      added += 1;
+    }
+  }
+  if (added) commitSave({ ...save, skills: next });
+  return added;
+}
+
+/** Whose campaign is loaded, once it is; null before. */
+export function campaignUserId(): string | null {
+  return accountLoaded() ? userId : null;
+}
+
+/** Calls the listener whenever the campaign (save, plan or sign-in) changes. */
+export const subscribeToCampaign = (listener: () => void): (() => void) => subscribe(listener);
+
 /**
  * Saves the account's plan: on this device straight away, then on the server.
  * With `overwrite`, a plan saved meanwhile on another device is replaced.
  */
 export async function savePlan(next: PlanSpec, options: { overwrite?: boolean } = {}): Promise<PlanSaveResult> {
+  if (planFromNewerApp) return 'outdated';
   planDirty = true;
   planConflict = null;
   update(planState(toSpec(next)));

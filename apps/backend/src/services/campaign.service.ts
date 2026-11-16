@@ -44,7 +44,7 @@ export function isCampaignSave(value: unknown): value is CampaignSave {
  * every id against the catalog when it loads one.
  */
 export interface CampaignPlan {
-  version: 2;
+  version: 2 | 3;
   name: string;
   bodyweight: Record<string, unknown>;
   lifts: unknown[];
@@ -58,7 +58,8 @@ export interface CampaignPlan {
 export function isCampaignPlan(value: unknown): value is CampaignPlan {
   if (!isRecord(value)) return false;
   return (
-    value.version === 2 &&
+    // v3 is the campaign format with inline bosses, towers and tracked exercises; v2 plans still load.
+    (value.version === 2 || value.version === 3) &&
     typeof value.name === 'string' &&
     isRecord(value.bodyweight) &&
     ['lifts', 'days', 'armor', 'bosses', 'trees', 'acts'].every((key) => Array.isArray(value[key])) &&

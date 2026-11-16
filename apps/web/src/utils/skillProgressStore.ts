@@ -5,11 +5,13 @@ import { Exercise } from '@aura/types';
 import { EXERCISES } from '../data/exercisesData';
 import { getStoredExercises } from './exerciseStorage';
 import { resolveExerciseId } from '../data/exerciseAliases';
+import { adoptDeviceSkills, campaignUserId, setSyncedSkills, subscribeToCampaign, syncedSkills } from './protocolStore';
 
 /**
- * Which skills are mastered, kept in localStorage — one entry per skill tree —
- * and read through `useSyncExternalStore` so the server render and the first
- * client render agree. A new athlete starts with nothing mastered.
+ * Which skills are mastered. Once an account is loaded they live in its synced
+ * save (so they follow the athlete to every device); before that, and as the
+ * old per-device copy, in localStorage — one entry per skill tree. Read through
+ * `useSyncExternalStore` so the server render and the first client render agree.
  */
 
 export type SkillTreeId = 'calisthenics' | 'bouldering' | 'gym';
@@ -71,8 +73,10 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
+/** Mastery lives in the account's save once one is loaded; this device's copy is the fallback. */
 export function setMasteredIds(tree: SkillTreeId, ids: string[]): void {
   const next = Object.freeze([...new Set(ids)]);
+  if (setSyncedSkills(tree, next)) return;
   cache.set(tree, next);
   try {
     window.localStorage.setItem(PROGRESS_KEYS[tree], JSON.stringify({ masteredIds: next }));
@@ -82,9 +86,36 @@ export function setMasteredIds(tree: SkillTreeId, ids: string[]): void {
   listeners.forEach((listener) => listener());
 }
 
+/** Follows both the account's save and this device's copy. */
+function subscribeBoth(listener: () => void): () => void {
+  const offLocal = subscribe(listener);
+  const offCampaign = subscribeToCampaign(listener);
+  return () => {
+    offLocal();
+    offCampaign();
+  };
+}
+
 export function useMasteredIds(tree: SkillTreeId): readonly string[] {
-  const snapshot = useCallback(() => getSnapshot(tree), [tree]);
-  return useSyncExternalStore(subscribe, snapshot, getServerSnapshot);
+  const snapshot = useCallback(() => syncedSkills(tree) ?? getSnapshot(tree), [tree]);
+  return useSyncExternalStore(subscribeBoth, snapshot, getServerSnapshot);
+}
+
+/**
+ * Before mastery was synced it lived only on each device. Once per account and
+ * device, whatever this device mastered is added to the account's save.
+ */
+export function adoptDeviceProgress(): void {
+  const user = campaignUserId();
+  if (!user) return;
+  const flag = `aura_skills_adopted_v1:${user}`;
+  try {
+    if (window.localStorage.getItem(flag)) return;
+    for (const tree of SKILL_TREE_IDS) adoptDeviceSkills(tree, read(tree));
+    window.localStorage.setItem(flag, new Date().toISOString());
+  } catch (error) {
+    console.error('Could not bring this device’s skill progress into the account:', error);
+  }
 }
 
 /* ------------------------------------------------------------------ */
