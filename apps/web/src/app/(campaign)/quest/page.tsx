@@ -1,17 +1,19 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Flame, LocateFixed, Moon, Shield } from 'lucide-react';
 import { ScreenHeader } from '../../../components/game/AppShell';
 import { useGame } from '../../../components/game/GameProvider';
 import { figureForExercise } from '../../../components/game/figures';
 import { BossHpChip } from '../../../components/game/BossHpChip';
-import { bossesOfExercise, prToday, shortDay, splitTarget } from '../../../components/game/helpers';
-import { Chip, Figure, Label, Ring, SegmentBar, Stepper, TickButton } from '../../../components/game/kit';
+import { ExerciseSheet } from '../../../components/game/ExerciseSheet';
+import { LiftLogger } from '../../../components/game/LiftLogger';
+import { bossesOfExercise, shortDay, splitTarget } from '../../../components/game/helpers';
+import { Chip, Figure, Label, Ring, SegmentBar, TickButton } from '../../../components/game/kit';
 import { EVENT_VISUAL } from '../../../components/protocol/Toasts';
-import { DAY_NAMES, DayId, PlanExercise, formatStatValue, liftOf, unitLabel } from '../../../utils/campaignPlan';
-import { XP_RULES, currentOf, questKey, restKey } from '../../../utils/protocolEngine';
+import { DAY_NAMES, DayId, PlanExercise, formatStatValue, liftOf } from '../../../utils/campaignPlan';
+import { XP_RULES, questKey, restKey } from '../../../utils/protocolEngine';
 
 /** Today's quest: the day's missions, ticked and logged, filling a bar towards the day's chest. */
 export default function QuestPage() {
@@ -27,6 +29,10 @@ export default function QuestPage() {
   const missionDone = isRest
     ? [Boolean(save.quests[rest])]
     : day.exercises.map((exercise) => Boolean(save.quests[questKey(viewWeek, exercise.id)]));
+  const [openId, setOpenId] = useState<string | null>(null);
+  const closeSheet = useCallback(() => setOpenId(null), []);
+  // The panel belongs to a mission of the day on screen; switching day closes it.
+  const opened = isRest ? undefined : day.exercises.find((exercise) => exercise.id === openId);
 
   return (
     <main className="w-full max-w-[1180px] mx-auto px-4 pt-5 lg:px-8 lg:pt-8 pb-8 flex flex-col gap-5">
@@ -163,6 +169,7 @@ export default function QuestPage() {
                   dayKind={day.kind}
                   done={Boolean(save.quests[questKey(viewWeek, exercise.id)])}
                   onToggle={() => game.toggleQuest(questKey(viewWeek, exercise.id))}
+                  onOpen={() => setOpenId(exercise.id)}
                 />
               ))}
             </ul>
@@ -178,6 +185,16 @@ export default function QuestPage() {
           <BattleLog />
         </aside>
       </div>
+
+      {opened && (
+        <ExerciseSheet
+          exercise={opened}
+          dayKind={day.kind}
+          done={Boolean(save.quests[questKey(viewWeek, opened.id)])}
+          onToggle={() => game.toggleQuest(questKey(viewWeek, opened.id))}
+          onClose={closeSheet}
+        />
+      )}
     </main>
   );
 }
@@ -201,18 +218,18 @@ const Chest: React.FC<{ open: boolean }> = ({ open }) => (
   </span>
 );
 
-const MissionCard: React.FC<{ exercise: PlanExercise; dayKind: string; done: boolean; onToggle: () => void }> = ({
+const MissionCard: React.FC<{ exercise: PlanExercise; dayKind: string; done: boolean; onToggle: () => void; onOpen: () => void }> = ({
   exercise,
   dayKind,
   done,
   onToggle,
+  onOpen,
 }) => {
-  const { save, plan, derived, todayIso, logStat, logLoad } = useGame();
+  const { plan, derived } = useGame();
   const [xpFloat, setXpFloat] = useState(0);
-  const stat = liftOf(plan, exercise.lift);
+  const logs = Boolean(liftOf(plan, exercise.lift) || exercise.load);
   const { sets, reps } = splitTarget(exercise.target);
   const bosses = bossesOfExercise(derived.bosses, exercise);
-  const pr = prToday(save, stat ? stat.id : exercise.id, todayIso);
 
   useEffect(() => {
     if (!xpFloat) return;
@@ -228,27 +245,37 @@ const MissionCard: React.FC<{ exercise: PlanExercise; dayKind: string; done: boo
   return (
     <li
       className={`flex flex-col gap-2.5 p-3 rounded-[20px] border-[1.5px] transition-colors ${
-        done ? 'bg-[#100d07] border-[#4a3a18]' : 'bg-ink-850 border-ink-700'
+        done ? 'bg-[#100d07] border-[#4a3a18]' : 'bg-ink-850 border-ink-700 hover:border-ink-600'
       }`}
     >
       <div className="flex items-center gap-3">
-        <span className={`w-[54px] h-[54px] shrink-0 rounded-2xl bg-ink-950 border flex items-center justify-center ${done ? 'border-[#5c4a22]' : 'border-ink-700'}`}>
-          <Figure spec={figureForExercise(exercise.exercise, dayKind)} state={done ? 'mastered' : 'ready'} className="w-12 h-12" />
-        </span>
-        <span className="flex-1 min-w-0 flex flex-col gap-1">
-          <span className={`text-[14.5px] font-semibold truncate ${done ? 'text-[#d9c38f]' : 'text-fg-2'}`}>{exercise.name}</span>
-          <span className={`font-display font-bold text-[22px] leading-none ${done ? 'text-earned' : 'text-fg'}`}>
-            {sets ? (
-              <>
-                {sets}
-                <span className="text-fg-5 text-base"> × </span>
-                {reps}
-              </>
-            ) : (
-              reps
-            )}
+        {/* The mission itself opens its panel; the tick beside it completes it. */}
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-haspopup="dialog"
+          aria-label={`${exercise.name}: how to do it`}
+          className="flex-1 min-w-0 flex items-center gap-3 text-left rounded-2xl -m-1 p-1 active:scale-[.99] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-act"
+        >
+          <span className={`w-[54px] h-[54px] shrink-0 rounded-2xl bg-ink-950 border flex items-center justify-center ${done ? 'border-[#5c4a22]' : 'border-ink-700'}`}>
+            <Figure spec={figureForExercise(exercise.exercise, dayKind)} state={done ? 'mastered' : 'ready'} className="w-12 h-12" />
           </span>
-        </span>
+          <span className="flex-1 min-w-0 flex flex-col gap-1">
+            <span className={`text-[14.5px] font-semibold truncate ${done ? 'text-[#d9c38f]' : 'text-fg-2'}`}>{exercise.name}</span>
+            <span className={`font-display font-bold text-[22px] leading-none ${done ? 'text-earned' : 'text-fg'}`}>
+              {sets ? (
+                <>
+                  {sets}
+                  <span className="text-fg-5 text-base"> × </span>
+                  {reps}
+                </>
+              ) : (
+                reps
+              )}
+            </span>
+          </span>
+          <ChevronRight className="w-4 h-4 shrink-0 text-fg-5" aria-hidden />
+        </button>
         <span className="relative">
           {xpFloat > 0 && (
             <span key={xpFloat} className="absolute right-0 -top-6 font-display font-bold text-[15px] text-earned whitespace-nowrap anim-float">
@@ -259,7 +286,7 @@ const MissionCard: React.FC<{ exercise: PlanExercise; dayKind: string; done: boo
         </span>
       </div>
 
-      {(stat || exercise.load || bosses.length > 0 || exercise.armor) && (
+      {(logs || bosses.length > 0 || exercise.armor) && (
         <div className="flex flex-wrap items-center gap-2 pt-2.5 border-t border-ink-750">
           {bosses.map((status) => (
             <BossHpChip key={status.boss.id} status={status} />
@@ -270,29 +297,7 @@ const MissionCard: React.FC<{ exercise: PlanExercise; dayKind: string; done: boo
             </Chip>
           )}
           <span className="flex-1" />
-          {pr && <span className="h-6 px-2 rounded-full bg-earned text-earned-deep font-display font-bold text-xs leading-6">PR</span>}
-          {stat ? (
-            <Stepper
-              value={currentOf(save, stat)}
-              step={stat.step}
-              unit={unitLabel(stat.unit)}
-              prefix={stat.unit === 'added-kg' ? '+' : ''}
-              highlight={pr}
-              placeholder={stat.hasBaseline ? undefined : 'log it'}
-              ariaLabel={`${stat.name}, best ${formatStatValue(currentOf(save, stat), stat.unit)}`}
-              onCommit={(value) => logStat(stat.id, value)}
-            />
-          ) : exercise.load ? (
-            <Stepper
-              value={save.loads[exercise.id] ?? exercise.load.start ?? 0}
-              step={exercise.load.step}
-              unit="kg"
-              highlight={pr}
-              placeholder={exercise.load.start === null ? 'log it' : undefined}
-              ariaLabel={`${exercise.name} working weight`}
-              onCommit={(value) => logLoad(exercise, value)}
-            />
-          ) : null}
+          <LiftLogger exercise={exercise} />
         </div>
       )}
     </li>

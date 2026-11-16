@@ -145,6 +145,15 @@ function lookup(given: string): FigureSpec | undefined {
   return spec;
 }
 
+/** The tree skill a hand-written campaign exercise borrows its drawing from, when it has one. */
+export function lookalikeOf(exerciseId: string): { tree: 'calisthenics' | 'gym' | 'bouldering'; id: string } | null {
+  const id = resolveExerciseId(exerciseId);
+  if (CALISTHENICS_LOOKALIKE[id]) return { tree: 'calisthenics', id: resolveExerciseId(CALISTHENICS_LOOKALIKE[id]) };
+  if (GYM_LOOKALIKE[id]) return { tree: 'gym', id: GYM_LOOKALIKE[id] };
+  if (BOULDERING_LOOKALIKE[id]) return { tree: 'bouldering', id: BOULDERING_LOOKALIKE[id] };
+  return null;
+}
+
 /** A drawing for a catalogue exercise id (the `exercise` field of a plan exercise). */
 export function figureForExercise(exerciseId: string, branch?: string): FigureSpec {
   return lookup(exerciseId) ?? calisthenicsFigure(BRANCH_FALLBACK[branch ?? ''] ?? FALLBACK)!;
