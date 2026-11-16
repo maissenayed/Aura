@@ -162,6 +162,8 @@ interface SkillFigureProps {
   className?: string;
   /** Spoken description; without one the drawing is treated as decoration. */
   title?: string;
+  /** Recolours the athlete — gold once mastered, dim while locked. Defaults to the usual light ink. */
+  tint?: { body: string; far: string };
 }
 
 export const SkillFigure: React.FC<SkillFigureProps> = ({
@@ -172,14 +174,17 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
   animate = false,
   className,
   title,
+  tint,
 }) => {
   // Marker ids must be unique per drawing, and safe inside url(#…).
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const reducedMotion = useReducedMotion();
   const arrowHead = `${uid}-arrow`;
   const clip = `${uid}-clip`;
+  const body = tint?.body ?? INK.body;
+  const farInk = tint?.far ?? INK.far;
   const colourOf = (tone: Tone, far = false) =>
-    tone === 'focus' ? accent : tone === 'ghost' ? INK.ghost : tone === 'gear' ? INK.gear : far ? INK.far : INK.body;
+    tone === 'focus' ? accent : tone === 'ghost' ? INK.ghost : tone === 'gear' ? INK.gear : far ? farInk : body;
   // The glow is for the large drawing; thumbnails stay cheap to paint.
   const glowOf = (tone: Tone) => (tone === 'focus' && !compact ? { filter: `drop-shadow(0 0 1.8px ${accent})` } : undefined);
   const arrowWidth = compact ? 2.6 : 1.5;

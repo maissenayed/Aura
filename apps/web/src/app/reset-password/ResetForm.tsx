@@ -22,7 +22,7 @@ export const ResetForm: React.FC = () => {
       <AuthCard icon={<KeyRound className="w-7 h-7" />} title="This reset link can't be used">
         <FormMessage tone="error">It has expired or was already used. Reset links work once, for one hour.</FormMessage>
         <p className="mt-3 text-sm text-slate-400">
-          <Link href="/tracker" className="font-bold text-neon-cyan hover:underline">
+          <Link href="/camp" className="font-bold text-neon-cyan hover:underline">
             Go to sign in
           </Link>{' '}
           and ask for a new one.
@@ -36,7 +36,7 @@ export const ResetForm: React.FC = () => {
       <AuthCard icon={<KeyRound className="w-7 h-7" />} title="Password changed">
         <FormMessage tone="success">Your new password is set. You were signed out everywhere else.</FormMessage>
         <Link
-          href="/tracker"
+          href="/camp"
           className="mt-5 flex items-center justify-center w-full h-11 rounded-xl text-sm font-black bg-neon-cyan text-dark-950 hover:brightness-110 transition"
         >
           Sign in

@@ -45,7 +45,7 @@ export const JoinForm: React.FC = () => {
         <FormMessage tone="error">{lookupError ?? 'This invitation has expired, been used or been withdrawn.'}</FormMessage>
         <p className="mt-3 text-sm text-slate-400">
           Ask the person who invited you for a new link. If you already have an account,{' '}
-          <Link href="/tracker" className="font-bold text-neon-cyan hover:underline">
+          <Link href="/camp" className="font-bold text-neon-cyan hover:underline">
             sign in here
           </Link>
           .
@@ -87,7 +87,7 @@ export const JoinForm: React.FC = () => {
       return setError(result.error);
     }
     await refreshAccount();
-    router.push('/tracker');
+    router.push('/camp');
   };
 
   return (

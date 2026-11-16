@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "@xyflow/react/dist/style.css";
 
 @theme {
   --color-dark-950: #06070a;
@@ -15,6 +14,82 @@
   --color-neon-purple: #d946ef;
   --color-neon-rose: #f43f5e;
   --color-neon-gold: #f59e0b;
+
+  /*
+   * Legacy colours, re-pointed at the game palette so screens built before the
+   * redesign (skill details, plan fields, sign-in) read as the same game:
+   * slate becomes ink, emerald ("done") becomes earned gold.
+   */
+  --color-dark-950: #06070b;
+  --color-dark-900: #0a0d16;
+  --color-dark-850: #0b0e17;
+  --color-dark-800: #10141f;
+  --color-dark-700: #1a2031;
+  --color-dark-600: #232a3d;
+  --color-neon-cyan: #3ee8ff;
+  --color-neon-emerald: #ffc247;
+  --color-neon-amber: #ffc247;
+  --color-neon-purple: #a77bff;
+  --color-neon-rose: #ff5470;
+  --color-neon-gold: #ffc247;
+  --color-slate-50: #f6f8ff;
+  --color-slate-100: #eef2ff;
+  --color-slate-200: #c9d0e4;
+  --color-slate-300: #a3acc2;
+  --color-slate-400: #8d97b0;
+  --color-slate-500: #68728c;
+  --color-slate-600: #3a4258;
+  --color-slate-700: #232a3d;
+  --color-slate-800: #1a2031;
+  --color-slate-900: #0a0d16;
+  --color-slate-950: #06070b;
+  --color-emerald-50: #fff9ea;
+  --color-emerald-100: #fff3d1;
+  --color-emerald-200: #ffe2a3;
+  --color-emerald-300: #ffd37a;
+  --color-emerald-400: #ffc247;
+  --color-emerald-500: #e3a12f;
+  --color-emerald-600: #9b7a35;
+  --color-emerald-700: #6b5320;
+  --color-emerald-800: #4a3a18;
+  --color-emerald-900: #2a1f0a;
+  --color-emerald-950: #1a1204;
+
+  /*
+   * The game palette. Everything is ink; four accents each mean one thing:
+   * act (do this now), earned (XP, mastered, loot), boss (HP, danger) and
+   * aura (the character itself).
+   */
+  --color-ink-950: #06070b;
+  --color-ink-900: #0a0d16;
+  --color-ink-850: #0b0e17;
+  --color-ink-800: #10141f;
+  --color-ink-750: #141927;
+  --color-ink-700: #1a2031;
+  --color-ink-600: #232a3d;
+  --color-ink-500: #3a4258;
+
+  --color-fg: #eef2ff;
+  --color-fg-2: #c9d0e4;
+  --color-fg-3: #a3acc2;
+  --color-fg-4: #8d97b0;
+  --color-fg-5: #68728c;
+
+  --color-act: #3ee8ff;
+  --color-act-deep: #04121a;
+  --color-earned: #ffc247;
+  --color-earned-soft: #ffd37a;
+  --color-earned-deep: #1a1204;
+  --color-boss: #ff5470;
+  --color-boss-soft: #ff8fa3;
+  --color-boss-deep: #1a0408;
+  --color-aura: #a77bff;
+  --color-aura-soft: #b99cff;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-chakra), var(--font-inter), system-ui, sans-serif;
 }
 
 :root {
@@ -28,10 +103,7 @@ body {
   font-family: var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
   overflow-x: hidden;
   user-select: none;
-  background-image: 
-    radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.08) 0%, transparent 60%),
-    radial-gradient(circle at 85% 60%, rgba(217, 70, 239, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 15% 70%, rgba(0, 255, 157, 0.06) 0%, transparent 50%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(167, 123, 255, 0.07) 0%, transparent 55%);
   background-attachment: fixed;
 }
 
@@ -41,52 +113,6 @@ body {
   background-image: 
     linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-}
-
-/* React Flow Dark Theme Overrides */
-.react-flow {
-  background: transparent !important;
-}
-
-.react-flow__controls {
-  background: #0a0c12 !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  border-radius: 1rem !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8) !important;
-  overflow: hidden;
-  margin: 1.25rem !important;
-  z-index: 40 !important;
-}
-
-.react-flow__controls-button {
-  background: #0a0c12 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  fill: #94a3b8 !important;
-  color: #94a3b8 !important;
-}
-
-.react-flow__controls-button:hover {
-  background: #1c2336 !important;
-  fill: #00f0ff !important;
-  color: #00f0ff !important;
-}
-
-.react-flow__minimap {
-  background: #0a0c12 !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  border-radius: 1rem !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8) !important;
-  overflow: hidden;
-  margin: 1.25rem !important;
-  z-index: 40 !important;
-}
-
-.react-flow__edge-path {
-  stroke-width: 2.5;
-}
-
-.react-flow__edge.animated .react-flow__edge-path {
-  stroke-dasharray: 6 4;
 }
 
 /* Glowing Border for Pro Nodes (Level 15+) */
@@ -232,4 +258,141 @@ body {
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Game motion. Each one means something: pulse = ready, float = earned, */
+/* shake = hit, burst = mastered, breathe = alive.                     */
+/* ------------------------------------------------------------------ */
+
+@keyframes readyPulse {
+  0% { box-shadow: 0 0 0 0 rgba(62, 232, 255, 0.5); }
+  70% { box-shadow: 0 0 0 12px rgba(62, 232, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(62, 232, 255, 0); }
+}
+.anim-ready { animation: readyPulse 1.9s ease-out infinite; }
+
+@keyframes bossPulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 84, 112, 0.5); }
+  70% { box-shadow: 0 0 0 14px rgba(255, 84, 112, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 84, 112, 0); }
+}
+.anim-boss { animation: bossPulse 1.9s ease-out infinite; }
+
+@keyframes xpFloat {
+  0% { transform: translateY(8px) scale(0.8); opacity: 0; }
+  20% { transform: translateY(0) scale(1.1); opacity: 1; }
+  100% { transform: translateY(-36px) scale(1); opacity: 0; }
+}
+.anim-float { animation: xpFloat 1.3s ease-out forwards; }
+
+@keyframes hitShake {
+  0%, 100% { transform: translate(0, 0); }
+  15% { transform: translate(-9px, 3px) rotate(-2deg); }
+  30% { transform: translate(8px, -3px) rotate(2deg); }
+  45% { transform: translate(-6px, 2px); }
+  60% { transform: translate(5px, -1px); }
+  80% { transform: translate(-2px, 0); }
+}
+.anim-shake { animation: hitShake 0.45s ease-in-out; }
+
+@keyframes burstRing {
+  0% { transform: scale(0.3); opacity: 1; }
+  100% { transform: scale(2.3); opacity: 0; }
+}
+.anim-burst { animation: burstRing 0.9s ease-out forwards; }
+
+@keyframes popIn {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.anim-pop { animation: popIn 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+
+@keyframes breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.anim-breathe { animation: breathe 3.4s ease-in-out infinite; }
+
+@keyframes auraGlow {
+  0%, 100% { transform: scale(0.92); opacity: 0.75; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+.anim-aura { animation: auraGlow 3.4s ease-in-out infinite; }
+
+@keyframes slowSpin { to { transform: rotate(360deg); } }
+.anim-spin-slow { animation: slowSpin 48s linear infinite; }
+.anim-rays { animation: slowSpin 12s linear infinite; }
+
+@keyframes sheetIn {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.anim-sheet { animation: sheetIn 0.34s cubic-bezier(0.2, 0.9, 0.3, 1); }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.anim-fade { animation: fadeIn 0.25s ease; }
+
+@keyframes riseIn {
+  from { transform: translateY(18px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.anim-rise { animation: riseIn 0.5s ease-out both; }
+
+@keyframes stampIn {
+  from { transform: scale(2.4) rotate(-14deg); opacity: 0; }
+  to { transform: scale(1) rotate(-8deg); opacity: 1; }
+}
+.anim-stamp { animation: stampIn 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) 0.4s both; }
+
+@keyframes dmgFloat {
+  0% { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
+  15% { transform: translate(-50%, -10px) scale(1.25); opacity: 1; }
+  100% { transform: translate(-50%, -70px) scale(1); opacity: 0; }
+}
+.anim-dmg { animation: dmgFloat 1.1s ease-out forwards; }
+
+@keyframes slash {
+  0% { transform: translate(-60px, 60px) rotate(-38deg) scaleX(0.2); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translate(60px, -60px) rotate(-38deg) scaleX(1.3); opacity: 0; }
+}
+.anim-slash { animation: slash 0.4s ease-out forwards; }
+
+@keyframes flow { to { stroke-dashoffset: -24; } }
+.anim-flow { stroke-dasharray: 5 7; animation: flow 1.2s linear infinite; }
+
+@keyframes driftX {
+  from { transform: translateX(-30px); }
+  to { transform: translateX(30px); }
+}
+.anim-drift { animation: driftX 18s ease-in-out infinite alternate; }
+
+@keyframes moteRise {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  15% { opacity: 0.95; }
+  100% { transform: translateY(-190px) scale(0.4); opacity: 0; }
+}
+.anim-mote { animation: moteRise 4.2s ease-in infinite; }
+
+/* Sealed bosses wear chains. */
+.chains {
+  background: repeating-linear-gradient(-45deg, rgba(150, 160, 190, 0) 0 10px, rgba(150, 160, 190, 0.16) 10px 14px);
+}
+
+/* A dotted map grid behind trees and stages. */
+.dot-grid {
+  background-image: radial-gradient(rgba(120, 140, 190, 0.1) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+.hex-clip { clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-ready, .anim-boss, .anim-float, .anim-shake, .anim-burst, .anim-pop, .anim-breathe, .anim-aura,
+  .anim-spin-slow, .anim-rays, .anim-sheet, .anim-fade, .anim-rise, .anim-stamp, .anim-dmg, .anim-slash,
+  .anim-flow, .anim-drift, .anim-mote {
+    animation: none;
+  }
 }

@@ -39,7 +39,7 @@ interface ToastStackProps {
 
 export const ToastStack: React.FC<ToastStackProps> = ({ toasts, onDismiss }) => (
   <div
-    className="fixed bottom-4 right-4 z-[60] flex flex-col gap-2 w-[min(340px,calc(100vw-2rem))] pointer-events-none"
+    className="fixed bottom-[96px] lg:bottom-4 right-4 z-[60] flex flex-col gap-2 w-[min(340px,calc(100vw-2rem))] pointer-events-none"
     aria-live="polite"
   >
     {toasts.map((toast) => {

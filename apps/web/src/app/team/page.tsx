@@ -55,7 +55,7 @@ export default function TeamPage() {
   } else if (!account) {
     body = (
       <Notice title="Sign in first">
-        <Link href="/tracker" className="font-bold text-neon-cyan hover:underline">
+        <Link href="/camp" className="font-bold text-neon-cyan hover:underline">
           Sign in
         </Link>{' '}
         to manage your team.
