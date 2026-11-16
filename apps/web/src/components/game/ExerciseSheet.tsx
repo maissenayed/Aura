@@ -55,7 +55,8 @@ export const ExerciseSheet: React.FC<{
           <span className="w-10 h-1 rounded-full bg-ink-600" />
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pt-3 pb-5 lg:px-6 lg:pt-6 flex flex-col gap-5">
+        {/* Sections keep their height and the panel scrolls; otherwise the clipped figure box shrinks and cuts the drawing. */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pt-3 pb-5 lg:px-6 lg:pt-6 flex flex-col gap-5 [&>*]:shrink-0">
           <div className="flex items-start gap-3">
             <div className="flex-1 min-w-0 flex flex-col gap-1">
               <div className="flex flex-wrap items-center gap-2">
