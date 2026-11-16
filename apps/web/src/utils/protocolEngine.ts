@@ -848,9 +848,15 @@ function evaluateLevel(
 
 export interface ActNode {
   id: string;
+  /** What kind of goal it is, for its icon on the map. */
+  kind: 'weight' | 'lift' | 'boss' | 'skill' | 'tower' | 'tier' | 'milestone';
   label: string;
   detail: string;
   done: boolean;
+  /** 0–1 towards it. */
+  progress: number;
+  /** Where to go to work on it. */
+  href?: string;
 }
 
 export interface ActStatus {
@@ -881,7 +887,14 @@ function evaluateActs(
           const done = reached(mass.current, mass.start, goal.kg);
           return [
             {
-              node: { id: goal.id, label: goal.label, detail: `${goal.kg.toFixed(1)} kg${goal.week ? ` · week ${goal.week}` : ''}`, done },
+              node: {
+                id: goal.id,
+                kind: 'weight',
+                label: goal.label,
+                detail: `${goal.kg.toFixed(1)} kg${goal.week ? ` · week ${goal.week}` : ''}`,
+                done,
+                progress: towards(mass.current, mass.start, goal.kg),
+              },
               progress: towards(mass.current, mass.start, goal.kg),
             },
           ];
@@ -891,7 +904,15 @@ function evaluateActs(
           if (!checkpoint) return [];
           return [
             {
-              node: { id: goal.id, label: checkpoint.stat.short, detail: formatStatValue(checkpoint.target, checkpoint.stat.unit), done: checkpoint.met },
+              node: {
+                id: goal.id,
+                kind: 'lift',
+                label: checkpoint.stat.short,
+                detail: `${formatStatValue(checkpoint.current, checkpoint.stat.unit)} → ${formatStatValue(checkpoint.target, checkpoint.stat.unit)}`,
+                done: checkpoint.met,
+                progress: checkpoint.ratio,
+                href: '/hero',
+              },
               progress: checkpoint.ratio,
             },
           ];
@@ -901,7 +922,15 @@ function evaluateActs(
           if (!status) return [];
           return [
             {
-              node: { id: goal.id, label: `Boss ${status.order}`, detail: shortBossName(status.boss), done: status.defeated },
+              node: {
+                id: goal.id,
+                kind: 'boss',
+                label: `Boss ${status.order}`,
+                detail: shortBossName(status.boss),
+                done: status.defeated,
+                progress: status.defeated ? 1 : status.damage,
+                href: `/bosses/${status.boss.id}`,
+              },
               progress: status.defeated ? 1 : status.damage,
             },
           ];
@@ -910,7 +939,9 @@ function evaluateActs(
           for (const ladder of ladders) {
             const tier = ladder.tiers.find((entry) => entry.tier.id === goal.tier);
             if (tier) {
-              return [{ node: { id: goal.id, label: tier.tier.rung, detail: tier.tier.name, done: tier.cleared }, progress: tier.progress }];
+              return [
+                { node: { id: goal.id, kind: 'tier', label: tier.tier.rung, detail: tier.tier.name, done: tier.cleared, progress: tier.progress }, progress: tier.progress },
+              ];
             }
           }
           return [];
@@ -920,7 +951,15 @@ function evaluateActs(
           if (!climb) return [];
           return [
             {
-              node: { id: goal.id, label: goal.label ?? 'Skill', detail: climb.name, done: climb.done },
+              node: {
+                id: goal.id,
+                kind: 'skill',
+                label: goal.label ?? climb.name,
+                detail: `${climb.mastered}/${climb.floors} skills on the way`,
+                done: climb.done,
+                progress: climb.done ? 1 : climb.mastered / climb.floors,
+                href: `/?tree=${climb.tree}&skill=${encodeURIComponent(climb.next[0]?.id ?? climb.skill)}`,
+              },
               progress: climb.done ? 1 : climb.mastered / climb.floors,
             },
           ];
@@ -932,7 +971,22 @@ function evaluateActs(
           const done = total > 0 && tower.clearedCount === total;
           return [
             {
-              node: { id: goal.id, label: 'Tower', detail: tower.ladder.name, done },
+              node: {
+                id: goal.id,
+                kind: 'tower',
+                label: tower.ladder.name,
+                detail: `${tower.clearedCount}/${total} floors`,
+                done,
+                progress: total ? tower.clearedCount / total : 0,
+                // The tower opens on its next floor to master, else its summit.
+                ...(tower.ladder.tower
+                  ? {
+                      href: `/?tree=${tower.ladder.tower.tree}&skill=${encodeURIComponent(
+                        tower.tiers.find((tier) => !tier.cleared)?.tier.skill?.id ?? tower.ladder.tower.summit,
+                      )}`,
+                    }
+                  : {}),
+              },
               progress: total ? tower.clearedCount / total : 0,
             },
           ];
@@ -941,7 +995,7 @@ function evaluateActs(
           const milestone = plan.milestones.find((entry) => entry.id === goal.milestone);
           if (!milestone) return [];
           const done = Boolean(save.milestones[milestone.id]);
-          return [{ node: { id: goal.id, label: 'Milestone', detail: milestone.name, done }, progress: done ? 1 : 0 }];
+          return [{ node: { id: goal.id, kind: 'milestone', label: 'Milestone', detail: milestone.name, done, progress: done ? 1 : 0 }, progress: done ? 1 : 0 }];
         }
       }
     });
