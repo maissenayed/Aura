@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Check, ExternalLink, GitBranch, Shield, X } from 'lucide-react';
-import { PlanExercise, liftOf } from '../../utils/campaignPlan';
+import { PlanExercise, formatStatValue, liftOf } from '../../utils/campaignPlan';
 import { XP_RULES } from '../../utils/protocolEngine';
 import { BossHpChip } from './BossHpChip';
 import { exerciseInfo, tutorialUrl } from './exerciseInfo';
@@ -26,7 +26,10 @@ export const ExerciseSheet: React.FC<{
   onToggle: () => void;
   onClose: () => void;
 }> = ({ exercise, dayKind, done, onToggle, onClose }) => {
-  const { derived, plan } = useGame();
+  const { derived, plan, save } = useGame();
+  const lift = liftOf(plan, exercise.lift);
+  // The last few logs, newest first: what to beat today.
+  const recent = lift ? [...(save.history?.[lift.id] ?? [])].reverse().slice(0, 5) : [];
   const closeRef = useRef<HTMLButtonElement>(null);
   const info = exerciseInfo(exercise.exercise);
   const bosses = bossesOfExercise(derived.bosses, exercise);
@@ -116,6 +119,25 @@ export const ExerciseSheet: React.FC<{
             </div>
             {logs && <LiftLogger exercise={exercise} />}
           </section>
+
+          {lift && recent.length > 0 && (
+            <section className="flex flex-col gap-2" aria-label="Last logs">
+              <Label>Last logs</Label>
+              <ol className="flex flex-wrap gap-1.5">
+                {recent.map(([date, value], index) => (
+                  <li
+                    key={date}
+                    className={`list-none h-9 px-3 rounded-xl border flex items-center gap-2 text-[13px] ${
+                      index === 0 ? 'border-[#17566a] bg-[#08161d] text-act' : 'border-ink-700 bg-ink-850 text-fg-3'
+                    }`}
+                  >
+                    <span className="font-display font-bold">{formatStatValue(value, lift.unit)}</span>
+                    <span className="text-[11px] text-fg-5">{date.slice(5).replace('-', '/')}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
 
           {bosses.length > 0 && (
             <section className="flex flex-col gap-2" aria-label="Bosses it hits">

@@ -33,6 +33,7 @@ import { resolveExerciseId } from '../data/exerciseAliases';
 import { ARMOR_SLOTS, ArmorSlot, BossSpec, GoalV3, Metric, PLAN_FORMAT_V3, PlanSpecV3, SkillTreeRef, SpecDayV3, TowerSpec, TrackedLift, WarmUp } from './campaignV3';
 import { migrateSpec } from './migrateV2';
 import { metricOf, recordKeyOf, stepOf } from './records';
+import { guardsOf } from './armor';
 import { floorsOf, skillOf } from './treeIndex';
 
 /** The stored plan format the app reads and writes: v3. */
@@ -200,13 +201,23 @@ export interface PlanExercise {
   trains?: TrainableAttribute[];
 }
 
+/** A warm-up on a day: ticked on the quest board, it forges the armour of the joints it guards. */
+export interface PlanWarmUp {
+  /** What its tick is stored under. */
+  id: string;
+  exercise: string;
+  name: string;
+  /** "2 x 10". */
+  target: string;
+  guards: ArmorSlot[];
+}
+
 export interface PlanDay {
   id: DayId;
   title: string;
   kind: DayKind;
   purpose?: string;
-  /** "Scapular Pull-ups — 2 x 10". */
-  warmUps: string[];
+  warmUps: PlanWarmUp[];
   exercises: PlanExercise[];
 }
 
@@ -702,12 +713,7 @@ export function resolvePlanV2(spec: PlanSpecV2): CampaignPlan {
     title: day.title,
     kind: day.kind,
     ...(day.purpose ? { purpose: day.purpose } : {}),
-    warmUps: day.warmUps.flatMap((choice) => {
-      const exercise = EXERCISE_BY_ID.get(choice.exercise);
-      if (!exercise) return [];
-      const dosed = formatDose(exercise, choice.sets, choice.reps, true);
-      return [dosed ? `${exercise.name} — ${dosed}` : exercise.name];
-    }),
+    warmUps: day.warmUps.flatMap((choice): PlanWarmUp[] => warmUpOf({ id: `${day.id}_warm_${choice.exercise}`, ...choice })),
     exercises: day.exercises.flatMap((choice): PlanExercise[] => {
       const exercise = EXERCISE_BY_ID.get(choice.exercise);
       if (!exercise) return [];
@@ -1019,6 +1025,12 @@ function epithetOf(boss: BossSpec): string {
   return `${recordName(boss.exercise)} at ${boss.multiple}× your bodyweight`;
 }
 
+function warmUpOf(choice: WarmUp): PlanWarmUp[] {
+  const exercise = EXERCISE_BY_ID.get(choice.exercise);
+  if (!exercise) return [];
+  return [{ id: choice.id, exercise: exercise.id, name: exercise.name, target: formatDose(exercise, choice.sets, choice.reps, true), guards: guardsOf(exercise.id) }];
+}
+
 /**
  * A mission whose number is worth tracking: reps, a hold, or a load. Mobility
  * minutes, climbing volume and recovery are ticked, not measured.
@@ -1109,12 +1121,7 @@ export function resolvePlan(spec: PlanSpec): CampaignPlan {
     title: day.title,
     kind: day.kind,
     ...(day.purpose ? { purpose: day.purpose } : {}),
-    warmUps: day.warmUps.flatMap((choice) => {
-      const exercise = EXERCISE_BY_ID.get(choice.exercise);
-      if (!exercise) return [];
-      const dosed = formatDose(exercise, choice.sets, choice.reps, true);
-      return [dosed ? `${exercise.name} — ${dosed}` : exercise.name];
-    }),
+    warmUps: day.warmUps.flatMap(warmUpOf),
     exercises: day.exercises.flatMap((choice): PlanExercise[] => {
       const exercise = EXERCISE_BY_ID.get(choice.exercise);
       if (!exercise) return [];

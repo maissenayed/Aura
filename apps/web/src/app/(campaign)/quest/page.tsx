@@ -12,7 +12,8 @@ import { LiftLogger } from '../../../components/game/LiftLogger';
 import { bossesOfExercise, shortDay, splitTarget } from '../../../components/game/helpers';
 import { Chip, Figure, Label, Ring, SegmentBar, TickButton } from '../../../components/game/kit';
 import { EVENT_VISUAL } from '../../../components/protocol/Toasts';
-import { DAY_NAMES, DayId, PlanExercise, formatStatValue, liftOf } from '../../../utils/campaignPlan';
+import { DAY_NAMES, DayId, PlanExercise, PlanWarmUp, formatStatValue, liftOf } from '../../../utils/campaignPlan';
+import { slotOfPiece } from '../../../utils/armor';
 import { XP_RULES, questKey, restKey } from '../../../utils/protocolEngine';
 
 /** Today's quest: the day's missions, ticked and logged, filling a bar towards the day's chest. */
@@ -126,16 +127,7 @@ export default function QuestPage() {
             <Chest open={selected.cleared} />
           </div>
 
-          {day.warmUps.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <Label className="mr-1">Warm-up</Label>
-              {day.warmUps.map((warmUp, index) => (
-                <span key={`${index}_${warmUp}`} className="h-7 px-2.5 rounded-full bg-ink-800 border border-ink-700 text-xs text-fg-3 flex items-center">
-                  {warmUp}
-                </span>
-              ))}
-            </div>
-          )}
+          {day.warmUps.length > 0 && <WarmUpBoard warmUps={day.warmUps} dayKind={day.kind} />}
 
           {isRest ? (
             <button
@@ -304,44 +296,94 @@ const MissionCard: React.FC<{ exercise: PlanExercise; dayKind: string; done: boo
   );
 };
 
+/** The day's warm-up: each one ticked forges the armour of the joints it guards, for the week. */
+const WarmUpBoard: React.FC<{ warmUps: PlanWarmUp[]; dayKind: string }> = ({ warmUps, dayKind }) => {
+  const { save, viewWeek, toggleQuest, plan } = useGame();
+  const wanted = new Set(plan.armor.map((piece) => slotOfPiece(piece.id)));
+  const done = warmUps.filter((warmUp) => save.quests[questKey(viewWeek, warmUp.id)]).length;
+  return (
+    <section aria-label="Warm-up" className="flex flex-col gap-2 p-3 rounded-[20px] bg-[#0d0b08] border border-[#3a2e14]">
+      <div className="flex items-center gap-2">
+        <Flame className="w-4 h-4 text-earned" />
+        <Label className="flex-1">Warm-up</Label>
+        <span className="font-display font-bold text-sm text-earned">
+          {done}
+          <span className="text-fg-5">/{warmUps.length}</span>
+        </span>
+      </div>
+      <ul className="flex flex-col gap-1.5">
+        {warmUps.map((warmUp) => {
+          const ticked = Boolean(save.quests[questKey(viewWeek, warmUp.id)]);
+          const guards = warmUp.guards.filter((slot) => wanted.has(slot));
+          return (
+            <li key={warmUp.id} className="list-none flex items-center gap-2.5 p-1.5 pl-2 rounded-2xl bg-ink-900/60">
+              <span className={`w-10 h-10 shrink-0 rounded-xl bg-ink-950 border flex items-center justify-center ${ticked ? 'border-[#5c4a22]' : 'border-ink-700'}`}>
+                <Figure spec={figureForExercise(warmUp.exercise, dayKind)} state={ticked ? 'mastered' : 'ready'} className="w-9 h-9" />
+              </span>
+              <span className="flex-1 min-w-0 flex flex-col gap-0.5">
+                <span className={`text-[13px] font-semibold truncate ${ticked ? 'text-[#d9c38f]' : 'text-fg-2'}`}>
+                  {warmUp.name}
+                  {warmUp.target && <span className="text-fg-5 font-display"> · {warmUp.target}</span>}
+                </span>
+                {guards.length > 0 && (
+                  <span className="flex flex-wrap gap-1" aria-label={`Forges ${guards.join(', ')} armour`}>
+                    {guards.map((slot) => (
+                      <span key={slot} className={`h-5 px-1.5 rounded-md text-[10px] font-bold flex items-center gap-1 ${ticked ? 'bg-earned/15 text-earned' : 'bg-act/10 text-act'}`}>
+                        <Shield className="w-3 h-3" /> {slot[0].toUpperCase() + slot.slice(1)}
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </span>
+              <TickButton done={ticked} onClick={() => toggleQuest(questKey(viewWeek, warmUp.id))} label={`${ticked ? 'Undo' : 'Complete'} ${warmUp.name}`} />
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+};
+
+/** This week's armour: forged by the warm-ups, never by hand. */
 const ArmorCard: React.FC = () => {
-  const { derived, viewWeek, toggleQuest } = useGame();
+  const { derived } = useGame();
   const { armor, armorCount } = derived.week;
   if (armor.length === 0) return null;
   return (
-    <section className="flex flex-col gap-3 p-4 rounded-[20px] bg-ink-900 border border-ink-700" aria-label="Tendon armor this week">
+    <section className="flex flex-col gap-3 p-4 rounded-[20px] bg-ink-900 border border-ink-700" aria-label="Armour this week">
       <div className="flex items-center gap-2">
         <Shield className="w-[18px] h-[18px] text-act" />
-        <h2 className="flex-1 font-display font-bold text-base">Armor</h2>
+        <h2 className="flex-1 font-display font-bold text-base">Armour</h2>
         <span className="font-display font-bold text-sm text-earned">
           {armorCount}
           <span className="text-fg-5">/{armor.length}</span>
         </span>
       </div>
+      <p className="text-[11.5px] text-fg-4 -mt-1">Tick a warm-up to forge the joints it guards. Every piece in one week earns Tendons.</p>
       <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-3 gap-2">
-        {armor.map(({ piece, forged }) => (
-          <button
-            key={piece.id}
-            type="button"
-            onClick={() => toggleQuest(questKey(viewWeek, piece.id))}
-            aria-pressed={forged}
-            title={`${piece.drill} — ${piece.when}`}
-            aria-label={`${piece.slot}: ${piece.drill}${forged ? ', forged' : ''}`}
-            className="h-[70px] flex flex-col items-center justify-center gap-1.5 rounded-2xl hover:bg-ink-800 transition cursor-pointer"
-          >
-            <svg width="30" height="34" viewBox="0 0 24 26" aria-hidden="true">
-              <path
-                d="M20 14c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 21.5 4 19 4 14V7a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 4.81 17 6 19 6a1 1 0 0 1 1 1z"
-                fill={forged ? '#ffc247' : 'rgba(62,232,255,.08)'}
-                stroke={forged ? '#ffc247' : '#3ee8ff'}
-                strokeWidth="1.6"
-                strokeLinejoin="round"
-              />
-              {forged && <path d="M8.5 13.5l2.5 2.5 4.5-5" fill="none" stroke="#1a1204" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />}
-            </svg>
-            <span className={`text-[10.5px] font-semibold ${forged ? 'text-earned' : 'text-act'}`}>{piece.slot}</span>
-          </button>
-        ))}
+        {armor.map(({ piece, forged, forgedBy, guardedBy }) => {
+          const how = forged
+            ? `Forged by ${forgedBy.join(', ') || 'hand'}`
+            : guardedBy.length
+              ? `Warm up with ${[...new Set(guardedBy.map((entry) => entry.name))].slice(0, 2).join(' or ')}`
+              : 'No warm-up guards it yet — add one in the Forge';
+          return (
+            <span key={piece.id} title={how} aria-label={`${piece.slot}: ${how}`} className="h-[70px] flex flex-col items-center justify-center gap-1.5 rounded-2xl">
+              <svg width="30" height="34" viewBox="0 0 24 26" aria-hidden="true">
+                <path
+                  d="M20 14c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 21.5 4 19 4 14V7a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 4.81 17 6 19 6a1 1 0 0 1 1 1z"
+                  fill={forged ? '#ffc247' : 'rgba(62,232,255,.08)'}
+                  stroke={forged ? '#ffc247' : guardedBy.length ? '#3ee8ff' : '#3a4258'}
+                  strokeWidth="1.6"
+                  strokeDasharray={forged || guardedBy.length ? undefined : '3 3'}
+                  strokeLinejoin="round"
+                />
+                {forged && <path d="M8.5 13.5l2.5 2.5 4.5-5" fill="none" stroke="#1a1204" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />}
+              </svg>
+              <span className={`text-[10.5px] font-semibold ${forged ? 'text-earned' : guardedBy.length ? 'text-act' : 'text-fg-5'}`}>{piece.slot}</span>
+            </span>
+          );
+        })}
       </div>
     </section>
   );

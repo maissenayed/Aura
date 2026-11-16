@@ -1,21 +1,24 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Hexagon, Lock, ShieldHalf, Sparkles, TrendingUp } from 'lucide-react';
+import { Castle, Crown, Hexagon, Lock, Medal, ShieldHalf, Sparkles, Star, TrendingUp } from 'lucide-react';
 import { useGame } from '../../../components/game/GameProvider';
 import { figureForLift } from '../../../components/game/figures';
 import { Figure, HexLevel, Label, Meter, Stepper } from '../../../components/game/kit';
 import { RadarWeb } from '../../../components/game/RadarWeb';
 import { ATTRIBUTE_MAX } from '../../../utils/attributes';
-import { formatStatValue, unitLabel } from '../../../utils/campaignPlan';
-import { currentOf, questKey, rankForLevel } from '../../../utils/protocolEngine';
+import { DAY_NAMES, formatStatValue, recordName, unitLabel } from '../../../utils/campaignPlan';
+import { HistoryPoint } from '../../../utils/campaignV3';
+import { currentOf, rankForLevel } from '../../../utils/protocolEngine';
+import { skillOf } from '../../../utils/treeIndex';
 
-type Tab = 'stats' | 'armor' | 'lifts';
+type Tab = 'stats' | 'badges' | 'lifts' | 'armor';
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'stats', label: 'Stats', icon: Hexagon },
-  { id: 'armor', label: 'Armor', icon: ShieldHalf },
+  { id: 'badges', label: 'Badges', icon: Medal },
   { id: 'lifts', label: 'Lifts', icon: TrendingUp },
+  { id: 'armor', label: 'Armour', icon: ShieldHalf },
 ];
 
 /** The level where the next rank starts, or null at the top. */
@@ -50,7 +53,7 @@ export default function HeroPage() {
         </div>
       </div>
 
-      <div role="tablist" aria-label="Hero" className="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-[#0c0f18] border border-ink-700 lg:max-w-md">
+      <div role="tablist" aria-label="Hero" className="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-[#0c0f18] border border-ink-700 lg:max-w-lg">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -58,7 +61,7 @@ export default function HeroPage() {
             role="tab"
             aria-selected={tab === id}
             onClick={() => setTab(id)}
-            className={`h-10 rounded-xl flex items-center justify-center gap-1.5 text-[13px] font-bold transition cursor-pointer ${
+            className={`h-10 rounded-xl flex items-center justify-center gap-1.5 text-[12.5px] font-bold transition cursor-pointer ${
               tab === id ? 'bg-act text-act-deep' : 'text-[#8a94ad] hover:text-fg'
             }`}
           >
@@ -69,6 +72,7 @@ export default function HeroPage() {
       </div>
 
       {tab === 'stats' && <StatsTab />}
+      {tab === 'badges' && <BadgesTab />}
       {tab === 'armor' && <ArmorTab />}
       {tab === 'lifts' && <LiftsTab />}
     </main>
@@ -155,13 +159,17 @@ const SLOTS: Record<string, { side: 'L' | 'R'; row: number; joint: [number, numb
 };
 
 const ArmorTab: React.FC = () => {
-  const { derived, plan, viewWeek, toggleQuest } = useGame();
+  const { derived, plan } = useGame();
   const pieces = derived.week.armor;
   const [pickedId, setPickedId] = useState<string | null>(pieces[0]?.piece.id ?? null);
   const picked = pieces.find((entry) => entry.piece.id === pickedId) ?? pieces[0];
 
   if (pieces.length === 0) {
-    return <p className="p-5 rounded-[20px] border border-dashed border-ink-600 text-fg-3">No tendon armor in your plan. Add pieces in the Forge.</p>;
+    return (
+      <p className="p-5 rounded-[20px] border border-dashed border-ink-600 text-fg-3">
+        No armour in your plan. Choose the joints to protect in the Forge (Week), then warm up with exercises that guard them.
+      </p>
+    );
   }
 
   const W = 340;
@@ -224,36 +232,38 @@ const ArmorTab: React.FC = () => {
 
       <div className="flex flex-col gap-3">
         {picked && (
-          <section className="flex items-center gap-3 p-4 rounded-[20px] bg-ink-850 border-[1.5px] border-ink-700" aria-label={picked.piece.slot}>
-            <span className="flex-1 min-w-0 flex flex-col gap-1">
-              <span className="font-display font-bold text-xl">{picked.piece.slot}</span>
-              <span className="text-[13px] font-semibold text-fg-3">{picked.piece.drill}</span>
-              <span className="text-xs font-bold text-fg-5">{picked.piece.when}</span>
+          <section className="flex flex-col gap-2.5 p-4 rounded-[20px] bg-ink-850 border-[1.5px] border-ink-700" aria-label={picked.piece.slot}>
+            <span className="flex items-center gap-2">
+              <span className="flex-1 font-display font-bold text-xl">{picked.piece.slot}</span>
+              <span className={`h-7 px-2.5 rounded-full text-[11px] font-extrabold tracking-[0.08em] flex items-center ${picked.forged ? 'bg-earned text-earned-deep' : 'bg-ink-800 text-fg-4'}`}>
+                {picked.forged ? 'FORGED' : 'NOT YET'}
+              </span>
             </span>
-            <button
-              type="button"
-              onClick={() => toggleQuest(questKey(viewWeek, picked.piece.id))}
-              aria-pressed={picked.forged}
-              className={`h-[52px] min-w-[96px] px-4 rounded-2xl font-display font-bold tracking-[0.05em] transition cursor-pointer ${
-                picked.forged ? 'bg-[#16110a] border-[1.5px] border-earned text-earned' : 'bg-earned text-earned-deep'
-              }`}
-            >
-              {picked.forged ? 'FORGED' : 'FORGE'}
-            </button>
+            <span className="text-[13px] text-fg-3">
+              {picked.forged
+                ? `Forged this week by ${picked.forgedBy.join(', ') || 'hand'}.`
+                : picked.guardedBy.length
+                  ? 'Tick one of these warm-ups on the quest board this week to forge it:'
+                  : 'None of your warm-ups guards it yet. Add one in the Forge (Week → Warm-up).'}
+            </span>
+            {!picked.forged && picked.guardedBy.length > 0 && (
+              <ul className="flex flex-wrap gap-1.5">
+                {picked.guardedBy.map((entry) => (
+                  <li key={`${entry.day}_${entry.name}`} className="list-none h-8 px-2.5 rounded-full bg-ink-900 border border-ink-700 text-xs text-fg-2 flex items-center gap-1.5">
+                    <span className="font-display font-bold text-fg-5">{DAY_NAMES[entry.day].slice(0, 3)}</span> {entry.name}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <span className="text-[11px] text-fg-5">Extra care: {picked.piece.drill} — {picked.piece.when.toLowerCase()}.</span>
           </section>
         )}
         {offBody.map(({ piece, forged }) => (
-          <button
-            key={piece.id}
-            type="button"
-            onClick={() => toggleQuest(questKey(viewWeek, piece.id))}
-            aria-pressed={forged}
-            className={`flex items-center gap-3 p-3 rounded-2xl border text-left cursor-pointer ${forged ? 'bg-[#16110a] border-[#4a3a18]' : 'bg-ink-850 border-ink-700'}`}
-          >
+          <div key={piece.id} className={`flex items-center gap-3 p-3 rounded-2xl border ${forged ? 'bg-[#16110a] border-[#4a3a18]' : 'bg-ink-850 border-ink-700'}`}>
             <ShieldHalf className={`w-5 h-5 ${forged ? 'text-earned' : 'text-fg-4'}`} />
             <span className="flex-1 text-sm font-semibold">{piece.slot}</span>
             <span className="text-xs text-fg-4">{piece.drill}</span>
-          </button>
+          </div>
         ))}
         <div className="flex items-center gap-3 p-3.5 rounded-[18px] bg-ink-900 border border-ink-700">
           <Label>Full set</Label>
@@ -267,7 +277,9 @@ const ArmorTab: React.FC = () => {
             <span className="text-fg-5">/{pieces.length}</span>
           </span>
         </div>
-        <p className="text-xs text-fg-5">{plan.armor.length ? 'Forge every piece in one week to unlock Tendons.' : ''}</p>
+        <p className="text-xs text-fg-5">
+          {plan.armor.length ? 'Armour is forged by your warm-ups: each one guards some joints. Forge every piece in one week to unlock Tendons.' : ''}
+        </p>
       </div>
     </div>
   );
@@ -282,6 +294,9 @@ const LiftsTab: React.FC = () => {
         {plan.lifts.map((lift) => {
           const value = currentOf(save, lift);
           const progress = lift.endgame ? Math.min(1, Math.max(0, (value - lift.baseline) / Math.max(1e-6, lift.endgame - lift.baseline))) : 0;
+          const history = save.history?.[lift.id] ?? [];
+          const best = history.length ? Math.max(...history.map((point) => point[1])) : null;
+          const last = history[history.length - 1];
           return (
             <li key={lift.id} className="flex flex-col gap-2.5 p-3 rounded-[18px] bg-ink-850 border border-ink-700">
               <div className="flex items-center gap-3">
@@ -291,9 +306,11 @@ const LiftsTab: React.FC = () => {
                 <span className="flex-1 min-w-0 flex flex-col">
                   <span className="text-[13.5px] font-semibold text-fg-2 truncate">{lift.name}</span>
                   <span className="text-[11px] text-fg-5 truncate">
-                    {lift.endgame === null ? 'No end-game' : `End-game ${formatStatValue(lift.endgame, lift.unit)}`}
+                    {best === null ? 'Not logged yet' : `Best ${formatStatValue(best, lift.unit)} · last ${last[0].slice(5).replace('-', '/')}`}
+                    {lift.endgame === null ? '' : ` · end-game ${formatStatValue(lift.endgame, lift.unit)}`}
                   </span>
                 </span>
+                {history.length > 1 && <Sparkline points={history} />}
               </div>
               <div className="flex items-center gap-2.5">
                 <Meter value={progress} tone={progress >= 1 ? 'earned' : 'act'} className="h-1.5" />
@@ -325,6 +342,87 @@ const LiftsTab: React.FC = () => {
           </div>
         ))}
       </section>
+    </div>
+  );
+};
+
+/** A lift's logged numbers over time, oldest on the left. */
+const Sparkline: React.FC<{ points: HistoryPoint[] }> = ({ points }) => {
+  const W = 72;
+  const H = 28;
+  const values = points.map((point) => point[1]);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const xy = values.map((value, index) => [(index / (values.length - 1)) * (W - 4) + 2, H - 3 - ((value - min) / span) * (H - 6)]);
+  const rising = values[values.length - 1] >= values[0];
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0" role="img" aria-label={`${values.length} logs, from ${values[0]} to ${values[values.length - 1]}`}>
+      <polyline points={xy.map((p) => p.join(',')).join(' ')} fill="none" stroke={rising ? '#3ee8ff' : '#ff8fa3'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={xy[xy.length - 1][0]} cy={xy[xy.length - 1][1]} r="2.6" fill={rising ? '#3ee8ff' : '#ff8fa3'} />
+    </svg>
+  );
+};
+
+type BadgeKind = 'boss' | 'tower' | 'record' | 'skill';
+
+const BADGE_LOOK: Record<BadgeKind, { label: string; icon: React.ComponentType<{ className?: string }>; tone: string }> = {
+  boss: { label: 'Bosses', icon: Crown, tone: 'text-earned border-[#5c4a22] bg-[#16110a]' },
+  tower: { label: 'Towers', icon: Castle, tone: 'text-aura-soft border-[#3d2a63] bg-[#140c24]' },
+  record: { label: 'End-game numbers', icon: Star, tone: 'text-act border-[#17566a] bg-[#08161d]' },
+  skill: { label: 'Skills mastered', icon: Medal, tone: 'text-emerald-300 border-emerald-800/60 bg-emerald-950/40' },
+};
+
+/** Every badge earned: bosses, towers, end-game numbers, and each skill mastered on the trees. Badges never go away. */
+const BadgesTab: React.FC = () => {
+  const { save, plan } = useGame();
+  const badges: { id: string; kind: BadgeKind; name: string; date: string }[] = [];
+  for (const [id, date] of Object.entries(save.badges ?? {})) {
+    const [kind, ...rest] = id.split(':');
+    const ref = rest.join(':');
+    if (kind === 'boss') badges.push({ id, kind, name: plan.bosses.find((boss) => boss.id === ref)?.name ?? 'A boss from an earlier plan', date });
+    if (kind === 'tower') badges.push({ id, kind, name: plan.trees.find((tree) => tree.id === ref)?.name ?? 'A tower from an earlier plan', date });
+    if (kind === 'record') badges.push({ id, kind, name: recordName(ref), date });
+  }
+  for (const [key, date] of Object.entries(save.skills ?? {})) {
+    const [tree, ...rest] = key.split(':');
+    if (tree !== 'calisthenics' && tree !== 'bouldering') continue;
+    const skill = skillOf(tree, rest.join(':'));
+    if (skill) badges.push({ id: key, kind: 'skill', name: skill.name, date });
+  }
+
+  if (badges.length === 0) {
+    return (
+      <p className="p-5 rounded-[20px] border border-dashed border-ink-600 text-fg-3">
+        No badges yet. Master a skill on the tree, slay a boss, climb a tower or reach a lift&apos;s end-game number.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      {(Object.keys(BADGE_LOOK) as BadgeKind[]).map((kind) => {
+        const list = badges.filter((badge) => badge.kind === kind).sort((a, b) => (a.date < b.date ? 1 : -1));
+        if (!list.length) return null;
+        const { label, icon: Icon, tone } = BADGE_LOOK[kind];
+        return (
+          <section key={kind} aria-label={label} className="flex flex-col gap-2.5">
+            <span className="flex items-center gap-2">
+              <Label className="flex-1">{label}</Label>
+              <span className="font-display font-bold text-sm text-fg-3">{list.length}</span>
+            </span>
+            <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+              {list.map((badge) => (
+                <li key={badge.id} className={`list-none flex flex-col items-center gap-1.5 p-3 rounded-[18px] border text-center ${tone}`}>
+                  <Icon className="w-6 h-6" />
+                  <span className="text-[12px] font-semibold text-fg-2 leading-tight line-clamp-2">{badge.name}</span>
+                  <span className="text-[10.5px] font-display font-bold opacity-80">{badge.date.slice(0, 10)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
     </div>
   );
 };
