@@ -9,7 +9,7 @@ import { RadarWeb } from '../../../components/game/RadarWeb';
 import { ATTRIBUTE_MAX } from '../../../utils/attributes';
 import { DAY_NAMES, formatStatValue, recordName, unitLabel } from '../../../utils/campaignPlan';
 import { HistoryPoint } from '../../../utils/campaignV3';
-import { currentOf, rankForLevel } from '../../../utils/protocolEngine';
+import { badgesUnbacked, currentOf, rankForLevel } from '../../../utils/protocolEngine';
 import { skillOf } from '../../../utils/treeIndex';
 
 type Tab = 'stats' | 'badges' | 'lifts' | 'armor';
@@ -373,9 +373,13 @@ const BADGE_LOOK: Record<BadgeKind, { label: string; icon: React.ComponentType<{
   skill: { label: 'Skills mastered', icon: Medal, tone: 'text-emerald-300 border-emerald-800/60 bg-emerald-950/40' },
 };
 
-/** Every badge earned: bosses, towers, end-game numbers, and each skill mastered on the trees. Badges never go away. */
+/**
+ * Every badge earned: bosses, towers, end-game numbers, and each skill mastered on the trees.
+ * Badges stay when the plan moves on; one the numbers stop backing can be taken back.
+ */
 const BadgesTab: React.FC = () => {
-  const { save, plan } = useGame();
+  const { save, plan, derived, recountBadges } = useGame();
+  const unbacked = badgesUnbacked(save, derived, plan);
   const badges: { id: string; kind: BadgeKind; name: string; date: string }[] = [];
   for (const [id, date] of Object.entries(save.badges ?? {})) {
     const [kind, ...rest] = id.split(':');
@@ -399,8 +403,26 @@ const BadgesTab: React.FC = () => {
     );
   }
 
+  const named = new Map(badges.map((badge) => [badge.id, badge.kind === 'record' ? `${badge.name} end-game number` : badge.name]));
   return (
     <div className="flex flex-col gap-5">
+      {unbacked.length > 0 && (
+        <section aria-label="Badges to recount" className="flex flex-col gap-3 p-4 rounded-[20px] border border-[#6a2a3a] bg-[#1a0b10]">
+          <span className="font-display font-bold text-fg">
+            {unbacked.length === 1 ? 'One badge your numbers don\u2019t back' : `${unbacked.length} badges your numbers don\u2019t back`}
+          </span>
+          <span className="text-sm text-fg-2">
+            {unbacked.map((id) => named.get(id) ?? id).join(' · ')}. Your logs today fall short of what {unbacked.length === 1 ? 'it needs' : 'they need'}, so {unbacked.length === 1 ? 'it was' : 'they were'} probably earned by a number typed wrong.
+          </span>
+          <button
+            type="button"
+            onClick={recountBadges}
+            className="self-start h-11 px-4 rounded-[14px] font-display font-bold text-sm cursor-pointer transition bg-[#ff8fa3] text-[#2a0a12]"
+          >
+            TAKE {unbacked.length === 1 ? 'IT' : 'THEM'} BACK
+          </button>
+        </section>
+      )}
       {(Object.keys(BADGE_LOOK) as BadgeKind[]).map((kind) => {
         const list = badges.filter((badge) => badge.kind === kind).sort((a, b) => (a.date < b.date ? 1 : -1));
         if (!list.length) return null;
