@@ -267,10 +267,22 @@ function mergeHistory(
 
 const versionOf = (version: number | undefined) => (version === undefined ? {} : { version });
 
-/** Badges are never taken away: every badge either side has, with the earliest date. */
-function mergeBadges(mine: Record<string, string>, theirs: Record<string, string>): Record<string, string> {
-  const merged = { ...theirs };
-  for (const [id, date] of Object.entries(mine)) if (!merged[id] || date < merged[id]) merged[id] = date;
+/**
+ * Every badge either side has, with the earliest date — except one a side took
+ * back (a corrected log, a recount) while the other side left it as it was.
+ */
+function mergeBadges(
+  from: Record<string, string>,
+  mine: Record<string, string>,
+  theirs: Record<string, string>,
+): Record<string, string> {
+  const merged: Record<string, string> = {};
+  for (const id of new Set([...Object.keys(mine), ...Object.keys(theirs)])) {
+    const [m, t, f] = [mine[id], theirs[id], from[id]];
+    if (m === undefined && f !== undefined && t === f) continue;
+    if (t === undefined && f !== undefined && m === f) continue;
+    merged[id] = m === undefined ? t : t === undefined || m < t ? m : t;
+  }
   return merged;
 }
 
@@ -308,7 +320,7 @@ function mergeSaves(from: ProtocolSave, mine: ProtocolSave, theirs: ProtocolSave
     ...versionOf(mine.version !== from.version ? mine.version : theirs.version),
     records: mergeMap(from.records, mine.records, theirs.records),
     history: mergeHistory(from.history, mine.history, theirs.history),
-    badges: mergeBadges(mine.badges, theirs.badges),
+    badges: mergeBadges(from.badges, mine.badges, theirs.badges),
   };
 }
 

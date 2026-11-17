@@ -9,6 +9,7 @@ import {
   LogEntry,
   ProtocolSave,
   badgesDue,
+  badgesUnbacked,
   currentOf,
   dayIdOf,
   derive,
@@ -68,6 +69,8 @@ export interface GameValue extends CampaignSnapshot {
   toggleQuest: (key: string) => void;
   weighIn: (kg: number) => void;
   resetCampaign: () => void;
+  /** Takes back every badge the save's numbers no longer back. */
+  recountBadges: () => void;
   /** Plan edits not saved yet; kept here so leaving the Forge does not lose them. */
   planDraft: PlanSpec | null;
   setPlanDraft: (draft: PlanSpec | null) => void;
@@ -169,20 +172,34 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // Badges are handed out whenever the save has earned one, wherever it was earned (the
   // tree page masters skills outside the campaign). The first look after loading hands out
   // what was already earned quietly, so opening the app never sets off a burst of them.
+  // A badge earned today that today's numbers no longer back (a log typed wrong, then
+  // corrected) is taken back; older badges stay until the Hero's recount.
   const badgesPrimed = useRef(false);
   useEffect(() => {
     if (snapshot.gate !== 'ready' || (!badgesPrimed.current && snapshot.sync !== 'synced')) return;
+    const date = todayIso ?? toIsoDate(new Date());
     const due = badgesDue(save, derived, plan);
+    const takenBack = badgesUnbacked(save, derived, plan).filter((id) => save.badges[id] === date);
     const quiet = !badgesPrimed.current;
     badgesPrimed.current = true;
-    if (!due.length) return;
-    const date = todayIso ?? toIsoDate(new Date());
+    if (!due.length && !takenBack.length) return;
     const current = peekSave();
-    commitSave({ ...current, badges: { ...current.badges, ...Object.fromEntries(due.map((badge) => [badge.id, date])) } });
+    const badges = { ...current.badges, ...Object.fromEntries(due.map((badge) => [badge.id, date])) };
+    for (const id of takenBack) delete badges[id];
+    commitSave({ ...current, badges });
     // A boss badge comes with the boss's own moment.
     const shown = due.filter((badge) => badge.kind !== 'boss');
     if (!quiet && shown.length) announce(shown.map((badge) => ({ kind: 'badge', key: `badge_${badge.id}`, title: `Badge — ${badge.title}`, detail: badge.detail })));
   }, [announce, derived, plan, save, snapshot.gate, snapshot.sync, todayIso]);
+
+  const recountBadges = useCallback(() => {
+    const current = peekSave();
+    const unbacked = badgesUnbacked(current, derive(current, { currentWeek, viewWeek }, plan), plan);
+    if (!unbacked.length) return;
+    const badges = { ...current.badges };
+    for (const id of unbacked) delete badges[id];
+    commitSave({ ...current, badges });
+  }, [currentWeek, plan, viewWeek]);
 
   const logStat = useCallback(
     (id: string, value: number) => {
@@ -253,6 +270,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     toggleQuest,
     weighIn,
     resetCampaign,
+    recountBadges,
     planDraft,
     setPlanDraft,
     planDirty,

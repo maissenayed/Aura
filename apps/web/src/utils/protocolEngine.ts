@@ -1132,26 +1132,45 @@ export interface BadgeAward {
   detail: string;
 }
 
-/** Badges the save has earned but not been given yet: bosses down, towers climbed, lifts at their end-game number. */
-export function badgesDue(save: ProtocolSave, derived: Derived, plan: CampaignPlan): BadgeAward[] {
-  const due: BadgeAward[] = [];
-  const add = (award: BadgeAward) => {
-    if (!save.badges[award.id]) due.push(award);
-  };
+/** Every badge the plan can hand out right now, and whether the save's numbers back it today. */
+function badgeChecks(save: ProtocolSave, derived: Derived, plan: CampaignPlan): { award: BadgeAward; held: boolean }[] {
+  const checks: { award: BadgeAward; held: boolean }[] = [];
   for (const status of derived.bosses) {
-    if (status.defeated) add({ id: `boss:${status.boss.id}`, kind: 'boss', title: status.boss.name, detail: 'Boss defeated' });
+    checks.push({ award: { id: `boss:${status.boss.id}`, kind: 'boss', title: status.boss.name, detail: 'Boss defeated' }, held: status.defeated });
   }
   for (const ladder of derived.ladders) {
-    if (ladder.ladder.tower && ladder.tiers.length > 0 && ladder.clearedCount === ladder.tiers.length) {
-      add({ id: `tower:${ladder.ladder.id}`, kind: 'tower', title: ladder.ladder.name, detail: 'Climbed to the summit' });
-    }
+    if (!ladder.ladder.tower || ladder.tiers.length === 0) continue;
+    checks.push({
+      award: { id: `tower:${ladder.ladder.id}`, kind: 'tower', title: ladder.ladder.name, detail: 'Climbed to the summit' },
+      held: ladder.clearedCount === ladder.tiers.length,
+    });
   }
   for (const lift of plan.lifts) {
-    if (lift.endgame !== null && currentOf(save, lift) >= lift.endgame) {
-      add({ id: `record:${lift.id}`, kind: 'record', title: lift.name, detail: `End-game number · ${formatStatValue(lift.endgame, lift.unit)}` });
-    }
+    if (lift.endgame === null) continue;
+    checks.push({
+      award: { id: `record:${lift.id}`, kind: 'record', title: lift.name, detail: `End-game number · ${formatStatValue(lift.endgame, lift.unit)}` },
+      held: currentOf(save, lift) >= lift.endgame,
+    });
   }
-  return due;
+  return checks;
+}
+
+/** Badges the save has earned but not been given yet: bosses down, towers climbed, lifts at their end-game number. */
+export function badgesDue(save: ProtocolSave, derived: Derived, plan: CampaignPlan): BadgeAward[] {
+  return badgeChecks(save, derived, plan)
+    .filter((check) => check.held && !save.badges[check.award.id])
+    .map((check) => check.award);
+}
+
+/**
+ * Badges the save holds that its numbers no longer back, e.g. a boss beaten by a
+ * log that was then corrected. Badges for bosses, towers or lifts the plan has
+ * since dropped are never in here: those stay for good.
+ */
+export function badgesUnbacked(save: ProtocolSave, derived: Derived, plan: CampaignPlan): string[] {
+  return badgeChecks(save, derived, plan)
+    .filter((check) => !check.held && save.badges[check.award.id])
+    .map((check) => check.award.id);
 }
 
 /* ------------------------------------------------------------------ */
