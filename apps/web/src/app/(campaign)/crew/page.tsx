@@ -69,6 +69,10 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'crew', label: 'Crew' },
 ];
 
+/** Growth on the athlete's own four-week average. A drop shows as a dash: nobody's bad week goes on the board. */
+const improvementText = (improvement: number | null) =>
+  improvement === null || improvement < 1 ? '—' : `${Math.round((improvement - 1) * 100)}%`;
+
 const shortDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
 /** The crew: train with them, compete with last week. Every number here is worked out on the server. */
@@ -186,7 +190,7 @@ function BoardTab() {
                 </span>
                 {row.prs > 0 && <Chip tone="earned">{row.prs} PR{row.prs === 1 ? '' : 's'}</Chip>}
                 <span className="num font-bold text-[18px] text-fg w-16 text-right">
-                  {view === 'week' ? row.xp.toLocaleString() : row.improvement !== null ? `${Math.round((row.improvement - 1) * 100)}%` : '—'}
+                  {view === 'week' ? row.xp.toLocaleString() : improvementText(row.improvement)}
                 </span>
               </button>
               {open === row.id && <RowDetail row={row} names={names} onFlagged={reload} />}
