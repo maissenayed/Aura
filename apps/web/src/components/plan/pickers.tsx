@@ -71,12 +71,12 @@ export const CategoryChips: React.FC<{ value: Branch; onChange: (value: Branch) 
           role="radio"
           aria-checked={on}
           onClick={() => onChange(branch.id)}
-          className={`h-11 rounded-[14px] border-[1.5px] text-[13px] font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
-            on ? 'bg-[#08161d] border-act text-act' : 'bg-ink-850 border-ink-700 text-fg-3 hover:text-fg'
+          className={`h-11 rounded-card border-[1.5px] text-[14px] font-semibold flex items-center justify-center gap-1.5 transition active:scale-[.97] cursor-pointer ${
+            on ? 'bg-ink-800 border-act text-fg' : 'bg-ink-850 border-transparent text-fg-3 hover:bg-ink-800 hover:text-fg'
           }`}
         >
           {branch.label}
-          {counts && <span className="font-display text-xs opacity-70">{counts[branch.id] ?? 0}</span>}
+          {counts && <span className={`num font-bold text-[13px] ${on ? 'text-fg-3' : 'text-fg-5'}`}>{counts[branch.id] ?? 0}</span>}
         </button>
       );
     })}

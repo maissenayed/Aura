@@ -32,7 +32,7 @@ export function OfflineStatus() {
   return (
     <div
       role="status"
-      className="lg:hidden fixed z-[55] left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom)+90px)] flex items-center gap-1.5 h-8 px-3 rounded-full bg-[#1a1208]/95 border border-[#4a3410] text-earned text-xs font-semibold whitespace-nowrap shadow-[0_6px_20px_rgba(0,0,0,0.5)] pointer-events-none"
+      className="lg:hidden fixed z-[55] left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom)+90px)] flex items-center gap-1.5 h-8 px-3 rounded-tag bg-ink-800 border border-ink-600 text-fg-2 text-xs font-semibold whitespace-nowrap lift-shadow pointer-events-none"
     >
       <CloudOff className="w-4 h-4" />
       Offline · saved on this device

@@ -39,40 +39,40 @@ export const ExerciseNodeCard: React.FC<ExerciseNodeCardProps> = ({
   else if (exercise.swimlane === 'Core') CategoryIcon = ShieldAlert;
 
   // Base background & border styling
-  let cardStyle = 'bg-dark-900/90 border-slate-800 text-slate-300 hover:border-slate-600 hover:bg-dark-850';
-  let badgeStyle = 'bg-slate-800 text-slate-400 border-slate-700';
+  let cardStyle = 'bg-ink-900/90 border-ink-700 text-fg-3 hover:border-ink-500 hover:bg-ink-850';
+  let badgeStyle = 'bg-ink-700 text-fg-4 border-ink-600';
 
   if (isMastered) {
-    cardStyle = 'bg-emerald-950/40 border-emerald-500/70 text-emerald-100 shadow-neon-emerald hover:border-emerald-400';
-    badgeStyle = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50';
+    cardStyle = 'bg-earned-deep/40 border-earned-strong/70 text-earned-soft shadow-earned hover:border-earned';
+    badgeStyle = 'bg-earned-strong/20 text-earned-soft border-earned-strong/50';
   } else if (isPro) {
-    cardStyle = 'bg-purple-950/40 border-purple-500/80 text-purple-100 pro-glow-border shadow-neon-purple hover:scale-[1.03]';
-    badgeStyle = 'bg-gradient-to-r from-purple-500/30 to-amber-500/30 text-amber-300 border-amber-400/50';
+    cardStyle = 'bg-armour-deep/40 border-armour-line/80 text-armour pro-glow-border shadow-armour hover:scale-[1.03]';
+    badgeStyle = 'bg-gradient-to-r from-armour-line/30 to-earned-strong/30 text-earned-soft border-earned/50';
   } else if (!isLocked) {
-    cardStyle = 'bg-dark-850 border-cyan-500/50 text-slate-100 shadow-neon-cyan/20 hover:border-cyan-400 hover:scale-[1.02]';
-    badgeStyle = 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40';
+    cardStyle = 'bg-ink-850 border-ink-500/50 text-fg shadow-act/20 hover:border-act hover:scale-[1.02]';
+    badgeStyle = 'bg-ink-500/20 text-act border-ink-500/40';
   } else {
     // Locked node: dimmed but still interactive
-    cardStyle = 'bg-dark-950/70 border-slate-850 text-slate-500 opacity-60 hover:opacity-90 hover:border-slate-700';
-    badgeStyle = 'bg-slate-900 text-slate-600 border-slate-800';
+    cardStyle = 'bg-ink-950/70 border-slate-850 text-fg-5 opacity-60 hover:opacity-90 hover:border-ink-600';
+    badgeStyle = 'bg-ink-900 text-fg-5 border-ink-700';
   }
 
   if (selected) {
-    cardStyle += ' ring-2 ring-neon-cyan ring-offset-2 ring-offset-dark-950';
+    cardStyle += ' ring-2 ring-act ring-offset-2 ring-offset-dark-950';
   }
 
   return (
     <div
       onClick={() => onClick(exercise)}
-      className={`relative group w-48 sm:w-56 p-3 rounded-2xl border transition-all duration-200 cursor-pointer backdrop-blur-md ${cardStyle}`}
+      className={`relative group w-48 sm:w-56 p-3 rounded-card border transition-all duration-200 cursor-pointer backdrop-blur-md ${cardStyle}`}
     >
       {/* Top badges row */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
-          <div className={`p-1.5 rounded-lg border ${badgeStyle}`}>
+          <div className={`p-1.5 rounded-card border ${badgeStyle}`}>
             <CategoryIcon className="w-3.5 h-3.5" />
           </div>
-          <span className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 truncate max-w-[90px]">
+          <span className="eyebrow text-fg-4 truncate max-w-[90px]">
             {exercise.subCategory}
           </span>
         </div>
@@ -80,15 +80,15 @@ export const ExerciseNodeCard: React.FC<ExerciseNodeCardProps> = ({
         {/* Status Indicator Icon */}
         <div>
           {isMastered ? (
-            <div className="flex items-center gap-1 text-emerald-400 text-xs font-bold bg-emerald-500/20 px-1.5 py-0.5 rounded-full border border-emerald-500/40">
+            <div className="flex items-center gap-1 text-earned text-xs font-bold bg-earned-strong/20 px-1.5 py-0.5 rounded-full border border-earned-strong/40">
               <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
           ) : isLocked ? (
-            <div className="flex items-center gap-1 text-slate-500 text-xs font-bold bg-slate-900 px-1.5 py-0.5 rounded-full border border-slate-800">
+            <div className="flex items-center gap-1 text-fg-5 text-xs font-bold bg-ink-900 px-1.5 py-0.5 rounded-full border border-ink-700">
               <Lock className="w-3 h-3" />
             </div>
           ) : (
-            <div className="flex items-center gap-1 text-cyan-400 text-xs font-bold bg-cyan-500/20 px-1.5 py-0.5 rounded-full border border-cyan-500/40">
+            <div className="flex items-center gap-1 text-act text-xs font-bold bg-ink-500/20 px-1.5 py-0.5 rounded-full border border-ink-500/40">
               <Sparkles className="w-3 h-3 animate-spin-slow" />
             </div>
           )}
@@ -96,21 +96,21 @@ export const ExerciseNodeCard: React.FC<ExerciseNodeCardProps> = ({
       </div>
 
       {/* Title */}
-      <h3 className="text-xs sm:text-sm font-bold tracking-tight text-white mb-2 line-clamp-2 min-h-[32px] flex items-center">
+      <h3 className="text-xs sm:text-sm font-bold tracking-tight text-fg mb-2 line-clamp-2 min-h-[32px] flex items-center">
         {exercise.name}
       </h3>
 
       {/* Bottom Level Meter Indicator */}
-      <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[11px]">
-        <span className="text-slate-400 font-medium">Strength Level</span>
-        <span className={`font-mono font-bold px-2 py-0.5 rounded-md border ${
+      <div className="flex items-center justify-between pt-2 border-t border-ink-700/60 text-[11px]">
+        <span className="text-fg-4 font-medium">Strength Level</span>
+        <span className={`font-mono font-bold px-2 py-0.5 rounded-tag border ${
           isPro 
-            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
+            ? 'bg-earned-strong/20 text-earned-soft border-earned-strong/40' 
             : exercise.level >= 11 
-            ? 'bg-orange-500/20 text-orange-300 border-orange-500/40' 
+            ? 'bg-earned-strong/20 text-earned-soft border-earned-strong/40' 
             : exercise.level >= 6 
-            ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40' 
-            : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+            ? 'bg-earned-strong/20 text-earned-soft border-earned-strong/40' 
+            : 'bg-earned-strong/20 text-earned-soft border-earned-strong/40'
         }`}>
           Lvl {exercise.level}
         </span>
@@ -118,8 +118,8 @@ export const ExerciseNodeCard: React.FC<ExerciseNodeCardProps> = ({
 
       {/* Pro Badge overlay */}
       {isPro && (
-        <div className="absolute -top-2 -right-2 bg-gradient-to-r from-purple-600 to-amber-500 text-white p-1 rounded-full shadow-neon-purple border border-amber-300/60">
-          <Crown className="w-3.5 h-3.5 text-amber-200" />
+        <div className="absolute -top-2 -right-2 bg-gradient-to-r from-armour-line to-earned-strong text-fg p-1 rounded-full shadow-armour border border-earned-soft/60">
+          <Crown className="w-3.5 h-3.5 text-earned-soft" />
         </div>
       )}
     </div>

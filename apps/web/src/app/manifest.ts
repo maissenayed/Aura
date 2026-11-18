@@ -7,15 +7,15 @@ import type { MetadataRoute } from 'next';
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: '/',
-    name: 'Aura Calisthenics',
+    name: 'Aura',
     short_name: 'Aura',
-    description: 'Your training as an RPG: daily quests, bosses to beat and a skill tree to climb.',
+    description: 'Earn your aura. Your training as an RPG: daily quests, bosses to beat and a skill tree to climb.',
     start_url: '/camp',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#06070b',
-    theme_color: '#06070b',
+    background_color: '#0e0d0b',
+    theme_color: '#0e0d0b',
     categories: ['fitness', 'health', 'sports'],
     icons: [
       { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

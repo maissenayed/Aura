@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { KeyRound } from 'lucide-react';
 import { resetPassword } from '../../utils/accountStore';
-import { AuthCard, FormMessage, PasswordField, Submit, passwordProblem } from '../../components/account/ui';
+import { AuthCard, FormMessage, PRIMARY_BUTTON, PasswordField, Submit, passwordProblem } from '../../components/account/ui';
 
 export const ResetForm: React.FC = () => {
   const params = useSearchParams();
@@ -21,8 +21,8 @@ export const ResetForm: React.FC = () => {
     return (
       <AuthCard icon={<KeyRound className="w-7 h-7" />} title="This reset link can't be used">
         <FormMessage tone="error">It has expired or was already used. Reset links work once, for one hour.</FormMessage>
-        <p className="mt-3 text-sm text-slate-400">
-          <Link href="/camp" className="font-bold text-neon-cyan hover:underline">
+        <p className="mt-3 text-sm text-fg-3">
+          <Link href="/camp" className="font-bold text-act underline-offset-2 hover:underline">
             Go to sign in
           </Link>{' '}
           and ask for a new one.
@@ -35,10 +35,7 @@ export const ResetForm: React.FC = () => {
     return (
       <AuthCard icon={<KeyRound className="w-7 h-7" />} title="Password changed">
         <FormMessage tone="success">Your new password is set. You were signed out everywhere else.</FormMessage>
-        <Link
-          href="/camp"
-          className="mt-5 flex items-center justify-center w-full h-11 rounded-xl text-sm font-black bg-neon-cyan text-dark-950 hover:brightness-110 transition"
-        >
+        <Link href="/camp" className={`${PRIMARY_BUTTON} mt-5 w-full h-12`}>
           Sign in
         </Link>
       </AuthCard>

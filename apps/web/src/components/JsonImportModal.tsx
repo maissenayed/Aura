@@ -77,23 +77,23 @@ export const JsonImportModal: React.FC<JsonImportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-dark-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/80 backdrop-blur-md overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-ink-900 border border-ink-700 rounded-card shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-dark-950/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ink-700 bg-ink-950/50">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-purple-950/60 border border-purple-800/50 text-neon-purple">
+            <div className="p-2 rounded-card bg-armour-deep/60 border border-armour-deep/50 text-armour">
               <FileJson className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Import Exercise JSON Dataset</h2>
-              <p className="text-xs text-slate-400">Bulk import or update exercises with custom prerequisites and YouTube links</p>
+              <h2 className="text-lg font-bold text-fg">Import Exercise JSON Dataset</h2>
+              <p className="text-xs text-fg-4">Bulk import or update exercises with custom prerequisites and YouTube links</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition"
+            className="p-2 text-fg-4 hover:text-fg rounded-card hover:bg-ink-700 transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -103,39 +103,39 @@ export const JsonImportModal: React.FC<JsonImportModalProps> = ({
         <div className="p-6 space-y-4 flex-1 overflow-y-auto">
           
           {/* Import Mode Options */}
-          <div className="flex items-center gap-4 bg-dark-950/60 border border-slate-800 rounded-2xl p-3">
-            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Import Mode:</span>
+          <div className="flex items-center gap-4 bg-ink-950/60 border border-ink-700 rounded-card p-3">
+            <span className="eyebrow text-fg-3">Import Mode:</span>
             
-            <label className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs text-fg-2 cursor-pointer">
               <input
                 type="radio"
                 name="importMode"
                 value="merge"
                 checked={importMode === 'merge'}
                 onChange={() => setImportMode('merge')}
-                className="accent-neon-cyan"
+                className="accent-act"
               />
               <span className="font-semibold">Merge & Update</span>
-              <span className="text-[10px] text-slate-500">(Updates existing IDs, adds new ones)</span>
+              <span className="text-[10px] text-fg-5">(Updates existing IDs, adds new ones)</span>
             </label>
 
-            <label className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs text-fg-2 cursor-pointer">
               <input
                 type="radio"
                 name="importMode"
                 value="replace"
                 checked={importMode === 'replace'}
                 onChange={() => setImportMode('replace')}
-                className="accent-neon-cyan"
+                className="accent-act"
               />
-              <span className="font-semibold text-rose-400">Replace All</span>
-              <span className="text-[10px] text-slate-500">(Overwrites dataset completely)</span>
+              <span className="font-semibold text-boss">Replace All</span>
+              <span className="text-[10px] text-fg-5">(Overwrites dataset completely)</span>
             </label>
           </div>
 
           {/* Textarea */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+            <label className="eyebrow block text-fg-3 mb-2">
               Paste JSON Data Below
             </label>
             <textarea
@@ -143,21 +143,21 @@ export const JsonImportModal: React.FC<JsonImportModalProps> = ({
               value={jsonText}
               onChange={e => setJsonText(e.target.value)}
               placeholder={`[\n  {\n    "id": "tuck-back-lever",\n    "name": "Tuck Back Lever",\n    "level": 1,\n    "category": "Horizontal Pull",\n    "subCategory": "Tuck Back Lever",\n    "prerequisites": ["german-hang"],\n    "youtubeQuery": "Tuck Back Lever tutorial",\n    "videoSearchUrl": "https://www.youtube.com/watch?v=..."\n  }\n]`}
-              className="w-full bg-dark-950 border border-slate-800 rounded-2xl p-4 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-neon-cyan"
+              className="w-full bg-ink-950 border border-ink-700 rounded-card p-4 text-xs font-mono text-fg-2 placeholder-fg-5 focus:outline-none focus:border-act"
             />
           </div>
 
           {/* Status Feedback */}
           {error && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-950/50 border border-rose-800/60 text-rose-300 text-xs">
+            <div className="flex items-center gap-2 p-3 rounded-card bg-boss-deep/50 border border-boss-line/60 text-boss-soft text-xs">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {successMessage && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-950/50 border border-emerald-800/60 text-emerald-300 text-xs">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-neon-emerald" />
+            <div className="flex items-center gap-2 p-3 rounded-card bg-earned-deep/50 border border-earned-line/60 text-earned-soft text-xs">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-earned" />
               <span>{successMessage}</span>
             </div>
           )}
@@ -165,16 +165,16 @@ export const JsonImportModal: React.FC<JsonImportModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-800 bg-dark-950/50">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-ink-700 bg-ink-950/50">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white rounded-xl border border-slate-800 hover:bg-slate-800 transition"
+            className="px-4 py-2 text-xs font-bold text-fg-4 hover:text-fg rounded-card border border-ink-700 hover:bg-ink-700 transition"
           >
             Cancel
           </button>
           <button
             onClick={handleProcessImport}
-            className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-dark-950 bg-gradient-to-r from-neon-purple via-purple-300 to-neon-cyan rounded-xl hover:brightness-110 shadow-neon-purple transition"
+            className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-ink-950 bg-gradient-to-r from-armour via-armour to-act rounded-card hover:brightness-110 shadow-armour transition"
           >
             <Upload className="w-4 h-4" />
             <span>Process & Save Import</span>

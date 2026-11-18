@@ -16,7 +16,7 @@ export const LiftLogger: React.FC<{ exercise: PlanExercise; onLogged?: () => voi
 
   return (
     <span className="flex items-center gap-2">
-      {pr && <span className="h-6 px-2 rounded-full bg-earned text-earned-deep font-display font-bold text-xs leading-6">PR</span>}
+      {pr && <span className="notch h-7 pl-2 pr-3 rounded-tag bg-earned text-earned-deep font-display font-extrabold text-[15px] leading-7">PR</span>}
       <Stepper
         value={currentOf(save, stat)}
         step={stat.step}

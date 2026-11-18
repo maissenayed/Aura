@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Flame, HeartPulse, Minus, Moon, Mountain, Plus, Search, Shield, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, HeartPulse, Minus, Plus, Search, X } from 'lucide-react';
 import { ARMOR_CATALOG, DISCIPLINES, Discipline, EXERCISE_BY_ID, EXERCISE_CATALOG } from '../../data/campaignCatalog';
 import {
   DAY_IDS,
@@ -17,7 +17,8 @@ import {
 } from '../../utils/campaignPlan';
 import { ArmorSlot, SpecDayV3 as SpecDay, WarmUp } from '../../utils/campaignV3';
 import { figureForExercise } from '../game/figures';
-import { Figure } from '../game/kit';
+import { ArrowRightIcon, FlameIcon, HoldIcon, MoonIcon, PlateIcon, RingsIcon, ShieldIcon } from '../game/icons';
+import { Chip, Figure } from '../game/kit';
 import { repsChoices } from './catalogOptions';
 import { removeAt, setAt } from './fields';
 
@@ -43,7 +44,15 @@ const KIND_ICON: Record<DayKind, React.ComponentType<{ className?: string }>> = 
     </svg>
   ),
   recovery: HeartPulse,
-  rest: Moon,
+  rest: MoonIcon,
+};
+
+/** Each shelf of the catalogue wears a glyph, never a colour. */
+const SHELF_ICON: Partial<Record<Discipline, React.ComponentType<{ className?: string }>>> = {
+  calisthenics: RingsIcon,
+  gym: PlateIcon,
+  bouldering: HoldIcon,
+  prep: FlameIcon,
 };
 
 const MAX_EXERCISES = 20;
@@ -121,13 +130,13 @@ export const ForgeWeek: React.FC<Props> = ({ spec, onChange, initialDay = 'mon' 
                 onClick={() => setDayId(entry.id)}
                 aria-pressed={on}
                 aria-label={`${DAY_NAMES[entry.id]}, ${entry.kind}, ${entry.exercises.length} exercises`}
-                className={`h-[66px] rounded-[14px] border-[1.5px] flex flex-col items-center justify-center gap-1 cursor-pointer ${
-                  on ? 'bg-[#08161d] border-act text-act' : 'bg-ink-850 border-ink-700 text-fg-3'
+                className={`h-[66px] rounded-card border-[1.5px] flex flex-col items-center justify-center gap-1 transition active:scale-[.97] cursor-pointer ${
+                  on ? 'bg-ink-800 border-act text-fg' : 'bg-ink-900 border-transparent text-fg-3 hover:bg-ink-850'
                 }`}
               >
-                <span className="text-[11px] font-extrabold">{DAY_NAMES[entry.id].slice(0, 1)}</span>
+                <span className="eyebrow">{DAY_NAMES[entry.id].slice(0, 1)}</span>
                 <Icon className="w-4 h-4" />
-                <span className={`font-display font-bold text-[11px] ${on ? 'text-fg' : 'text-fg-5'}`}>{entry.kind === 'rest' ? '–' : entry.exercises.length}</span>
+                <span className={`num font-bold text-[13px] leading-none ${on ? 'text-fg' : 'text-fg-5'}`}>{entry.kind === 'rest' ? '–' : entry.exercises.length}</span>
               </button>
             );
           })}
@@ -146,10 +155,10 @@ export const ForgeWeek: React.FC<Props> = ({ spec, onChange, initialDay = 'mon' 
                 setTarget(kind);
                 setPickerOpen(true);
               }}
-              className="h-14 rounded-[18px] border-[1.5px] border-dashed border-[#17566a] bg-act/5 text-act font-display font-bold text-sm tracking-[0.04em] flex items-center justify-center gap-2 cursor-pointer"
+              className="h-12 rounded-card border border-ink-600 text-fg hover:bg-ink-850 font-display font-extrabold uppercase text-lg tracking-[0.02em] flex items-center justify-center gap-2 transition active:scale-[.97] cursor-pointer"
             >
-              {kind === 'missions' ? <Plus className="w-[18px] h-[18px]" strokeWidth={2.8} /> : <Flame className="w-[18px] h-[18px]" />}
-              {kind === 'missions' ? 'MISSION' : 'WARM-UP'}
+              {kind === 'missions' ? <Plus className="w-[18px] h-[18px]" strokeWidth={2.8} /> : <FlameIcon className="w-[18px] h-[18px] text-armour" />}
+              {kind === 'missions' ? 'Mission' : 'Warm-up'}
             </button>
           ))}
         </div>
@@ -180,12 +189,12 @@ export const ForgeWeek: React.FC<Props> = ({ spec, onChange, initialDay = 'mon' 
 
       {pickerOpen && (
         <>
-          <button type="button" aria-label="Close" onClick={() => setPickerOpen(false)} className="lg:hidden fixed inset-0 z-[45] bg-black/65 anim-fade cursor-pointer" />
-          <div role="dialog" aria-label="Add an exercise" className="lg:hidden fixed z-50 inset-x-0 bottom-0 h-[82dvh] rounded-t-[30px] bg-ink-900 border-t border-ink-600 p-4 pt-2.5 flex flex-col gap-3 anim-sheet">
-            <span className="self-center w-11 h-[5px] rounded-full bg-ink-600" aria-hidden="true" />
+          <button type="button" aria-label="Close" onClick={() => setPickerOpen(false)} className="lg:hidden fixed inset-0 z-[45] bg-[var(--scrim)] anim-fade cursor-pointer" />
+          <div role="dialog" aria-label="Add an exercise" className="lg:hidden fixed z-50 inset-x-0 bottom-0 h-[82dvh] rounded-t-card bg-ink-900 border-t border-ink-700 lift-shadow p-4 pt-2.5 flex flex-col gap-3 anim-sheet">
+            <span className="self-center w-10 h-1 rounded-full bg-ink-600" aria-hidden="true" />
             <div className="flex items-center gap-2">
-              <span className="flex-1 font-display font-bold text-xl">{target === 'warmups' ? 'Warm-up' : 'Mission'} · {DAY_NAMES[dayId].slice(0, 3)}</span>
-              <button type="button" onClick={() => setPickerOpen(false)} aria-label="Close" className="w-11 h-11 rounded-[14px] border border-ink-600 bg-ink-800 text-fg-3 flex items-center justify-center cursor-pointer">
+              <span className="flex-1 font-display font-extrabold uppercase text-[26px] leading-none">{target === 'warmups' ? 'Warm-up' : 'Mission'} · {DAY_NAMES[dayId].slice(0, 3)}</span>
+              <button type="button" onClick={() => setPickerOpen(false)} aria-label="Close" className="w-11 h-11 rounded-card border border-ink-600 text-fg-2 hover:bg-ink-850 flex items-center justify-center transition active:scale-[.97] cursor-pointer">
                 <X className="w-[18px] h-[18px]" />
               </button>
             </div>
@@ -222,12 +231,12 @@ const KindPicker: React.FC<{ kind: DayKind; onPick: (kind: DayKind) => void; com
           aria-label={entry.label}
           title={entry.label}
           onClick={() => onPick(entry.id)}
-          className={`${compact ? 'h-7' : 'h-11'} rounded-[10px] border flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
-            on ? 'bg-act border-act text-act-deep' : 'bg-ink-850 border-ink-700 text-[#8a94ad] hover:text-fg'
+          className={`${compact ? 'h-7 rounded-tag' : 'h-11 rounded-card'} flex flex-col items-center justify-center gap-0.5 transition active:scale-[.97] cursor-pointer ${
+            on ? 'bg-act text-act-deep' : 'bg-ink-850 text-fg-3 hover:bg-ink-800 hover:text-fg'
           }`}
         >
           <Icon className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
-          {!compact && <span className="text-[9px] font-bold">{entry.label}</span>}
+          {!compact && <span className="text-[10px] font-semibold leading-none">{entry.label}</span>}
         </button>
       );
     })}
@@ -240,7 +249,7 @@ const DayCard: React.FC<{
   onMoveToDay: (index: number, target: DayId) => void;
 }> = ({ day, onDay, onMoveToDay }) => (
   <div className="flex flex-col gap-3">
-    <div className="flex flex-col gap-2.5 p-3.5 rounded-[20px] bg-ink-900 border border-ink-700">
+    <div className="flex flex-col gap-2.5 p-3.5 rounded-card bg-ink-900">
       <label className="flex flex-col gap-1">
         <span className="sr-only">Day title</span>
         <input
@@ -248,16 +257,16 @@ const DayCard: React.FC<{
           value={day.title}
           maxLength={60}
           onChange={(event) => onDay({ ...day, title: event.target.value })}
-          className="bg-transparent font-display font-bold text-[19px] outline-none focus:text-act"
+          className="h-11 w-full px-3 rounded-card bg-ink-900 border border-ink-700 text-fg font-display font-extrabold uppercase text-[22px] placeholder:text-fg-5 focus:border-act outline-none transition-colors"
         />
       </label>
       <KindPicker kind={day.kind} onPick={(kind) => onDay({ ...day, kind })} />
     </div>
     <WarmUps warmUps={day.warmUps} onChange={(warmUps) => onDay({ ...day, warmUps })} />
     {day.kind === 'rest' ? (
-      <div className="h-[110px] rounded-[20px] border-[1.5px] border-dashed border-ink-600 flex flex-col items-center justify-center gap-2 text-fg-4">
-        <Moon className="w-7 h-7" />
-        <span className="font-display font-bold">Claim your rest</span>
+      <div className="h-[110px] rounded-card border-[1.5px] border-dashed border-ink-600 flex flex-col items-center justify-center gap-2 text-fg-4">
+        <MoonIcon className="w-7 h-7" />
+        <span className="font-display font-extrabold uppercase text-[22px] leading-none">Claim your rest</span>
       </div>
     ) : (
       <ul className="flex flex-col gap-2">
@@ -287,22 +296,22 @@ const DayColumn: React.FC<{
   const Icon = KIND_ICON[day.kind];
   return (
     <div
-      className={`flex flex-col gap-1.5 p-2 rounded-[18px] border-[1.5px] min-h-[480px] transition-colors ${selected ? 'bg-[#0a141b] border-act' : 'bg-ink-900 border-ink-750'}`}
+      className={`flex flex-col gap-1.5 p-2 rounded-card border-[1.5px] min-h-[480px] transition-colors ${selected ? 'bg-ink-900 border-act' : 'bg-ink-900 border-transparent'}`}
     >
-      <button type="button" onClick={onSelect} aria-pressed={selected} className="flex flex-col gap-1 px-1 pt-1 pb-2 border-b border-ink-750 text-left cursor-pointer">
-        <span className={`flex items-center gap-1.5 font-display font-bold text-[15px] ${selected ? 'text-act' : 'text-fg-2'}`}>
-          {DAY_NAMES[day.id].slice(0, 3)}
+      <button type="button" onClick={onSelect} aria-pressed={selected} className="flex flex-col gap-1 px-1 pt-1 pb-2 border-b border-ink-700 text-left cursor-pointer">
+        <span className={`flex items-center gap-1.5 ${selected ? 'text-fg' : 'text-fg-3'}`}>
+          <span className="font-display font-extrabold uppercase text-[22px] leading-none">{DAY_NAMES[day.id].slice(0, 3)}</span>
           <Icon className="w-3.5 h-3.5" />
-          <span className="ml-auto text-xs text-fg-5">{day.exercises.length}</span>
+          <span className="ml-auto num font-bold text-[13px] text-fg-5">{day.exercises.length}</span>
         </span>
-        <span className="text-[11px] font-semibold text-fg-4 leading-tight line-clamp-2 min-h-[26px]">{day.title}</span>
+        <span className="text-[12px] font-medium text-fg-4 leading-tight line-clamp-2 min-h-[30px]">{day.title}</span>
       </button>
       {selected && <KindPicker kind={day.kind} onPick={(kind) => onDay({ ...day, kind })} compact />}
       <WarmUps warmUps={day.warmUps} onChange={(warmUps) => onDay({ ...day, warmUps })} compact />
       {day.kind === 'rest' ? (
-        <div className="flex-1 min-h-[120px] rounded-xl border-[1.5px] border-dashed border-ink-600 flex flex-col items-center justify-center gap-1.5 text-fg-5">
-          <Moon className="w-5 h-5" />
-          <span className="text-[11px] font-bold">Rest</span>
+        <div className="flex-1 min-h-[120px] rounded-card border-[1.5px] border-dashed border-ink-600 flex flex-col items-center justify-center gap-1.5 text-fg-5">
+          <MoonIcon className="w-5 h-5" />
+          <span className="eyebrow">Rest</span>
         </div>
       ) : (
         day.exercises.map((exercise, index) => (
@@ -322,7 +331,7 @@ const DayColumn: React.FC<{
         type="button"
         onClick={onSelect}
         aria-label={`Add to ${DAY_NAMES[day.id]}`}
-        className="h-9 mt-auto rounded-[10px] border-[1.5px] border-dashed border-[#1d2a38] text-act flex items-center justify-center hover:bg-act/5 cursor-pointer"
+        className="h-9 mt-auto rounded-card border-[1.5px] border-dashed border-ink-600 text-fg-3 flex items-center justify-center hover:bg-ink-850 hover:text-fg transition active:scale-[.97] cursor-pointer"
       >
         <Plus className="w-4 h-4" strokeWidth={2.8} />
       </button>
@@ -348,17 +357,17 @@ const ExerciseRow: React.FC<{
 
   if (compact) {
     return (
-      <li className="list-none flex flex-col gap-1.5 p-2 rounded-xl bg-ink-850 border border-ink-700 anim-fade">
+      <li className="list-none flex flex-col gap-1.5 p-2 rounded-card bg-ink-850 anim-fade">
         <div className="flex items-center gap-1.5">
-          <span className="w-8 h-8 rounded-lg shrink-0 bg-ink-950 border border-ink-700 flex items-center justify-center">
+          <span className="w-8 h-8 rounded-tag shrink-0 bg-ink-950 flex items-center justify-center">
             <Figure spec={figureForExercise(exercise.exercise, kind)} className="w-7 h-7" />
           </span>
           <span className="flex-1" />
-          <button type="button" onClick={onRemove} aria-label={`Remove ${name}`} className="w-6 h-6 shrink-0 rounded-md text-[#a55a6a] hover:bg-[#2a1a22] flex items-center justify-center cursor-pointer">
+          <button type="button" onClick={onRemove} aria-label={`Remove ${name}`} className="w-6 h-6 shrink-0 rounded-tag text-fg-4 hover:text-boss hover:bg-ink-800 flex items-center justify-center cursor-pointer">
             <X className="w-3 h-3" strokeWidth={2.8} />
           </button>
         </div>
-        <span className="text-[11.5px] font-semibold text-fg-2 leading-tight line-clamp-2" title={name}>
+        <span className="text-[12px] font-semibold text-fg-2 leading-tight line-clamp-2" title={name}>
           {name}
         </span>
         {reps.length > 0 && <Dose exercise={exercise} reps={reps} onSets={sets} onCycle={cycle} compact />}
@@ -377,16 +386,21 @@ const ExerciseRow: React.FC<{
   }
 
   return (
-    <li className={`list-none flex ${compact ? 'flex-col gap-1.5 p-2 rounded-xl' : 'items-center gap-2.5 p-2 rounded-[18px]'} bg-ink-850 border border-ink-700 anim-fade`}>
+    <li className={`list-none flex ${compact ? 'flex-col gap-1.5 p-2 rounded-card bg-ink-850' : 'items-center gap-2.5 p-2 rounded-card bg-ink-900'} anim-fade`}>
       <div className={`flex ${compact ? 'items-start' : 'items-center flex-1 min-w-0'} gap-2`}>
-        <span className={`${compact ? 'w-8 h-8 rounded-lg' : 'w-[50px] h-[50px] rounded-[14px]'} shrink-0 bg-ink-950 border border-ink-700 flex items-center justify-center`}>
+        <span className={`${compact ? 'w-8 h-8 bg-ink-950' : 'w-[50px] h-[50px] bg-ink-850'} rounded-tag shrink-0 flex items-center justify-center`}>
           <Figure spec={figureForExercise(exercise.exercise, kind)} className={compact ? 'w-7 h-7' : 'w-11 h-11'} />
         </span>
         <span className={`flex-1 min-w-0 flex flex-col ${compact ? '' : 'gap-1.5'}`}>
-          <span className={`${compact ? 'text-[11.5px] leading-tight line-clamp-2' : 'text-[13.5px] truncate'} font-semibold text-fg-2`}>{name}</span>
+          <span className={`${compact ? 'text-[12px] leading-tight line-clamp-2' : 'text-[14px] truncate'} font-semibold text-fg-2`}>{name}</span>
           {!compact && reps.length > 0 && <Dose exercise={exercise} reps={reps} onSets={sets} onCycle={cycle} />}
         </span>
-        <button type="button" onClick={onRemove} aria-label={`Remove ${name}`} className={`${compact ? 'w-5 h-5' : 'w-9 h-9 rounded-xl border border-[#2a1a22]'} shrink-0 text-[#a55a6a] flex items-center justify-center cursor-pointer`}>
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label={`Remove ${name}`}
+          className={`${compact ? 'w-5 h-5 rounded-tag' : 'w-10 h-10 rounded-card'} shrink-0 text-fg-4 hover:text-boss hover:bg-ink-850 flex items-center justify-center transition active:scale-[.97] cursor-pointer`}
+        >
           <X className={compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} strokeWidth={2.8} />
         </button>
       </div>
@@ -413,25 +427,36 @@ const Dose: React.FC<{
   compact?: boolean;
 }> = ({ exercise, reps, onSets, onCycle, compact = false }) => {
   const label = reps.find((option) => option.id === exercise.reps)?.label ?? exercise.reps;
-  const box = compact ? 'w-[22px] h-6 rounded-md' : 'w-[30px] h-[30px]';
+  // Same parts as the kit Stepper: iron well, quiet minus, chalk plus.
+  const box = compact ? 'w-[22px] h-6 rounded-tag bg-ink-800' : 'w-9 h-9 rounded-card';
   return (
     <span className="flex items-center gap-1">
-      <span className={`flex items-center ${compact ? 'gap-0.5' : 'h-8 rounded-[10px] bg-ink-950 border border-ink-700'}`}>
-        <button type="button" onClick={() => onSets(-1)} aria-label="One set fewer" className={`${box} flex items-center justify-center text-fg-3 cursor-pointer ${compact ? 'border border-ink-700 bg-ink-950' : ''}`}>
+      <span className={`flex items-center ${compact ? 'gap-0.5' : 'h-10 px-0.5 rounded-card bg-ink-900 border border-ink-700'}`}>
+        <button
+          type="button"
+          onClick={() => onSets(-1)}
+          aria-label="One set fewer"
+          className={`${box} flex items-center justify-center text-fg-3 hover:text-fg transition active:scale-[.97] cursor-pointer`}
+        >
           <Minus className="w-3 h-3" strokeWidth={3.4} />
         </button>
-        <span className={`min-w-[16px] text-center font-display font-bold ${compact ? 'text-[13px]' : 'text-base'}`}>{exercise.sets}</span>
-        <button type="button" onClick={() => onSets(1)} aria-label="One set more" className={`${box} flex items-center justify-center text-act cursor-pointer ${compact ? 'border border-ink-700 bg-ink-950' : ''}`}>
+        <span className={`min-w-[18px] text-center num font-bold ${compact ? 'text-[14px]' : 'text-lg'}`}>{exercise.sets}</span>
+        <button
+          type="button"
+          onClick={() => onSets(1)}
+          aria-label="One set more"
+          className={`${box} flex items-center justify-center text-fg hover:bg-ink-800 transition active:scale-[.97] cursor-pointer`}
+        >
           <Plus className="w-3 h-3" strokeWidth={3.4} />
         </button>
       </span>
-      <span className="text-fg-5 font-display font-bold text-xs">×</span>
+      <span className="text-fg-5 num font-bold text-[13px]">×</span>
       <button
         type="button"
         onClick={onCycle}
         aria-label={`Reps: ${label}. Change`}
         title={label}
-        className={`${compact ? 'h-6 flex-1 min-w-0 text-[11px] rounded-md' : 'h-8 px-2.5 text-sm rounded-[10px]'} border border-[#17566a] bg-[#08161d] text-act font-display font-bold truncate cursor-pointer`}
+        className={`${compact ? 'h-6 flex-1 min-w-0 text-[12px] rounded-tag' : 'h-10 px-3 text-base rounded-card'} border border-ink-600 text-fg hover:bg-ink-850 num font-bold truncate transition active:scale-[.97] cursor-pointer`}
       >
         {exercise.reps || label}
       </button>
@@ -470,15 +495,18 @@ const Catalogue: React.FC<{
   }, [discipline, query]);
 
   return (
-    <section aria-label={`Exercise catalogue for ${dayName}`} className={`flex flex-col gap-2.5 min-h-0 ${grid ? 'flex-1' : 'p-3.5 rounded-[22px] bg-ink-900 border border-[#17566a]'}`}>
+    <section aria-label={`Exercise catalogue for ${dayName}`} className={`flex flex-col gap-2.5 min-h-0 ${grid ? 'flex-1' : 'p-3.5 rounded-card bg-ink-900'}`}>
       {!grid && (
         <div className="flex items-center gap-2">
-          <span className="flex-1 font-display font-bold text-lg">Catalogue</span>
-          <span className="h-[26px] px-2.5 rounded-full bg-act text-act-deep font-display font-bold text-[13px] leading-[26px]">→ {dayName.slice(0, 3)}</span>
+          <span className="flex-1 font-display font-extrabold uppercase text-[22px] leading-none">Catalogue</span>
+          <Chip tone="act">
+            <ArrowRightIcon className="w-3.5 h-3.5" strokeWidth={2.6} />
+            {dayName.slice(0, 3)}
+          </Chip>
         </div>
       )}
       {header}
-      <label className="flex items-center gap-2 h-11 px-3 rounded-[14px] bg-ink-950 border border-ink-700 focus-within:border-act">
+      <label className="flex items-center gap-2 h-11 px-3 rounded-card bg-ink-900 border border-ink-700 focus-within:border-act transition-colors">
         <Search className="w-4 h-4 text-fg-5" />
         <span className="sr-only">Search exercises</span>
         <input
@@ -486,25 +514,28 @@ const Catalogue: React.FC<{
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search"
-          className="flex-1 min-w-0 bg-transparent outline-none text-sm placeholder:text-fg-5"
+          className="flex-1 min-w-0 bg-transparent outline-none text-[15px] text-fg placeholder:text-fg-5"
         />
       </label>
       {!query && (
         <div className="flex flex-wrap gap-1.5">
-          {DISCIPLINES.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              onClick={() => pickShelf(entry.id)}
-              aria-pressed={entry.id === discipline}
-              className={`h-8 px-3 rounded-full border text-xs font-bold cursor-pointer ${
-                entry.id === discipline ? 'bg-act border-act text-act-deep' : 'bg-ink-850 border-ink-700 text-fg-3'
-              }`}
-            >
-              {entry.id === 'bouldering' && <Mountain className="inline w-3.5 h-3.5 mr-1 -mt-0.5" />}
-              {entry.label}
-            </button>
-          ))}
+          {DISCIPLINES.map((entry) => {
+            const Glyph = SHELF_ICON[entry.id];
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => pickShelf(entry.id)}
+                aria-pressed={entry.id === discipline}
+                className={`h-8 px-2.5 rounded-tag flex items-center gap-1.5 text-[13px] font-semibold transition active:scale-[.97] cursor-pointer ${
+                  entry.id === discipline ? 'bg-act text-act-deep' : 'bg-ink-850 text-fg-3 hover:bg-ink-800 hover:text-fg'
+                }`}
+              >
+                {Glyph && <Glyph className="w-3.5 h-3.5" />}
+                {entry.label}
+              </button>
+            );
+          })}
         </div>
       )}
       <ul className={`min-h-0 overflow-y-auto no-scrollbar ${grid ? 'grid grid-cols-3 gap-2 content-start flex-1' : 'flex flex-col gap-1.5 max-h-[560px]'}`}>
@@ -516,21 +547,21 @@ const Catalogue: React.FC<{
                 type="button"
                 onClick={() => onPick(exercise.id)}
                 aria-label={`Add ${exercise.name}`}
-                className={`w-full border rounded-2xl bg-ink-850 transition active:scale-95 cursor-pointer ${flash === exercise.id ? 'anim-ready' : ''} ${
-                  added ? 'border-[#17566a]' : 'border-ink-700 hover:border-ink-600'
+                className={`w-full border-[1.5px] rounded-card transition active:scale-[.97] cursor-pointer ${flash === exercise.id ? 'bg-ink-750' : 'bg-ink-850 hover:bg-ink-800'} ${
+                  added ? 'border-ink-500' : 'border-transparent'
                 } ${grid ? 'h-[128px] p-1.5 flex flex-col items-center gap-1 text-center' : 'p-1.5 flex items-center gap-2.5 text-left'}`}
               >
-                <span className={`${grid ? 'w-16 h-16' : 'w-11 h-11'} shrink-0 rounded-xl bg-ink-950 flex items-center justify-center`}>
+                <span className={`${grid ? 'w-16 h-16' : 'w-11 h-11'} shrink-0 rounded-tag bg-ink-950 flex items-center justify-center`}>
                   <Figure spec={figureForExercise(exercise.id, exercise.category)} className={grid ? 'w-14 h-14' : 'w-10 h-10'} />
                 </span>
                 <span className={`flex-1 min-w-0 flex flex-col ${grid ? 'items-center' : ''}`}>
                   <span className={`text-[12px] font-semibold text-fg-2 leading-tight ${grid ? 'line-clamp-2' : 'truncate'}`}>{exercise.name}</span>
-                  <span className="font-display font-bold text-[11.5px] text-act">
+                  <span className="num font-bold text-[12px] text-fg-4">
                     {exercise.sets} × {exercise.reps || '—'}
                   </span>
                 </span>
                 {!grid && (
-                  <span className={`w-7 h-7 shrink-0 rounded-lg flex items-center justify-center ${added ? 'bg-act text-act-deep' : 'bg-[#08161d] text-act'}`}>
+                  <span className={`w-7 h-7 shrink-0 rounded-tag flex items-center justify-center ${added ? 'bg-act text-act-deep' : 'bg-ink-750 text-fg'}`}>
                     <Plus className="w-3.5 h-3.5" strokeWidth={3} />
                   </span>
                 )}
@@ -543,12 +574,13 @@ const Catalogue: React.FC<{
   );
 };
 
+/** Tendon work is armour, so it wears steel. */
 const ArmorRow: React.FC<{ armor: ArmorSlot[]; onToggle: (slot: ArmorSlot) => void }> = ({ armor, onToggle }) => (
-  <section aria-label="Weekly tendon armor" className="flex flex-col gap-2.5 p-3.5 rounded-[20px] bg-ink-900 border border-ink-700">
+  <section aria-label="Weekly tendon armour" className="flex flex-col gap-2.5 p-3.5 rounded-card bg-ink-900">
     <div className="flex items-center gap-2">
-      <Shield className="w-4 h-4 text-act" />
-      <h2 className="flex-1 font-display font-bold text-[15px]">Weekly armor</h2>
-      <span className="font-display font-bold text-sm text-act">
+      <ShieldIcon className="w-[18px] h-[18px] text-armour" lit={armor.length > 0} />
+      <h2 className="flex-1 font-display font-extrabold uppercase text-[22px] leading-none">Weekly armour</h2>
+      <span className="num font-bold text-[15px] text-armour">
         {armor.length}
         <span className="text-fg-5">/{ARMOR_CATALOG.length}</span>
       </span>
@@ -565,12 +597,12 @@ const ArmorRow: React.FC<{ armor: ArmorSlot[]; onToggle: (slot: ArmorSlot) => vo
             aria-checked={on}
             onClick={() => onToggle(slot)}
             title={`${piece.drill} — ${piece.when}`}
-            className={`h-[58px] rounded-2xl border-[1.5px] flex flex-col items-center justify-center gap-1 cursor-pointer ${
-              on ? 'bg-act/10 border-act text-act' : 'bg-ink-850 border-dashed border-ink-600 text-fg-5'
+            className={`h-[58px] rounded-card border-[1.5px] flex flex-col items-center justify-center gap-1 transition active:scale-[.97] cursor-pointer ${
+              on ? 'bg-armour-deep border-armour-line text-armour' : 'bg-ink-850 border-dashed border-ink-600 text-fg-4 hover:text-fg'
             }`}
           >
-            <Shield className={`w-5 h-5 ${on ? 'fill-act/20' : ''}`} />
-            <span className="text-[10.5px] font-bold">{piece.slot}</span>
+            <ShieldIcon className="w-5 h-5" lit={on} />
+            <span className="text-[11px] font-semibold">{piece.slot}</span>
           </button>
         );
       })}
@@ -579,7 +611,7 @@ const ArmorRow: React.FC<{ armor: ArmorSlot[]; onToggle: (slot: ArmorSlot) => vo
 );
 
 const TargetPicker: React.FC<{ target: Target; onPick: (target: Target) => void }> = ({ target, onPick }) => (
-  <div role="radiogroup" aria-label="Add to" className="grid grid-cols-2 gap-1 p-1 rounded-[14px] bg-ink-950 border border-ink-700">
+  <div role="radiogroup" aria-label="Add to" className="grid grid-cols-2 gap-1 p-1 rounded-card bg-ink-950">
     {(['missions', 'warmups'] as const).map((id) => (
       <button
         key={id}
@@ -587,25 +619,25 @@ const TargetPicker: React.FC<{ target: Target; onPick: (target: Target) => void 
         role="radio"
         aria-checked={id === target}
         onClick={() => onPick(id)}
-        className={`h-9 rounded-[10px] text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
-          id === target ? 'bg-act text-act-deep' : 'text-fg-3'
+        className={`h-9 rounded-tag text-[13px] font-semibold flex items-center justify-center gap-1.5 transition active:scale-[.97] cursor-pointer ${
+          id === target ? 'bg-act text-act-deep' : 'text-fg-3 hover:text-fg'
         }`}
       >
-        {id === 'missions' ? <Plus className="w-3.5 h-3.5" strokeWidth={3} /> : <Flame className="w-3.5 h-3.5" />}
+        {id === 'missions' ? <Plus className="w-3.5 h-3.5" strokeWidth={3} /> : <FlameIcon className="w-3.5 h-3.5" />}
         {id === 'missions' ? 'Missions' : 'Warm-up'}
       </button>
     ))}
   </div>
 );
 
-/** The day's warm-up: done before the missions, ticked on the quest board. */
+/** The day's warm-up: done before the missions, ticked on the quest board. Warm-ups wear steel. */
 const WarmUps: React.FC<{ warmUps: WarmUp[]; onChange: (warmUps: WarmUp[]) => void; compact?: boolean }> = ({ warmUps, onChange, compact = false }) => {
   if (!warmUps.length) return null;
   return (
-    <div className={`flex flex-col ${compact ? 'gap-1' : 'gap-1.5 p-3 rounded-[18px] bg-ink-900 border border-ink-750'}`} aria-label="Warm-up">
+    <div className={`flex flex-col ${compact ? 'gap-1' : 'gap-1.5 p-3 rounded-card bg-ink-900'}`} aria-label="Warm-up">
       {!compact && (
-        <span className="flex items-center gap-1.5 text-[11px] font-extrabold tracking-[0.1em] uppercase text-earned-soft">
-          <Flame className="w-3.5 h-3.5" /> Warm-up
+        <span className="eyebrow flex items-center gap-1.5 text-armour">
+          <FlameIcon className="w-3.5 h-3.5" /> Warm-up
         </span>
       )}
       <ul className="flex flex-wrap gap-1">
@@ -614,15 +646,15 @@ const WarmUps: React.FC<{ warmUps: WarmUp[]; onChange: (warmUps: WarmUp[]) => vo
           return (
             <li
               key={warmUp.id}
-              className={`list-none flex items-center gap-1 rounded-full border border-[#4a3a18] bg-[#14100a] text-earned-soft ${compact ? 'pl-2 pr-0.5 h-6 text-[10.5px] max-w-full' : 'pl-2.5 pr-1 h-8 text-xs'}`}
+              className={`list-none flex items-center gap-1 rounded-tag bg-armour-deep text-armour ${compact ? 'pl-1.5 pr-0.5 h-6 text-[11px] max-w-full' : 'pl-2.5 pr-1 h-8 text-[13px]'}`}
             >
-              {compact && <Flame className="w-3 h-3 shrink-0" />}
+              {compact && <FlameIcon className="w-3 h-3 shrink-0" />}
               <span className="truncate font-semibold">{name}</span>
               <button
                 type="button"
                 onClick={() => onChange(removeAt(warmUps, index))}
                 aria-label={`Remove ${name} from the warm-up`}
-                className={`${compact ? 'w-5 h-5' : 'w-6 h-6'} shrink-0 rounded-full flex items-center justify-center hover:bg-[#2a2010] cursor-pointer`}
+                className={`${compact ? 'w-5 h-5' : 'w-6 h-6'} shrink-0 rounded-tag flex items-center justify-center hover:bg-armour-line cursor-pointer`}
               >
                 <X className="w-3 h-3" strokeWidth={2.8} />
               </button>

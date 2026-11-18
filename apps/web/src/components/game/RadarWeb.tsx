@@ -41,19 +41,12 @@ export const RadarWeb: React.FC<RadarWebProps> = ({ attributes, size, selectedId
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true" className="absolute inset-0">
-        <defs>
-          <linearGradient id="aura-web-fill" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#a77bff" stopOpacity=".55" />
-            <stop offset="1" stopColor="#3ee8ff" stopOpacity=".35" />
-          </linearGradient>
-        </defs>
         {RINGS.map((fraction) => (
           <polygon
             key={fraction}
             points={ring(fraction)}
-            fill={fraction === 1 ? '#0b0e17' : 'none'}
-            stroke={fraction === 1 ? '#1d2335' : '#1a2031'}
             strokeWidth="1.1"
+            style={{ fill: fraction === 1 ? 'var(--color-ink-850)' : 'none', stroke: fraction === 1 ? 'var(--color-ink-600)' : 'var(--color-ink-700)' }}
           />
         ))}
         {attributes.map((attribute, i) => {
@@ -65,25 +58,24 @@ export const RadarWeb: React.FC<RadarWebProps> = ({ attributes, size, selectedId
               y1={center}
               x2={x}
               y2={y}
-              stroke={i === selectedIndex ? '#3ee8ff' : '#1a2031'}
-              strokeOpacity={i === selectedIndex ? 0.6 : 1}
+              strokeOpacity={i === selectedIndex ? 0.7 : 1}
               strokeDasharray={i === selectedIndex ? '3 4' : undefined}
               strokeWidth="1.2"
+              style={{ stroke: i === selectedIndex ? 'var(--color-act)' : 'var(--color-ink-700)' }}
             />
           );
         })}
         <polygon
           points={shape}
-          fill="url(#aura-web-fill)"
-          stroke="#b99cff"
+          fillOpacity="0.22"
           strokeWidth="2.2"
           strokeLinejoin="round"
-          style={{ transition: 'all .6s ease-out' }}
+          style={{ fill: 'var(--color-earned)', stroke: 'var(--color-earned)', transition: 'all .6s var(--ease-lift)' }}
         />
         {selectedPoint && (
           <>
-            <circle cx={selectedPoint[0]} cy={selectedPoint[1]} r="11" fill="#3ee8ff" fillOpacity=".22" />
-            <circle cx={selectedPoint[0]} cy={selectedPoint[1]} r="5" fill="#3ee8ff" />
+            <circle cx={selectedPoint[0]} cy={selectedPoint[1]} r="9" fillOpacity=".25" style={{ fill: 'var(--color-act)' }} />
+            <circle cx={selectedPoint[0]} cy={selectedPoint[1]} r="4.5" style={{ fill: 'var(--color-act)' }} />
           </>
         )}
       </svg>
@@ -97,15 +89,15 @@ export const RadarWeb: React.FC<RadarWebProps> = ({ attributes, size, selectedId
           const value = attribute.display ?? (attribute.value === null ? '–' : String(attribute.value));
           const body = (
             <>
-              <span className={`text-[10.5px] font-bold tracking-[0.06em] uppercase ${on ? 'text-act' : 'text-fg-4'}`}>
+              <span className={`eyebrow ${on ? 'text-fg' : 'text-fg-4'}`}>
                 {attribute.def.short}
               </span>
-              <span className={`font-display font-bold text-base leading-none ${on ? 'text-fg' : 'text-fg-2'}`}>{value}</span>
+              <span className={`num font-bold text-[17px] leading-none ${on ? 'text-fg' : 'text-fg-2'}`}>{value}</span>
             </>
           );
           const style = { left: x - 42, top: y - 22 };
-          const box = `absolute w-[84px] h-11 rounded-[14px] border flex flex-col items-center justify-center gap-px ${
-            on ? 'bg-[#08161d] border-act' : 'bg-ink-850 border-ink-700'
+          const box = `absolute w-[84px] h-11 rounded-card flex flex-col items-center justify-center gap-px ${
+            on ? 'bg-ink-800 raised outline-2 outline-act' : 'bg-ink-850'
           }`;
           return onSelect ? (
             <button
@@ -114,7 +106,7 @@ export const RadarWeb: React.FC<RadarWebProps> = ({ attributes, size, selectedId
               onClick={() => onSelect(attribute.def.id)}
               aria-pressed={on}
               aria-label={`${attribute.def.name} ${value} of ${ATTRIBUTE_MAX}`}
-              className={`${box} cursor-pointer hover:border-ink-600 transition`}
+              className={`${box} cursor-pointer hover:bg-ink-800 transition`}
               style={style}
             >
               {body}

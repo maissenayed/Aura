@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { MailCheck, UserPlus } from 'lucide-react';
 import { api, refreshAccount, useAccount } from '../../utils/accountStore';
 import { signOutOfCampaign } from '../../utils/protocolStore';
-import { AuthCard, Field, FormMessage, PasswordField, Submit, passwordProblem } from '../../components/account/ui';
+import { AuthCard, Field, FormMessage, PasswordField, SECONDARY_BUTTON, Submit, passwordProblem } from '../../components/account/ui';
 
 type Invitation = { email: string; expiresAt: string };
 
@@ -36,16 +36,16 @@ export const JoinForm: React.FC = () => {
   }, [token]);
 
   if (invite === 'loading') {
-    return <div className="w-full max-w-md mx-auto h-80 rounded-2xl border border-slate-800 bg-dark-900/50 animate-pulse" aria-busy="true" />;
+    return <div className="w-full max-w-md mx-auto h-80 rounded-card bg-ink-900 animate-pulse" aria-busy="true" />;
   }
 
   if (!invite) {
     return (
       <AuthCard icon={<UserPlus className="w-7 h-7" />} title="This invitation can't be used">
         <FormMessage tone="error">{lookupError ?? 'This invitation has expired, been used or been withdrawn.'}</FormMessage>
-        <p className="mt-3 text-sm text-slate-400">
+        <p className="mt-3 text-sm text-fg-3">
           Ask the person who invited you for a new link. If you already have an account,{' '}
-          <Link href="/camp" className="font-bold text-neon-cyan hover:underline">
+          <Link href="/camp" className="font-bold text-act underline-offset-2 hover:underline">
             sign in here
           </Link>
           .
@@ -57,14 +57,14 @@ export const JoinForm: React.FC = () => {
   if (account && account.email !== invite.email) {
     return (
       <AuthCard icon={<UserPlus className="w-7 h-7" />} title="You're signed in as someone else">
-        <p className="text-sm text-slate-300 text-center">
-          This invitation is for <strong className="text-white">{invite.email}</strong>, but this browser is signed in as{' '}
-          <strong className="text-white">{account.email}</strong>.
+        <p className="text-sm text-fg-3 text-center">
+          This invitation is for <strong className="text-fg">{invite.email}</strong>, but this browser is signed in as{' '}
+          <strong className="text-fg">{account.email}</strong>.
         </p>
         <button
           type="button"
           onClick={() => void signOutOfCampaign()}
-          className="mt-5 w-full h-11 rounded-xl text-sm font-black text-neon-cyan border border-cyan-500/40 hover:bg-cyan-950/40 transition cursor-pointer"
+          className={`${SECONDARY_BUTTON} mt-5 w-full h-12 text-sm`}
         >
           Sign out and accept the invitation
         </button>
@@ -96,7 +96,7 @@ export const JoinForm: React.FC = () => {
       title="You're invited"
       intro={
         <>
-          Create your account for <strong className="text-white">{invite.email}</strong>. You will get your own campaign —
+          Create your account for <strong className="text-fg">{invite.email}</strong>. You will get your own campaign —
           missions, bosses and character that only you can see.
         </>
       }
@@ -111,7 +111,7 @@ export const JoinForm: React.FC = () => {
           Create account and start
         </Submit>
       </form>
-      <p className="mt-4 text-[11px] text-slate-500 text-center">
+      <p className="mt-4 text-[11px] text-fg-5 text-center">
         This invitation works once and expires {new Date(invite.expiresAt).toLocaleDateString()}.
       </p>
     </AuthCard>

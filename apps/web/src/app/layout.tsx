@@ -1,25 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Chakra_Petch, Inter } from "next/font/google";
+import { Archivo } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { ServiceWorkerRegister } from "../components/pwa/ServiceWorkerRegister";
+import { THEME_BOOT_SCRIPT } from "../utils/themeBoot";
 
-/** Body text: the few words the game still needs. */
-const inter = Inter({
-  variable: "--font-inter",
+/**
+ * One family in three widths: narrow for titles and numbers, normal for text,
+ * wide for small labels. Variable, with the width axis, so it is one file.
+ */
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
-});
-
-/** Numbers, names and headings. Not a variable font, so the weights are listed. */
-const chakra = Chakra_Petch({
-  variable: "--font-chakra",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  axes: ["wdth"],
 });
 
 export const metadata: Metadata = {
-  title: "Calisthenics Skill Tree | RPG Bodyweight Roadmap",
-  description: "Gamified RPG roadmap from beginner bodyweight exercises to pro-level static holds across Push, Pull, Core, and Legs.",
+  title: "Aura",
+  description: "Earn your aura. Your training as an RPG: daily quests, bosses to beat and a skill tree to climb, for calisthenics, the gym and bouldering.",
   applicationName: "Aura",
   // iPhone "Add to Home Screen": opens full screen with its own name; the icon is app/apple-icon.png.
   appleWebApp: {
@@ -33,7 +31,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#06070b",
+  themeColor: "#0e0d0b",
 };
 
 export default function RootLayout({
@@ -42,10 +40,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${chakra.variable} h-full antialiased dark`}
-    >
+    // The theme script sets data-theme before React hydrates, so the attribute may differ from the server's.
+    <html lang="en" className={`${archivo.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-ink-950 text-fg">
         {/* Outside the sign-in wall, so Chrome can offer "Install" from the sign-in screen too. */}
         <ServiceWorkerRegister />

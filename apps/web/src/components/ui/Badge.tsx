@@ -17,35 +17,35 @@ export const Badge: React.FC<BadgeProps> = ({
   className = '',
   icon,
 }) => {
-  let styleClasses = 'bg-slate-800 text-slate-200 border-slate-700';
+  let styleClasses = 'bg-ink-700 text-fg-2 border-ink-600';
 
   switch (variant) {
     case 'push':
-      styleClasses = 'bg-cyan-950/60 text-neon-cyan border-cyan-500/40 hover:bg-cyan-900/60 hover:border-cyan-400';
+      styleClasses = 'bg-ink-800/60 text-act border-ink-500/40 hover:bg-ink-800/60 hover:border-act';
       break;
     case 'pull':
-      styleClasses = 'bg-emerald-950/60 text-neon-emerald border-emerald-500/40 hover:bg-emerald-900/60 hover:border-emerald-400';
+      styleClasses = 'bg-earned-deep/60 text-earned border-earned-strong/40 hover:bg-earned-deep/60 hover:border-earned';
       break;
     case 'core':
-      styleClasses = 'bg-purple-950/60 text-neon-purple border-purple-500/40 hover:bg-purple-900/60 hover:border-purple-400';
+      styleClasses = 'bg-armour-deep/60 text-armour border-armour-line/40 hover:bg-armour-deep/60 hover:border-armour';
       break;
     case 'legs':
-      styleClasses = 'bg-amber-950/60 text-neon-amber border-amber-500/40 hover:bg-amber-900/60 hover:border-amber-400';
+      styleClasses = 'bg-earned-deep/60 text-earned border-earned-strong/40 hover:bg-earned-deep/60 hover:border-earned';
       break;
     case 'pro':
-      styleClasses = 'bg-gradient-to-r from-purple-900/80 to-amber-900/80 text-amber-300 border-amber-400/60 shadow-neon-purple font-bold animate-pulse';
+      styleClasses = 'bg-gradient-to-r from-armour-deep/80 to-earned-deep/80 text-earned-soft border-earned/60 shadow-armour font-bold animate-pulse';
       break;
     case 'mastered':
-      styleClasses = 'bg-emerald-900/40 text-emerald-400 border-emerald-500/60 font-semibold';
+      styleClasses = 'bg-earned-deep/40 text-earned border-earned-strong/60 font-semibold';
       break;
     case 'locked':
-      styleClasses = 'bg-slate-900/60 text-slate-400 border-slate-800 opacity-75';
+      styleClasses = 'bg-ink-900/60 text-fg-4 border-ink-700 opacity-75';
       break;
     case 'clickable':
-      styleClasses = 'bg-dark-900 text-neon-cyan border-cyan-500/50 hover:bg-cyan-950/60 hover:border-cyan-400 font-semibold';
+      styleClasses = 'bg-ink-900 text-act border-ink-500/50 hover:bg-ink-800/60 hover:border-act font-semibold';
       break;
     case 'outline':
-      styleClasses = 'bg-transparent text-slate-300 border-slate-700 hover:border-slate-500';
+      styleClasses = 'bg-transparent text-fg-3 border-ink-600 hover:border-fg-5';
       break;
   }
 

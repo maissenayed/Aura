@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
-import { Sparkles } from 'lucide-react';
 import { useGame } from '../game/GameProvider';
+import { Wordmark } from '../game/icons';
 import { AuthGate } from './AuthGate';
 import { Onboarding } from './Onboarding';
 
@@ -28,10 +28,7 @@ export const SignInWall: React.FC<{ children: React.ReactNode }> = ({ children }
   if (gate === 'onboard') {
     return (
       <main className="flex-1 min-h-dvh flex flex-col items-center gap-7 px-4 py-10 bg-ink-950 text-fg">
-        <span className="flex items-center gap-2" aria-label="Aura">
-          <Sparkles className="w-5 h-5 text-aura" />
-          <span className="font-display font-bold text-2xl tracking-[0.32em]">AURA</span>
-        </span>
+        <Wordmark />
         <Onboarding />
       </main>
     );
@@ -39,12 +36,9 @@ export const SignInWall: React.FC<{ children: React.ReactNode }> = ({ children }
 
   return (
     <main className="flex-1 min-h-dvh flex flex-col items-center justify-center gap-7 px-4 py-10 bg-ink-950 text-fg">
-      <span className="flex items-center gap-2" aria-label="Aura">
-        <Sparkles className="w-5 h-5 text-aura" />
-        <span className="font-display font-bold text-2xl tracking-[0.32em]">AURA</span>
-      </span>
+      <Wordmark />
       {gate === 'loading' ? (
-        <div className="w-full max-w-md h-80 rounded-3xl border border-ink-700 bg-ink-900 animate-pulse" aria-busy="true" aria-label="Loading" />
+        <div className="w-full max-w-md h-80 rounded-card bg-ink-900 animate-pulse" aria-busy="true" aria-label="Loading" />
       ) : (
         <div className="w-full max-w-md">
           <AuthGate mode={gate} />

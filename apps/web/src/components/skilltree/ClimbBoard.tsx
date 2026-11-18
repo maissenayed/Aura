@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Link2 } from 'lucide-react';
 import { SkillGraph, TreeSkill, statusOf } from '../../utils/skillTree';
-import { NodeState, SkillNode } from '../game/kit';
+import { Meter, NodeState, SkillNode } from '../game/kit';
 import { SkillTreeDef } from './skillTrees';
 
 /**
@@ -11,8 +11,10 @@ import { SkillTreeDef } from './skillTrees';
  * bottom and its hardest skill — the line's boss — at the top. A line that
  * grows out of another (its first skill requires a skill in that line) branches
  * off it inside the same climb: it starts at its own level beside its parent,
- * joined by an edge. Climbs stand side by side and scroll both ways; edges glow
- * gold once both ends are mastered and flow cyan where the next step is ready.
+ * joined by an edge. Climbs stand side by side and scroll both ways; an edge
+ * turns gold once both ends are mastered, is a solid iron line where the next
+ * step is ready, and dashed while it is still locked. Only the next thing to
+ * climb (the first ready skill shown) pulses.
  */
 
 export interface ClimbLine {
@@ -95,6 +97,17 @@ export function climbsOf(lines: ClimbLine[]): Climb[] {
     .map((root) => ({ id: root.id, name: root.name, lane: root.lane, tracks: collect(root) }));
 }
 
+/** The first ready skill, climb by climb and track by track; only among `within` when given. */
+function firstReadyIn(climbs: Climb[], mastered: ReadonlySet<string>, within?: ReadonlySet<string>): string | null {
+  for (const climb of climbs) {
+    for (const track of climb.tracks) {
+      const ready = track.skills.find((skill) => (!within || within.has(skill.id)) && statusOf(skill, mastered) === 'ready');
+      if (ready) return ready.id;
+    }
+  }
+  return null;
+}
+
 const ROW = 118;
 const NODE = 62;
 const SLOT = 82;
@@ -126,15 +139,9 @@ export const ClimbBoard: React.FC<ClimbBoardProps> = ({ tree, graph, lines, mast
 
   // Bring the requested skill (or, on a fresh view, the first ready one) into the middle of the board.
   const climbs = useMemo(() => climbsOf(lines), [lines]);
-  const firstReady = useMemo(() => {
-    for (const climb of climbs) {
-      for (const track of climb.tracks) {
-        const ready = track.skills.find((skill) => statusOf(skill, mastered) === 'ready');
-        if (ready) return ready.id;
-      }
-    }
-    return null;
-  }, [climbs, mastered]);
+  const firstReady = useMemo(() => firstReadyIn(climbs, mastered), [climbs, mastered]);
+  // The one node that pulses: the next thing to climb, kept on the path when there is one.
+  const nextId = useMemo(() => (pathIds ? firstReadyIn(climbs, mastered, pathIds) : firstReady), [climbs, mastered, pathIds, firstReady]);
   const viewKey = lines.map((line) => line.id).join('|');
 
   useEffect(() => {
@@ -147,7 +154,7 @@ export const ClimbBoard: React.FC<ClimbBoardProps> = ({ tree, graph, lines, mast
   }, [focusRequest, viewKey]);
 
   return (
-    <div ref={board} className="flex-1 min-h-0 overflow-auto dot-grid bg-[#080a11]">
+    <div ref={board} className="flex-1 min-h-0 overflow-auto dot-grid bg-ink-900">
       <div className="flex items-end gap-2 px-4 pt-4 pb-6 min-w-max min-h-full">
         {climbs.map((climb) => (
           <ClimbColumn
@@ -157,6 +164,7 @@ export const ClimbBoard: React.FC<ClimbBoardProps> = ({ tree, graph, lines, mast
             climb={climb}
             mastered={mastered}
             selectedId={selectedId}
+            nextId={nextId}
             pathIds={pathIds}
             onSelect={onSelect}
           />
@@ -172,9 +180,11 @@ const ClimbColumn: React.FC<{
   climb: Climb;
   mastered: ReadonlySet<string>;
   selectedId: string | null;
+  /** The one skill that pulses: the next thing to climb. */
+  nextId: string | null;
   pathIds: ReadonlySet<string> | null;
   onSelect: (id: string) => void;
-}> = ({ tree, graph, climb, mastered, selectedId, pathIds, onSelect }) => {
+}> = ({ tree, graph, climb, mastered, selectedId, nextId, pathIds, onSelect }) => {
   const layout = useMemo(() => {
     const skills = climb.tracks.flatMap((track) => track.skills);
     // One row per level used anywhere in the climb, so a branch starts beside the level it grows from.
@@ -209,7 +219,6 @@ const ClimbColumn: React.FC<{
   const { skills, height, width, pos, tracks } = layout;
   const inClimb = new Set(skills.map((skill) => skill.id));
   const done = skills.filter((skill) => mastered.has(skill.id)).length;
-  const lane = tree.lanes[climb.lane];
   const tops = new Set(climb.tracks.filter((line) => line.skills.length > 1).map((line) => line.skills[line.skills.length - 1].id));
   const root = tracks[0];
 
@@ -231,10 +240,9 @@ const ClimbColumn: React.FC<{
     <section aria-label={`${climb.name}, ${done} of ${skills.length} mastered`} className="relative shrink-0 flex flex-col" style={{ width }}>
       <div className="relative" style={{ height }}>
         <svg width={width} height={height} className="absolute inset-0" aria-hidden="true">
-          <path d={edges.dim.join(' ')} fill="none" stroke="#1c2233" strokeWidth="4" strokeLinecap="round" />
-          <path d={edges.lit.join(' ')} fill="none" stroke="#ffc247" strokeOpacity=".2" strokeWidth="12" strokeLinecap="round" />
-          <path d={edges.lit.join(' ')} fill="none" stroke="#ffc247" strokeWidth="4" strokeLinecap="round" />
-          <path d={edges.ready.join(' ')} fill="none" stroke="#3ee8ff" strokeWidth="3.5" strokeLinecap="round" className="anim-flow" />
+          <path d={edges.dim.join(' ')} fill="none" strokeWidth="3" strokeDasharray="5 7" style={{ stroke: 'var(--color-ink-600)' }} />
+          <path d={edges.ready.join(' ')} fill="none" strokeWidth="3" strokeLinecap="round" style={{ stroke: 'var(--color-ink-600)' }} />
+          <path d={edges.lit.join(' ')} fill="none" strokeWidth="3.5" strokeLinecap="round" style={{ stroke: 'var(--color-earned)' }} />
         </svg>
 
         {/* A branch is named under its first step, where it leaves the line it grows from. */}
@@ -243,7 +251,7 @@ const ClimbColumn: React.FC<{
           return (
             <span
               key={line.id}
-              className={`absolute text-center text-[9.5px] font-bold uppercase tracking-[0.08em] leading-tight ${lane?.text ?? 'text-fg-3'}`}
+              className="eyebrow absolute text-center text-fg-4"
               style={{ left: x + 4, width: trackWidth - 8, top: first.y + NODE / 2 + 40 }}
             >
               {line.name}
@@ -275,12 +283,13 @@ const ClimbColumn: React.FC<{
                   boss={isTop}
                   badge={isTop ? 'BOSS' : tree.levelTag(skill.level)}
                   selected={skill.id === selectedId}
+                  pulse={skill.id === nextId}
                   label={`${skill.name}, ${tree.levelName(skill.level)}, ${status}`}
                   onClick={() => onSelect(skill.id)}
                 />
                 {outside.length > 0 && (
                   <span
-                    className="absolute -left-1.5 -bottom-1 h-5 px-1 rounded-full bg-ink-950 border border-ink-600 text-fg-4 flex items-center gap-0.5 text-[10px] font-bold"
+                    className="absolute -left-1.5 -bottom-1 h-5 px-1 rounded-tag bg-ink-950 border border-ink-600 text-fg-4 flex items-center gap-0.5 num font-bold text-[11px]"
                     title={`Also needs ${outside.map((id) => graph.byId.get(id)?.name).join(', ')}`}
                   >
                     <Link2 className="w-3 h-3" />
@@ -300,12 +309,10 @@ const ClimbColumn: React.FC<{
         })}
       </div>
       <div className="mt-1 flex flex-col items-center gap-1.5 px-1" style={{ marginLeft: root.x, width: root.width }}>
-        <span className={`flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-[0.08em] text-center leading-tight ${lane?.text ?? 'text-fg-3'}`}>
-          {climb.name}
-        </span>
-        <span className="w-[84px] h-1 rounded-full bg-ink-700 overflow-hidden">
-          <span className="block h-full bg-earned" style={{ width: `${(done / skills.length) * 100}%` }} />
-        </span>
+        <span className="eyebrow flex items-center gap-1.5 text-center text-fg-2">{climb.name}</span>
+        <div className="w-[84px]">
+          <Meter value={done / skills.length} tone="earned" className="h-1" />
+        </div>
       </div>
     </section>
   );

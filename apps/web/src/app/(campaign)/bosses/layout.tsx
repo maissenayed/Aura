@@ -3,11 +3,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Crown, Lock } from 'lucide-react';
+import { CrownIcon, LockIcon } from '../../../components/game/icons';
 import { ScreenHeader } from '../../../components/game/AppShell';
 import { useGame } from '../../../components/game/GameProvider';
 import { figureForBoss } from '../../../components/game/figures';
-import { bossHp } from '../../../components/game/helpers';
+import { bossHp, sealedLine } from '../../../components/game/helpers';
 import { Chip, Figure, Meter } from '../../../components/game/kit';
 
 /**
@@ -26,10 +26,11 @@ export default function BossesLayout({ children }: { children: React.ReactNode }
         <ScreenHeader
           title="Bosses"
           right={
-            <Chip tone="earned" className="h-9 px-3 text-[15px]">
-              <Crown className="w-4 h-4" />
-              {slain}
-              <span className="text-[#7d6a3e]">/ {derived.bosses.length}</span>
+            <Chip tone={slain > 0 ? 'earned' : 'dim'} className="h-10 px-3 rounded-card text-[17px]">
+              <CrownIcon className="w-4 h-4" strokeWidth={2.2} />
+              <span className="num">{slain}</span>
+              <span className={slain > 0 ? 'text-earned-dim' : 'text-fg-5'}>/ {derived.bosses.length}</span>
+              <span className="eyebrow">slain</span>
             </Chip>
           }
         />
@@ -47,48 +48,35 @@ export default function BossesLayout({ children }: { children: React.ReactNode }
                   href={`/bosses/${status.boss.id}`}
                   aria-current={on ? 'page' : undefined}
                   aria-label={`${status.boss.name}, ${status.defeated ? 'slain' : status.sealed ? 'sealed' : `${hp} HP`}`}
-                  className={`relative h-[210px] flex flex-col gap-2 p-3 rounded-[22px] border-[1.5px] overflow-hidden transition hover:-translate-y-0.5 ${
-                    on
-                      ? 'border-act'
-                      : status.defeated
-                        ? 'border-[#5c4a22]'
-                        : status.sealed
-                          ? 'border-ink-600'
-                          : 'border-[#3a1624]'
-                  } ${
-                    status.defeated
-                      ? 'bg-[radial-gradient(circle_at_50%_30%,#2a1f0a,#0e0b06_70%)]'
-                      : status.sealed
-                        ? 'bg-ink-850'
-                        : 'bg-[radial-gradient(circle_at_50%_30%,#2a0c15,#0d070a_70%)]'
-                  }`}
+                  className={`notch relative h-[214px] flex flex-col gap-2 p-3 rounded-card overflow-hidden transition hover:-translate-y-0.5 ${
+                    status.defeated ? 'bg-earned-deep' : status.sealed ? 'bg-ink-900 chains' : 'bg-boss-deep'
+                  } ${on ? 'outline-2 -outline-offset-2 outline-act' : ''}`}
                 >
-                  {status.sealed && <span className="absolute inset-0 chains pointer-events-none" />}
                   <span className="relative h-[110px] flex items-center justify-center">
                     <Figure spec={figureForBoss(status.boss)} state={state} className="w-[108px] h-[108px]" />
                     {status.sealed && (
-                      <span className="absolute w-11 h-11 rounded-full bg-[#0c0f18] border-[1.5px] border-ink-500 flex items-center justify-center">
-                        <Lock className="w-5 h-5 text-fg-3" />
+                      <span className="absolute w-11 h-11 rounded-card bg-ink-950 border-[1.5px] border-ink-500 flex items-center justify-center">
+                        <LockIcon className="w-5 h-5 text-fg-3" />
                       </span>
                     )}
                     {status.defeated && (
-                      <span className="absolute top-0 right-0 w-[30px] h-[30px] rounded-full bg-earned flex items-center justify-center">
-                        <Crown className="w-4 h-4 text-earned-deep fill-earned-deep" />
+                      <span className="absolute top-0 right-0 w-[30px] h-[30px] rounded-[7px] bg-earned flex items-center justify-center">
+                        <CrownIcon className="w-4 h-4 text-earned-deep" strokeWidth={2.4} />
                       </span>
                     )}
                   </span>
-                  <span className={`font-display font-bold text-[15px] leading-tight line-clamp-2 min-h-[36px] ${status.defeated ? 'text-earned-soft' : status.sealed ? 'text-fg-4' : 'text-fg'}`}>
+                  <span className={`font-display font-extrabold uppercase text-[18px] leading-[0.95] line-clamp-2 min-h-[34px] ${status.defeated ? 'text-earned-soft' : status.sealed ? 'text-fg-3' : 'text-fg'}`}>
                     {status.boss.name.replace(/^The /, '')}
                   </span>
                   <span className="mt-auto">
                     {status.defeated ? (
-                      <span className="font-display font-bold text-[13px] tracking-[0.14em] text-earned">SLAIN</span>
+                      <span className="eyebrow text-earned">Slain</span>
                     ) : status.sealed ? (
-                      <span className="text-[11.5px] font-bold text-fg-3 line-clamp-2">{status.sealedBy ?? 'Sealed'}</span>
+                      <span className="text-[12px] font-medium leading-snug text-fg-3 line-clamp-2">{sealedLine(status.sealedBy)}</span>
                     ) : (
                       <span className="flex items-center gap-2">
-                        <Meter value={hp / 1000} tone="boss" />
-                        <span className="font-display font-bold text-xs text-boss-soft min-w-[30px] text-right">{Math.round(hp / 10)}%</span>
+                        <Meter value={hp / 1000} tone="boss" className="h-1.5" />
+                        <span className="num font-bold text-[13px] text-boss-soft min-w-[34px] text-right">{Math.round(hp / 10)}%</span>
                       </span>
                     )}
                   </span>

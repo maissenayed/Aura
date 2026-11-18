@@ -2,17 +2,18 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Castle, Check, ChevronRight, Crown, Dumbbell, Flag, Medal, Scale, Skull, Star } from 'lucide-react';
+import { Castle, Flag, Medal, Scale, Star } from 'lucide-react';
 import { ScreenHeader } from '../../../components/game/AppShell';
 import { useGame } from '../../../components/game/GameProvider';
-import { Chip, Meter, Stepper } from '../../../components/game/kit';
+import { ArrowRightIcon, BossIcon, CheckIcon, CrownIcon, LockIcon, PlateIcon } from '../../../components/game/icons';
+import { Chip, HexLevel, Meter, Stepper } from '../../../components/game/kit';
 import { ActNode, ActStatus, campaignComplete } from '../../../utils/protocolEngine';
 
 /** Each kind of goal wears its own icon until it is reached. */
 const NODE_ICON: Record<ActNode['kind'], React.ComponentType<{ className?: string }>> = {
   weight: Scale,
-  lift: Dumbbell,
-  boss: Skull,
+  lift: PlateIcon,
+  boss: BossIcon,
   skill: Medal,
   tower: Castle,
   tier: Star,
@@ -21,8 +22,9 @@ const NODE_ICON: Record<ActNode['kind'], React.ComponentType<{ className?: strin
 
 /**
  * The campaign as one climb: act I at the bottom, the last act at the summit.
- * Cleared ground is gold, your pin sits on the next goal, and acts you have
- * not reached yet wait in the fog. Tap any waypoint for what it asks.
+ * Cleared ground is gold and nothing else is, your pin sits on the next goal,
+ * and acts you have not reached yet wait under the fog. Tap any waypoint for
+ * what it asks.
  */
 
 const W = 340;
@@ -80,7 +82,7 @@ export default function MapPage() {
     }, '');
   const all = pathThrough(layout.nodes);
   const gold = pathThrough(layout.nodes.slice(0, Math.max(0, pinIndex === -1 ? layout.nodes.length : pinIndex)));
-  const cyan = pinIndex > 0 ? pathThrough(layout.nodes.slice(pinIndex - 1, pinIndex + 1)) : '';
+  const ahead = pinIndex > 0 ? pathThrough(layout.nodes.slice(pinIndex - 1, pinIndex + 1)) : '';
 
   useEffect(() => {
     pinRef.current?.scrollIntoView({ block: 'center' });
@@ -100,66 +102,80 @@ export default function MapPage() {
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_340px] items-start">
         <div className="lg:order-2 flex flex-col gap-4">
-          <section className="flex flex-col gap-3 p-4 rounded-[20px] bg-ink-900 border border-ink-700" aria-label="Bodyweight">
+          <section className="flex flex-col gap-3 p-4 rounded-card bg-ink-900" aria-label="Bodyweight">
             <div className="flex items-center gap-2">
-              <Scale className="w-[18px] h-[18px] text-earned" />
-              <h2 className="flex-1 font-display font-bold text-base">Weigh-in</h2>
-              <Chip tone={mass.onPace ? 'earned' : 'boss'}>{mass.onPace ? 'On pace' : `${mass.shortKg.toFixed(1)} kg short`}</Chip>
+              <Scale className="w-[18px] h-[18px] text-fg-3" />
+              <h2 className="flex-1 font-display font-extrabold uppercase text-[22px] leading-none">Weigh-in</h2>
+              <Chip tone={mass.onPace ? 'earned' : 'act'}>{mass.onPace ? 'On pace' : `${mass.shortKg.toFixed(1)} kg short`}</Chip>
             </div>
             <div className="flex items-center gap-3">
               <Stepper value={save.bodyWeightKg} step={0.1} min={30} max={250} unit="kg" ariaLabel="Today's bodyweight" onCommit={weighIn} />
               <span className="flex-1 flex flex-col gap-1.5">
-                <Meter value={mass.finalProgress} tone="earned" label="Progress to goal weight" />
-                <span className="flex justify-between font-display font-bold text-xs text-fg-4">
+                <Meter value={mass.finalProgress} tone="act" label="Progress to goal weight" />
+                <span className="flex justify-between num font-bold text-[12px] text-fg-4">
                   <span>{mass.start} kg</span>
-                  <span className="text-earned">{plan.bodyweight.goal} kg</span>
+                  <span className="text-fg-2">{plan.bodyweight.goal} kg</span>
                 </span>
               </span>
             </div>
             {mass.next && (
-              <p className="text-xs text-fg-4">
-                Next: <span className="font-display font-bold text-fg-2">{mass.next.label}</span> · {mass.next.kg.toFixed(1)} kg
+              <p className="text-[13px] text-fg-4">
+                Next: <span className="font-semibold text-fg-2">{mass.next.label}</span> · <span className="num font-bold">{mass.next.kg.toFixed(1)} kg</span>
               </p>
             )}
           </section>
           {current && (
-            <section className="hidden lg:flex flex-col gap-2 p-4 rounded-[20px] bg-[#08111a] border border-[#143042]">
-              <span className="font-display font-bold text-[13px] text-act">
-                ACT {current.numeral} · {Math.round(current.progress * 100)}%
+            <section className="hidden lg:flex flex-col gap-2 p-4 rounded-card bg-ink-900">
+              <span className="eyebrow text-fg-4">
+                Act {current.numeral} · {Math.round(current.progress * 100)}%
               </span>
-              <h2 className="font-display font-bold text-lg">{current.name}</h2>
-              <p className="text-xs text-fg-4">{current.tagline}</p>
+              <h2 className="font-display font-extrabold uppercase text-[26px] leading-[0.95]">{current.name}</h2>
+              <p className="text-[13px] text-fg-3">{current.tagline}</p>
             </section>
           )}
         </div>
 
-        <div className="relative mx-auto rounded-3xl overflow-hidden border border-ink-750 bg-[#070910]" style={{ width: W, height: layout.height }}>
-          <div className="absolute inset-0 dot-grid opacity-70" />
+        <div className="relative mx-auto rounded-card overflow-hidden bg-ink-900" style={{ width: W, height: layout.height }}>
+          <div className="absolute inset-0 dot-grid" />
+          {/* The road is cut into the iron; only the ground already cleared is gold, the next stretch is chalk. */}
           <svg width={W} height={layout.height} viewBox={`0 0 ${W} ${layout.height}`} aria-hidden="true" className="absolute inset-0">
-            <path d={all} fill="none" stroke="#10141f" strokeWidth="22" strokeLinecap="round" />
-            <path d={all} fill="none" stroke="#1b2131" strokeWidth="2" strokeDasharray="2 10" strokeLinecap="round" />
-            {gold && <path d={gold} fill="none" stroke="#ffc247" strokeOpacity=".18" strokeWidth="20" strokeLinecap="round" />}
-            {gold && <path d={gold} fill="none" stroke="#ffc247" strokeWidth="5" strokeLinecap="round" />}
-            {cyan && <path d={cyan} fill="none" stroke="#3ee8ff" strokeWidth="4.5" strokeLinecap="round" className="anim-flow" />}
+            <path d={all} fill="none" strokeWidth="22" strokeLinecap="round" style={{ stroke: 'var(--color-ink-950)' }} />
+            <path d={all} fill="none" strokeWidth="2" strokeDasharray="2 10" strokeLinecap="round" style={{ stroke: 'var(--color-ink-600)' }} />
+            {gold && <path d={gold} fill="none" strokeWidth="5" strokeLinecap="round" style={{ stroke: 'var(--color-earned)' }} />}
+            {ahead && <path d={ahead} fill="none" strokeWidth="4" strokeDasharray="8 7" strokeLinecap="round" style={{ stroke: 'var(--color-progress)' }} />}
           </svg>
 
           {layout.banners.map(({ act, y }) => (
             <div
               key={act.id}
-              className={`absolute left-3 right-3 h-[52px] rounded-2xl border flex items-center gap-3 px-3.5 ${
-                act.complete ? 'bg-[rgba(26,19,8,.94)] border-[#5c4a22]' : act.current ? 'bg-[rgba(8,22,29,.94)] border-[#17566a]' : 'bg-[rgba(18,12,29,.9)] border-[#3d2a63]'
+              className={`absolute left-3 right-3 h-[52px] rounded-card flex items-center gap-3 px-3.5 ${
+                act.complete ? 'bg-earned-deep' : act.current ? 'bg-ink-800 raised' : 'bg-ink-850'
               }`}
               style={{ top: y - 26 }}
             >
-              <span className={`w-9 font-display font-bold text-xl ${act.complete ? 'text-earned' : act.current ? 'text-act' : 'text-aura-soft'}`}>{act.numeral}</span>
-              <span className="flex-1 min-w-0 font-display font-bold text-[15px] truncate">{act.name}</span>
+              <span className={`min-w-9 shrink-0 font-display font-extrabold text-[26px] leading-none ${act.complete ? 'text-earned' : act.current ? 'text-fg' : 'text-fg-5'}`}>
+                {act.numeral}
+              </span>
               <span
-                className={`h-[26px] px-2.5 rounded-full font-display font-bold text-xs leading-[26px] ${
-                  act.complete ? 'bg-earned text-earned-deep' : act.current ? 'bg-act text-act-deep' : 'bg-[#2a1d47] text-aura-soft'
+                className={`flex-1 min-w-0 font-display font-extrabold uppercase text-[22px] leading-none truncate ${
+                  act.complete ? 'text-earned-soft' : act.current ? 'text-fg' : 'text-fg-4'
                 }`}
               >
-                {act.complete ? 'CLEARED' : act.current ? `${Math.round(act.progress * 100)}%` : 'FOG'}
+                {act.name}
               </span>
+              {act.complete ? (
+                <span className="eyebrow shrink-0 flex items-center gap-1 text-earned">
+                  <CheckIcon className="w-3.5 h-3.5" strokeWidth={3} />
+                  Cleared
+                </span>
+              ) : act.current ? (
+                <span className="shrink-0 num font-bold text-[18px] leading-none text-fg">{Math.round(act.progress * 100)}%</span>
+              ) : (
+                <span className="eyebrow shrink-0 flex items-center gap-1 text-fg-5">
+                  <LockIcon className="w-3.5 h-3.5" strokeWidth={2.4} />
+                  Fog
+                </span>
+              )}
             </div>
           ))}
 
@@ -176,27 +192,23 @@ export default function MapPage() {
                   onClick={() => setOpenId(openId === node.id ? null : node.id)}
                   aria-expanded={openId === node.id}
                   aria-label={`${node.label}${node.done ? ', cleared' : ''}`}
-                  className={`absolute w-[46px] h-[46px] rounded-full border-2 flex items-center justify-center transition active:scale-90 cursor-pointer ${
-                    node.done
-                      ? 'bg-[#1a1308] border-earned shadow-[0_0_18px_rgba(255,194,71,0.35)]'
-                      : future
-                        ? 'bg-[#120c1d] border-[#3d2a63]'
-                        : 'bg-[#08161d] border-act'
-                  } ${openId === node.id ? 'outline-2 outline-offset-2 outline-white' : ''}`}
+                  className={`absolute w-[46px] h-[46px] rounded-full border-2 flex items-center justify-center transition active:scale-[.97] cursor-pointer ${
+                    node.done ? 'bg-earned-deep border-earned' : future ? 'bg-ink-950 border-dashed border-ink-500' : 'bg-ink-900 border-act'
+                  } ${isPin ? 'anim-ready' : ''} ${openId === node.id ? 'outline-2 outline-offset-2 outline-act' : ''}`}
                   style={{ left: x - 23, top: y - 23 }}
                 >
                   {node.done ? (
-                    <Check className="w-5 h-5 text-earned" strokeWidth={3} />
+                    <CheckIcon className="w-5 h-5 text-earned" strokeWidth={3} />
                   ) : (
                     (() => {
-                      const Icon = NODE_ICON[node.kind] ?? Crown;
-                      return <Icon className={`w-[18px] h-[18px] ${future ? 'text-aura-soft' : 'text-act'}`} />;
+                      const Icon = NODE_ICON[node.kind] ?? CrownIcon;
+                      return <Icon className={`w-[18px] h-[18px] ${future ? 'text-fg-5' : 'text-fg'}`} />;
                     })()
                   )}
                 </button>
                 <span
-                  className={`absolute w-[120px] font-display font-bold text-[13px] leading-tight line-clamp-2 pointer-events-none ${
-                    node.done ? 'text-earned-soft' : future ? 'text-[#8a7aa8]' : 'text-[#c9f6ff]'
+                  className={`absolute w-[120px] text-[13px] font-semibold leading-tight line-clamp-2 pointer-events-none ${
+                    node.done ? 'text-earned-soft' : future ? 'text-fg-5' : 'text-fg'
                   } ${centre ? 'text-center' : right ? 'text-right' : 'text-left'}`}
                   style={centre ? { left: x - 60, top: y + 27 } : right ? { left: x - 23 - 128, top: y - 10 } : { left: x + 23 + 8, top: y - 10 }}
                 >
@@ -204,12 +216,10 @@ export default function MapPage() {
                 </span>
                 {isPin && (
                   <div ref={pinRef} className="absolute" style={{ left: x, top: y - 26 }}>
-                    <div className="absolute -left-[22px] -top-[34px] anim-breathe flex flex-col items-center">
-                      <span className="hex-clip w-11 h-12 bg-act flex items-center justify-center">
-                        <span className="hex-clip w-[38px] h-[42px] bg-ink-950 flex items-center justify-center font-display font-bold text-[17px] text-act">
-                          {derived.level.level}
-                        </span>
-                      </span>
+                    <div className="absolute -left-[19px] -top-[39px] flex flex-col items-center">
+                      <div className="rounded-full bg-ink-950">
+                        <HexLevel level={derived.level.level} size="sm" progress={derived.level.xpIntoLevel / derived.level.xpForLevel} />
+                      </div>
                       <span className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-8 border-l-transparent border-r-transparent border-t-act" />
                     </div>
                   </div>
@@ -219,32 +229,30 @@ export default function MapPage() {
           })}
 
           {fogUntil > 0 && (
-            <div
-              className="absolute inset-x-0 top-0 pointer-events-none"
-              style={{ height: fogUntil, background: 'linear-gradient(180deg, rgba(6,7,11,.72) 0%, rgba(6,7,11,.5) 70%, rgba(6,7,11,0) 100%)' }}
-            >
-              <div className="absolute -left-14 top-[30%] w-[300px] h-[120px] rounded-full anim-drift" style={{ background: 'radial-gradient(ellipse, rgba(140,150,190,.14), transparent 70%)' }} />
-              <div className="absolute left-36 top-[55%] w-[300px] h-[140px] rounded-full anim-drift" style={{ background: 'radial-gradient(ellipse, rgba(167,123,255,.12), transparent 70%)', animationDirection: 'alternate-reverse' }} />
-            </div>
+            <div className="absolute inset-x-0 top-0 pointer-events-none bg-ink-950/70 border-b border-ink-700" style={{ height: fogUntil }} />
           )}
 
           {open && (
             <div
               role="status"
-              className="absolute z-10 w-[220px] p-3 rounded-2xl bg-[#0e1220] border-[1.5px] shadow-[0_14px_30px_rgba(0,0,0,0.6)] anim-fade"
+              className={`absolute z-10 w-[220px] p-3 rounded-card raised lift-shadow anim-fade ${open.node.done ? 'bg-earned-deep' : 'bg-ink-800'}`}
               style={{
                 left: Math.max(10, Math.min(W - 230, open.x - 110)),
-                top: Math.max(8, open.y - 23 - (open.node.href ? 150 : open.node.done ? 96 : 110)),
-                borderColor: open.node.done ? '#ffc247' : '#3ee8ff',
+                top: Math.max(8, open.y - 23 - (open.node.href ? 170 : open.node.done ? 96 : 110)),
               }}
             >
               <p className="text-[13px] font-semibold text-fg-2">{open.node.label}</p>
-              <p className={`font-display font-bold text-base ${open.node.done ? 'text-earned' : 'text-act'}`}>{open.node.detail}</p>
-              {!open.node.done && <Meter value={open.node.progress} tone="act" className="h-1.5 mt-1.5" label={`${Math.round(open.node.progress * 100)}% of the way`} />}
+              <p className={`mt-1 font-display font-extrabold uppercase text-[22px] leading-[0.95] ${open.node.done ? 'text-earned' : 'text-fg'}`}>{open.node.detail}</p>
+              {!open.node.done && <Meter value={open.node.progress} tone="act" className="h-1.5 mt-2" label={`${Math.round(open.node.progress * 100)}% of the way`} />}
               {open.node.href && (
-                <Link href={open.node.href} className="mt-2 h-9 px-3 rounded-xl bg-act text-act-deep font-display font-bold text-sm inline-flex items-center gap-1.5">
+                <Link
+                  href={open.node.href}
+                  className={`mt-3 w-full h-12 rounded-card font-display font-extrabold uppercase text-lg tracking-[0.02em] flex items-center justify-center gap-1.5 active:scale-[.97] transition ${
+                    open.node.kind === 'boss' ? 'bg-boss text-ink-950' : 'bg-act text-act-deep'
+                  }`}
+                >
                   {open.node.kind === 'boss' ? 'Fight' : open.node.kind === 'tower' || open.node.kind === 'skill' ? 'Climb' : 'Log it'}
-                  <ChevronRight className="w-4 h-4" />
+                  <ArrowRightIcon className="w-[18px] h-[18px]" strokeWidth={2.4} />
                 </Link>
               )}
             </div>

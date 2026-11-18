@@ -6,9 +6,9 @@ import { SkillGraph, SkillStatus, statusOf } from '../../utils/skillTree';
 import { SkillTreeDef, laneThemeOf } from './skillTrees';
 
 const STATUS_WORD: Record<SkillStatus, { label: string; tone: string }> = {
-  mastered: { label: 'Mastered', tone: 'text-emerald-300' },
-  ready: { label: 'Ready', tone: 'text-neon-cyan' },
-  locked: { label: 'Locked', tone: 'text-slate-500' },
+  mastered: { label: 'Mastered', tone: 'text-earned-soft' },
+  ready: { label: 'Ready', tone: 'text-act' },
+  locked: { label: 'Locked', tone: 'text-fg-5' },
 };
 
 const MAX_RESULTS = 8;
@@ -58,7 +58,7 @@ export const GoToSearch: React.FC<GoToSearchProps> = ({ tree, graph, mastered, o
 
   return (
     <div className="relative flex-1 min-w-[200px]">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-5 pointer-events-none" />
       <input
         type="search"
         role="combobox"
@@ -89,17 +89,17 @@ export const GoToSearch: React.FC<GoToSearchProps> = ({ tree, graph, mastered, o
             setOpen(false);
           }
         }}
-        className="w-full h-10 pl-9 pr-3 rounded-xl bg-dark-950 border border-slate-800 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus-visible:border-neon-cyan [&::-webkit-search-cancel-button]:appearance-none"
+        className="w-full h-11 pl-9 pr-3 rounded-card bg-ink-900 border border-ink-700 text-sm text-fg placeholder:text-fg-5 outline-none focus:border-act [&::-webkit-search-cancel-button]:appearance-none"
       />
 
       {showList && (
         <ul
           id={listId}
           role="listbox"
-          className="absolute left-0 right-0 top-full mt-1.5 z-50 p-1 rounded-xl bg-dark-900 border border-slate-700 shadow-2xl max-h-[60vh] overflow-y-auto"
+          className="absolute left-0 right-0 top-full mt-1.5 z-50 p-1 rounded-card bg-ink-850 border border-ink-700 lift-shadow max-h-[60vh] overflow-y-auto"
         >
           {shown.length === 0 ? (
-            <li className="px-3 py-3 text-xs text-slate-400">
+            <li className="px-3 py-3 text-xs text-fg-4">
               No {tree.noun.one} matches “{query.trim()}”.
             </li>
           ) : (
@@ -113,25 +113,27 @@ export const GoToSearch: React.FC<GoToSearchProps> = ({ tree, graph, mastered, o
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => pick(exercise.id)}
                     onMouseEnter={() => setActive(index)}
-                    className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-left cursor-pointer ${
-                      index === active ? 'bg-dark-700' : ''
+                    className={`flex items-center gap-3 w-full px-3 py-2 rounded-card text-left cursor-pointer ${
+                      index === active ? 'bg-ink-800' : ''
                     }`}
                   >
-                    <span className={`w-1.5 h-8 rounded-full shrink-0 ${laneThemeOf(tree, exercise.swimlane).solid}`} />
+                    <span className="w-4 flex justify-center shrink-0 text-fg-4" aria-hidden>
+                      {laneThemeOf(tree, exercise.swimlane).icon}
+                    </span>
                     <span className="flex-1 min-w-0">
-                      <span className="block text-sm font-bold text-white truncate">{exercise.name}</span>
-                      <span className="block text-[11px] text-slate-400 truncate">
+                      <span className="block text-sm font-bold text-fg truncate">{exercise.name}</span>
+                      <span className="block text-[11px] text-fg-4 truncate">
                         {tree.levelName(exercise.level)} · {exercise.subCategory}
                       </span>
                     </span>
-                    <span className={`text-[10px] font-black uppercase tracking-wider shrink-0 ${state.tone}`}>{state.label}</span>
+                    <span className={`eyebrow shrink-0 ${state.tone}`}>{state.label}</span>
                   </button>
                 </li>
               );
             })
           )}
           {results.length > MAX_RESULTS && (
-            <li className="px-3 py-2 text-[11px] text-slate-500">
+            <li className="px-3 py-2 text-[11px] text-fg-5">
               {results.length - MAX_RESULTS} more — keep typing to narrow it down.
             </li>
           )}

@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Flame, LocateFixed, Moon, Shield } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LocateFixed } from 'lucide-react';
+import { ChestIcon, CheckIcon, FlameIcon, MoonIcon, ShieldIcon } from '../../../components/game/icons';
 import { ScreenHeader } from '../../../components/game/AppShell';
 import { useGame } from '../../../components/game/GameProvider';
 import { figureForExercise } from '../../../components/game/figures';
@@ -45,8 +46,8 @@ export default function QuestPage() {
         eyebrow={`${shortDay(DAY_NAMES[day.id as DayId])} · Week ${viewWeek}`}
         title={day.title}
         right={
-          <Chip tone="earned" className="h-9 px-3 text-[15px]">
-            <Flame className="w-4 h-4" />
+          <Chip tone="earned" className="h-10 px-3 rounded-card text-[17px]">
+            <FlameIcon className="w-4 h-4" lit={streak > 0} />
             {streak}
           </Chip>
         }
@@ -61,11 +62,11 @@ export default function QuestPage() {
               onClick={() => game.setViewWeek(viewWeek - 1)}
               disabled={viewWeek <= 1}
               aria-label="Previous week"
-              className="w-9 h-9 shrink-0 rounded-xl border border-ink-700 bg-ink-850 text-fg-3 flex items-center justify-center disabled:opacity-30 hover:text-fg transition cursor-pointer"
+              className="w-9 h-[60px] shrink-0 rounded-card bg-ink-900 text-fg-3 flex items-center justify-center disabled:opacity-30 hover:text-fg transition cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <div className="flex-1 grid grid-cols-7 gap-1.5">
+            <div className="flex-1 grid grid-cols-7 gap-0.5 p-1 rounded-card bg-ink-900">
               {week.days.map((entry) => {
                 const active = entry.day.id === day.id;
                 const isToday = isLiveWeek && entry.day.id === todayDayId;
@@ -77,29 +78,25 @@ export default function QuestPage() {
                     onClick={() => game.setSelectedDay(entry.day.id)}
                     aria-pressed={active}
                     aria-label={`${entry.name}${isToday ? ', today' : ''}, ${entry.done} of ${entry.total}`}
-                    className={`h-[58px] rounded-[14px] border-[1.5px] flex flex-col items-center justify-center gap-1 transition cursor-pointer ${
-                      active
-                        ? 'bg-[#08161d] border-act'
-                        : entry.cleared
-                          ? 'bg-[#120e07] border-[#4a3a18]'
-                          : 'bg-ink-850 border-ink-750 hover:border-ink-600'
+                    className={`relative h-[52px] rounded-tag flex flex-col items-center justify-center gap-1.5 transition cursor-pointer ${
+                      active ? 'bg-ink-800 raised' : 'hover:bg-ink-850'
                     }`}
                   >
-                    <span className={`text-[11px] font-bold ${active ? 'text-act' : entry.cleared ? 'text-earned' : 'text-fg-5'}`}>
+                    {/* Today carries a chalk tally mark. */}
+                    {isToday && <span className="absolute top-0 inset-x-3 h-[3px] rounded-b-[2px] bg-act" aria-hidden="true" />}
+                    <span className={`eyebrow ${active ? 'text-fg' : entry.cleared ? 'text-earned' : 'text-fg-5'}`}>
                       {entry.name.slice(0, 1)}
                     </span>
                     {entry.cleared ? (
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffc247" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M20 6 9 17l-5-5" />
-                      </svg>
+                      <CheckIcon className="w-[15px] h-[15px] text-earned" strokeWidth={3} />
                     ) : restDay ? (
-                      <Moon className="w-[15px] h-[15px] text-fg-5" />
+                      <MoonIcon className="w-[15px] h-[15px] text-fg-5" />
                     ) : isToday || active ? (
-                      <span className={`font-display font-bold text-[12px] ${active ? 'text-act' : 'text-fg-3'}`}>
+                      <span className={`num font-bold text-[13px] leading-none ${active ? 'text-fg' : 'text-fg-3'}`}>
                         {entry.done}/{entry.total}
                       </span>
                     ) : (
-                      <span className="w-1.5 h-1.5 rounded-full bg-ink-600" />
+                      <span className="w-2.5 h-[2px] rounded-[1px] bg-ink-500" />
                     )}
                     {isToday && !active && <span className="sr-only">today</span>}
                   </button>
@@ -110,7 +107,7 @@ export default function QuestPage() {
               type="button"
               onClick={() => game.setViewWeek(viewWeek + 1)}
               aria-label="Next week"
-              className="w-9 h-9 shrink-0 rounded-xl border border-ink-700 bg-ink-850 text-fg-3 flex items-center justify-center hover:text-fg transition cursor-pointer"
+              className="w-9 h-[60px] shrink-0 rounded-card bg-ink-900 text-fg-3 flex items-center justify-center hover:text-fg transition cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -119,7 +116,7 @@ export default function QuestPage() {
             <button
               type="button"
               onClick={game.jumpToToday}
-              className="self-start flex items-center gap-1.5 h-9 px-3 rounded-xl bg-[#08161d] border border-[#17566a] text-act text-xs font-bold cursor-pointer"
+              className="self-start flex items-center gap-1.5 h-9 px-3 rounded-card border border-ink-600 text-fg text-[13px] font-semibold cursor-pointer hover:bg-ink-850"
             >
               <LocateFixed className="w-3.5 h-3.5" /> Back to today
             </button>
@@ -146,23 +143,23 @@ export default function QuestPage() {
               onClick={() => game.toggleQuest(rest)}
               disabled={locked}
               aria-pressed={missionDone[0]}
-              className={`flex items-center gap-4 p-5 rounded-[22px] border-[1.5px] text-left transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                missionDone[0] ? 'bg-[#100d07] border-[#4a3a18]' : 'bg-ink-850 border-ink-700 hover:border-ink-600'
+              className={`flex items-center gap-4 p-5 rounded-card text-left transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                missionDone[0] ? 'bg-earned-deep' : 'bg-ink-900 hover:bg-ink-850'
               }`}
             >
-              <span className={`w-14 h-14 rounded-2xl flex items-center justify-center ${missionDone[0] ? 'bg-earned text-earned-deep' : 'bg-ink-800 text-fg-3'}`}>
-                <Moon className="w-7 h-7" />
+              <span className={`w-14 h-14 rounded-card flex items-center justify-center ${missionDone[0] ? 'bg-earned text-earned-deep' : 'bg-ink-800 text-fg-3'}`}>
+                <MoonIcon className="w-7 h-7" />
               </span>
               <span className="flex flex-col gap-1">
-                <span className={`font-display font-bold text-xl ${missionDone[0] ? 'text-earned' : 'text-fg'}`}>
+                <span className={`font-display font-extrabold uppercase text-[24px] leading-none ${missionDone[0] ? 'text-earned' : 'text-fg'}`}>
                   {missionDone[0] ? 'Rest claimed' : 'Claim your rest'}
                 </span>
                 <span className="text-sm text-fg-4">+{XP_RULES.mission} XP</span>
               </span>
             </button>
           ) : day.exercises.length === 0 ? (
-            <Link href="/forge" className="p-5 rounded-[22px] border-[1.5px] border-dashed border-[#17566a] text-act font-display font-bold text-center">
-              No missions yet — add some in the Forge
+            <Link href="/forge" className="p-5 rounded-card border-[1.5px] border-dashed border-ink-500 text-fg-2 font-semibold text-center hover:bg-ink-900">
+              Nothing planned today. Plan it in the Forge.
             </Link>
           ) : (
             <ul className="flex flex-col gap-2.5">
@@ -212,16 +209,9 @@ const Chest: React.FC<{ open: boolean }> = ({ open }) => (
   <span
     role="img"
     aria-label={open ? 'Chest open — day cleared' : 'Chest, opens when every mission is done'}
-    className={`w-11 h-11 shrink-0 rounded-[14px] border-[1.5px] flex items-center justify-center transition ${
-      open ? 'bg-[#1a1208] border-earned shadow-[0_0_18px_rgba(255,194,71,0.5)]' : 'bg-ink-850 border-ink-600'
-    }`}
+    className={`notch w-11 h-11 shrink-0 rounded-card flex items-center justify-center transition ${open ? 'bg-earned text-earned-deep anim-pop' : 'bg-ink-900 text-fg-5'}`}
   >
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={open ? '#ffc247' : '#4a5470'} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="10" width="18" height="10" rx="1.5" />
-      <path d="M3 10c0-3.5 3-5.5 9-5.5s9 2 9 5.5" />
-      <path d="M3 13.5h18" />
-      <rect x="10.5" y="12" width="3" height="4" rx=".6" />
-    </svg>
+    <ChestIcon className="w-6 h-6" strokeWidth={1.9} lit={open} />
   </span>
 );
 
@@ -254,9 +244,7 @@ const MissionCard: React.FC<{
 
   return (
     <li
-      className={`flex flex-col gap-2.5 p-3 rounded-[20px] border-[1.5px] transition-colors ${
-        done ? 'bg-[#100d07] border-[#4a3a18]' : 'bg-ink-850 border-ink-700 hover:border-ink-600'
-      }`}
+      className={`flex flex-col gap-2.5 p-3 rounded-card transition-colors ${done ? 'bg-earned-deep' : 'bg-ink-900'}`}
     >
       <div className="flex items-center gap-3">
         {/* The mission itself opens its panel; the tick beside it completes it. */}
@@ -265,14 +253,14 @@ const MissionCard: React.FC<{
           onClick={onOpen}
           aria-haspopup="dialog"
           aria-label={`${exercise.name}: how to do it`}
-          className="flex-1 min-w-0 flex items-center gap-3 text-left rounded-2xl -m-1 p-1 active:scale-[.99] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-act"
+          className="flex-1 min-w-0 flex items-center gap-3 text-left rounded-card -m-1 p-1 active:scale-[.99] transition cursor-pointer focus-visible:outline-2 focus-visible:outline-act"
         >
-          <span className={`w-[54px] h-[54px] shrink-0 rounded-2xl bg-ink-950 border flex items-center justify-center ${done ? 'border-[#5c4a22]' : 'border-ink-700'}`}>
+          <span className={`w-[54px] h-[54px] shrink-0 rounded-tag flex items-center justify-center ${done ? 'bg-ink-950/40' : 'bg-ink-850'}`}>
             <Figure spec={figureForExercise(exercise.exercise, dayKind)} state={done ? 'mastered' : 'ready'} className="w-12 h-12" />
           </span>
           <span className="flex-1 min-w-0 flex flex-col gap-1">
-            <span className={`text-[14.5px] font-semibold truncate ${done ? 'text-[#d9c38f]' : 'text-fg-2'}`}>{exercise.name}</span>
-            <span className={`font-display font-bold text-[22px] leading-none ${done ? 'text-earned' : 'text-fg'}`}>
+            <span className={`text-[14.5px] font-medium truncate ${done ? 'text-earned-soft' : 'text-fg-2'}`}>{exercise.name}</span>
+            <span className={`num font-bold text-[26px] leading-none ${done ? 'text-earned' : 'text-fg'}`}>
               {sets ? (
                 <>
                   {sets}
@@ -288,7 +276,7 @@ const MissionCard: React.FC<{
         </button>
         <span className="relative">
           {xpFloat > 0 && (
-            <span key={xpFloat} className="absolute right-0 -top-6 font-display font-bold text-[15px] text-earned whitespace-nowrap anim-float">
+            <span key={xpFloat} className="absolute right-0 -top-6 num font-bold text-[15px] text-earned whitespace-nowrap anim-float">
               +{XP_RULES.mission} XP
             </span>
           )}
@@ -297,13 +285,13 @@ const MissionCard: React.FC<{
       </div>
 
       {(logs || bosses.length > 0 || exercise.armor) && (
-        <div className="flex flex-wrap items-center gap-2 pt-2.5 border-t border-ink-750">
+        <div className={`flex flex-wrap items-center gap-2 pt-2.5 border-t ${done ? 'border-earned-line' : 'border-ink-700'}`}>
           {bosses.map((status) => (
             <BossHpChip key={status.boss.id} status={status} />
           ))}
           {exercise.armor && (
-            <Chip tone="aura">
-              <Shield className="w-3.5 h-3.5" /> Armor
+            <Chip tone="armour">
+              <ShieldIcon className="w-3.5 h-3.5" /> Armour
             </Chip>
           )}
           <span className="flex-1" />
@@ -320,11 +308,11 @@ const WarmUpBoard: React.FC<{ warmUps: PlanWarmUp[]; dayKind: string; locked: bo
   const wanted = new Set(plan.armor.map((piece) => slotOfPiece(piece.id)));
   const done = warmUps.filter((warmUp) => save.quests[questKey(viewWeek, warmUp.id)]).length;
   return (
-    <section aria-label="Warm-up" className="flex flex-col gap-2 p-3 rounded-[20px] bg-[#0d0b08] border border-[#3a2e14]">
+    <section aria-label="Warm-up" className="flex flex-col gap-2 p-3 rounded-card bg-armour-deep">
       <div className="flex items-center gap-2">
-        <Flame className="w-4 h-4 text-earned" />
-        <Label className="flex-1">Warm-up</Label>
-        <span className="font-display font-bold text-sm text-earned">
+        <ShieldIcon className="w-4 h-4 text-armour" />
+        <Label className="flex-1 text-armour">Warm-up</Label>
+        <span className={`num font-bold text-sm ${done === warmUps.length ? 'text-earned' : 'text-fg-2'}`}>
           {done}
           <span className="text-fg-5">/{warmUps.length}</span>
         </span>
@@ -334,20 +322,20 @@ const WarmUpBoard: React.FC<{ warmUps: PlanWarmUp[]; dayKind: string; locked: bo
           const ticked = Boolean(save.quests[questKey(viewWeek, warmUp.id)]);
           const guards = warmUp.guards.filter((slot) => wanted.has(slot));
           return (
-            <li key={warmUp.id} className="list-none flex items-center gap-2.5 p-1.5 pl-2 rounded-2xl bg-ink-900/60">
-              <span className={`w-10 h-10 shrink-0 rounded-xl bg-ink-950 border flex items-center justify-center ${ticked ? 'border-[#5c4a22]' : 'border-ink-700'}`}>
+            <li key={warmUp.id} className="list-none flex items-center gap-2.5 p-1.5 pl-2 rounded-card bg-ink-950/40">
+              <span className="w-10 h-10 shrink-0 rounded-tag bg-ink-850 flex items-center justify-center">
                 <Figure spec={figureForExercise(warmUp.exercise, dayKind)} state={ticked ? 'mastered' : 'ready'} className="w-9 h-9" />
               </span>
               <span className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <span className={`text-[13px] font-semibold truncate ${ticked ? 'text-[#d9c38f]' : 'text-fg-2'}`}>
+                <span className={`text-[13px] font-semibold truncate ${ticked ? 'text-earned-soft' : 'text-fg-2'}`}>
                   {warmUp.name}
-                  {warmUp.target && <span className="text-fg-5 font-display"> · {warmUp.target}</span>}
+                  {warmUp.target && <span className="text-fg-4 num"> · {warmUp.target}</span>}
                 </span>
                 {guards.length > 0 && (
                   <span className="flex flex-wrap gap-1" aria-label={`Forges ${guards.join(', ')} armour`}>
                     {guards.map((slot) => (
-                      <span key={slot} className={`h-5 px-1.5 rounded-md text-[10px] font-bold flex items-center gap-1 ${ticked ? 'bg-earned/15 text-earned' : 'bg-act/10 text-act'}`}>
-                        <Shield className="w-3 h-3" /> {slot[0].toUpperCase() + slot.slice(1)}
+                      <span key={slot} className={`h-5 px-1.5 rounded-tag text-[11px] font-semibold flex items-center gap-1 ${ticked ? 'bg-armour text-armour-deep' : 'bg-ink-850 text-armour'}`}>
+                        <ShieldIcon className="w-3 h-3" lit={ticked} /> {slot[0].toUpperCase() + slot.slice(1)}
                       </span>
                     ))}
                   </span>
@@ -368,16 +356,16 @@ const ArmorCard: React.FC = () => {
   const { armor, armorCount } = derived.week;
   if (armor.length === 0) return null;
   return (
-    <section className="flex flex-col gap-3 p-4 rounded-[20px] bg-ink-900 border border-ink-700" aria-label="Armour this week">
+    <section className="flex flex-col gap-3 p-4 rounded-card bg-armour-deep" aria-label="Armour this week">
       <div className="flex items-center gap-2">
-        <Shield className="w-[18px] h-[18px] text-act" />
-        <h2 className="flex-1 font-display font-bold text-base">Armour</h2>
-        <span className="font-display font-bold text-sm text-earned">
+        <ShieldIcon className="w-[18px] h-[18px] text-armour" />
+        <h2 className="flex-1 eyebrow text-armour">Armour · this week</h2>
+        <span className={`num font-bold text-[15px] ${armorCount === armor.length ? 'text-earned' : 'text-fg-2'}`}>
           {armorCount}
           <span className="text-fg-5">/{armor.length}</span>
         </span>
       </div>
-      <p className="text-[11.5px] text-fg-4 -mt-1">Tick a warm-up to forge the joints it guards. Every piece in one week earns Tendons.</p>
+      <p className="text-[12px] text-fg-3 -mt-1">Tick a warm-up to forge the joints it guards. Every piece in one week earns Tendons.</p>
       <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-3 gap-2">
         {armor.map(({ piece, forged, forgedBy, guardedBy }) => {
           const how = forged
@@ -386,19 +374,21 @@ const ArmorCard: React.FC = () => {
               ? `Warm up with ${[...new Set(guardedBy.map((entry) => entry.name))].slice(0, 2).join(' or ')}`
               : 'No warm-up guards it yet — add one in the Forge';
           return (
-            <span key={piece.id} title={how} aria-label={`${piece.slot}: ${how}`} className="h-[70px] flex flex-col items-center justify-center gap-1.5 rounded-2xl">
+            <span key={piece.id} title={how} aria-label={`${piece.slot}: ${how}`} className="h-[70px] flex flex-col items-center justify-center gap-1.5 rounded-card">
               <svg width="30" height="34" viewBox="0 0 24 26" aria-hidden="true">
                 <path
-                  d="M20 14c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 21.5 4 19 4 14V7a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 4.81 17 6 19 6a1 1 0 0 1 1 1z"
-                  fill={forged ? '#ffc247' : 'rgba(62,232,255,.08)'}
-                  stroke={forged ? '#ffc247' : guardedBy.length ? '#3ee8ff' : '#3a4258'}
-                  strokeWidth="1.6"
+                  d="M12 3l7 2.8v5.4c0 4.8-3 8.3-7 9.8-4-1.5-7-5-7-9.8V5.8z"
+                  strokeWidth="1.8"
                   strokeDasharray={forged || guardedBy.length ? undefined : '3 3'}
                   strokeLinejoin="round"
+                  style={{
+                    fill: forged ? 'var(--color-armour)' : 'none',
+                    stroke: forged || guardedBy.length ? 'var(--color-armour)' : 'var(--color-ink-500)',
+                  }}
                 />
-                {forged && <path d="M8.5 13.5l2.5 2.5 4.5-5" fill="none" stroke="#1a1204" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />}
+                {forged && <path d="M8.5 12l2.5 2.5 4.5-5" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: 'var(--color-armour-deep)' }} />}
               </svg>
-              <span className={`text-[10.5px] font-semibold ${forged ? 'text-earned' : guardedBy.length ? 'text-act' : 'text-fg-5'}`}>{piece.slot}</span>
+              <span className={`text-[11px] font-semibold ${forged || guardedBy.length ? 'text-armour' : 'text-fg-5'}`}>{piece.slot}</span>
             </span>
           );
         })}
@@ -412,18 +402,18 @@ const GatesCard: React.FC = () => {
   const gates = derived.gates.slice(0, 4);
   if (gates.length === 0) return null;
   return (
-    <section className="flex flex-col gap-3 p-4 rounded-[20px] bg-ink-900 border border-ink-700" aria-label="Next gates">
-      <h2 className="font-display font-bold text-base">Next gates</h2>
+    <section className="flex flex-col gap-3 p-4 rounded-card bg-ink-900" aria-label="Next gates">
+      <h2 className="eyebrow text-fg-4">Next gates</h2>
       {gates.map((gate) => (
         <div key={gate.stat.id} className="flex items-center gap-3" title={gate.unlocks}>
           <Ring value={gate.closeness} size={40} stroke={4} tone="act">
-            <span className="font-display font-bold text-[10px] text-act">{Math.round(gate.closeness * 100)}</span>
+            <span className="num font-bold text-[12px] text-fg-2">{Math.round(gate.closeness * 100)}</span>
           </Ring>
           <span className="flex-1 min-w-0 flex flex-col">
             <span className="text-[13px] font-semibold text-fg-2 truncate">{gate.stat.short}</span>
             <span className="text-[11px] text-fg-4 truncate">{gate.unlocks}</span>
           </span>
-          <span className="font-display font-bold text-sm text-fg">
+          <span className="num font-bold text-[15px] text-fg whitespace-nowrap">
             {formatStatValue(gate.current, gate.stat.unit)}
             <span className="text-fg-5"> → </span>
             <span className="text-earned">{formatStatValue(gate.target, gate.stat.unit)}</span>
@@ -439,13 +429,13 @@ const BattleLog: React.FC = () => {
   const entries = save.log.slice(0, 6);
   if (entries.length === 0) return null;
   return (
-    <section className="flex flex-col gap-2.5 p-4 rounded-[20px] bg-ink-900 border border-ink-700" aria-label="Battle log">
-      <h2 className="font-display font-bold text-base">Battle log</h2>
+    <section className="flex flex-col gap-2.5 p-4 rounded-card bg-ink-900" aria-label="Battle log">
+      <h2 className="eyebrow text-fg-4">Battle log</h2>
       {entries.map((entry, index) => {
         const visual = EVENT_VISUAL[entry.kind];
         return (
           <div key={`${entry.date}_${index}`} className="flex items-center gap-2.5">
-            <span className={`w-8 h-8 shrink-0 rounded-[10px] bg-ink-800 border border-ink-700 flex items-center justify-center ${visual.text}`}>
+            <span className={`w-8 h-8 shrink-0 rounded-tag bg-ink-850 flex items-center justify-center ${visual.text}`}>
               {visual.icon}
             </span>
             <span className="flex-1 min-w-0 text-[13px] font-semibold text-fg-2 truncate">{entry.title}</span>

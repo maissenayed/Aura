@@ -2,10 +2,10 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Skull } from 'lucide-react';
 import { BossStatus } from '../../utils/protocolEngine';
 import { bossHp } from './helpers';
 import { Chip } from './kit';
+import { BossIcon } from './icons';
 
 /** HP of a boss a lift hits; shakes and floats the damage when a log knocks some off. */
 export const BossHpChip: React.FC<{ status: BossStatus }> = ({ status }) => {
@@ -26,12 +26,12 @@ export const BossHpChip: React.FC<{ status: BossStatus }> = ({ status }) => {
   return (
     <Link href={`/bosses/${status.boss.id}`} className="relative" aria-label={`${status.boss.name}, ${hp} HP`}>
       <Chip tone="boss" className={hit ? 'anim-shake' : ''}>
-        <Skull className="w-3.5 h-3.5" />
-        <span className="font-sans text-xs truncate max-w-[110px]">{status.boss.name.replace(/^The /, '')}</span>
-        <span>{hp}</span>
+        <BossIcon className="w-3.5 h-3.5" />
+        <span className="font-sans [font-stretch:100%] font-semibold text-[12px] tracking-normal truncate max-w-[110px]">{status.boss.name.replace(/^The /, '')}</span>
+        <span className="num">{hp}</span>
       </Chip>
       {hit && (
-        <span key={hit.id} className="absolute right-1 -top-5 font-display font-bold text-sm text-boss anim-float">
+        <span key={hit.id} className="absolute right-1 -top-5 num font-bold text-sm text-boss anim-float">
           −{hit.amount} HP
         </span>
       )}
