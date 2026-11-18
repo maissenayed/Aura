@@ -182,7 +182,7 @@ function BoardTab() {
               >
                 <span className="w-6 text-center num font-bold text-fg-4">{shown}</span>
                 <span className="flex-1 min-w-0">
-                  <PlayerCard compact card={{ ...row.card, name: row.you ? `${row.name} (you)` : row.name }} gearNames={names} />
+                  <PlayerCard compact card={{ ...row.card, name: row.you && row.name !== 'You' ? `${row.name} (you)` : row.name }} gearNames={names} />
                 </span>
                 {row.prs > 0 && <Chip tone="earned">{row.prs} PR{row.prs === 1 ? '' : 's'}</Chip>}
                 <span className="num font-bold text-[18px] text-fg w-16 text-right">

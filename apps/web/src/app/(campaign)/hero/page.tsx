@@ -98,7 +98,9 @@ const StatsTab: React.FC = () => {
   const { derived, save, plan, todayIso } = useGame();
   const byId = new Map(derived.attributes.map((attribute) => [attribute.def.id as string, attribute]));
   // The web: six qualities in opposing pairs. A locked one stays on the web, at its floor.
-  const web = WEB_ORDER.map((id) => byId.get(id)).filter((attribute): attribute is AttributeStatus => Boolean(attribute));
+  const web = WEB_ORDER.map((id) => byId.get(id))
+    .filter((attribute): attribute is AttributeStatus => Boolean(attribute))
+    .map((attribute) => (attribute.unlocked ? attribute : { ...attribute, value: null, display: null }));
   const monthAgo = useMemo(() => {
     if (!todayIso) return null;
     const then = asOf(save, addDays(todayIso, -28));
