@@ -2,6 +2,7 @@ import { rawExercises } from '../data/rawExercisesData';
 import { EXERCISE_BY_ID } from '../data/campaignCatalog';
 import { metricOf, recordKeyOf } from './records';
 import type { ProtocolSave } from './protocolEngine';
+import { isAssumed, passDatesOf, provenByPasses } from './evidence';
 
 /**
  * Tree skills a logged number can prove, so they count as mastered without a
@@ -17,6 +18,10 @@ import type { ProtocolSave } from './protocolEngine';
  * same unit. For "3x10" the logged number is one set, so it has to reach 10.
  * Standards written any other way ("4 sets of 8-10 reps with full range of
  * motion") stay on the tree.
+ *
+ * A day whose log meets the standard is a pass, like a test passed on the
+ * tree. One pass lands the skill; a second on another day, 48 hours to 21 days
+ * later, masters it. Numbers written by ticking a mission are not logs.
  */
 
 /** Rungs of a line that are the same lift at a heavier standard. */
@@ -148,14 +153,33 @@ export function proofOf(standard: SkillStandard): string {
     : `Your log meets ${standard.value} ${standard.metric === 'seconds' ? 's' : standard.value === 1 ? 'rep' : 'reps'}`;
 }
 
+/** The days a log met a skill's standard, for a key like `calisthenics:ex_7`. Sorted, each day once. */
+export function logPassDates(save: ProtocolSave, key: string): string[] {
+  const [tree, ...rest] = key.split(':');
+  if (tree !== 'calisthenics') return [];
+  const standard = STANDARD_OF.get(rest.join(':'));
+  if (!standard) return [];
+  const target =
+    standard.kind === 'multiple' ? (save.bodyWeightKg > 0 ? Math.round(standard.multiple * save.bodyWeightKg * 2) / 2 : Infinity) : standard.value;
+  const days = new Set<string>();
+  for (const record of standard.records) {
+    for (const point of save.history?.[record] ?? []) if (!isAssumed(point) && point[1] > 0 && point[1] >= target) days.add(point[0]);
+  }
+  return [...days].sort();
+}
+
+/** The standard a skill's logs are measured against, if it has one. */
+export const standardOf = (skillId: string): SkillStandard | undefined => STANDARD_OF.get(skillId);
+
 /**
- * Calisthenics-tree skills the save's logs prove but the tree does not show as
- * mastered yet, or shows as mastered only because they were vouched for.
+ * Calisthenics-tree skills their passes now prove (logs that met the standard
+ * and tests passed on the tree, two days 48 hours to 21 days apart) but the
+ * tree does not show as mastered yet, or shows only as placed.
  */
 export function skillsProvenByLogs(save: ProtocolSave): SkillStandard[] {
   return SKILL_STANDARDS.filter((standard) => {
     const key = `calisthenics:${standard.skill}`;
     if (save.skills?.[key] && !save.vouched?.[key]) return false;
-    return skillEvidence(save, standard.skill)?.met ?? false;
+    return provenByPasses(passDatesOf(save, key, logPassDates(save, key)));
   });
 }

@@ -99,8 +99,12 @@ export interface PlanSpecV3 {
   acts: ActV3[];
 }
 
-/** One logged number on a day: [ISO date, value]. */
-export type HistoryPoint = [string, number];
+/**
+ * One number on a day: [ISO date, value, source]. No source: typed in. `tick`:
+ * written by ticking a mission at the usual number (a session, not a result).
+ * `timer`: measured by the hold timer.
+ */
+export type HistoryPoint = [string, number] | [string, number, 'tick' | 'timer'];
 
 /** The save fields v3 adds. They ride alongside the v2 fields, which stay readable. */
 export interface SaveV3Fields {

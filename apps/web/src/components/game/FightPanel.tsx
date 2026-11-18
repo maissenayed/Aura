@@ -52,7 +52,13 @@ export const FightPanel: React.FC<{ status: BossStatus; showBack?: boolean }> = 
         )}
         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
           <span className={`eyebrow ${status.defeated ? 'text-earned' : status.sealed ? 'text-fg-3' : 'text-boss-soft'}`}>
-            {status.defeated ? 'Slain' : status.sealed ? `Sealed · ${sealedLine(status.sealedBy)}` : `Boss ${status.order}`}
+            {status.defeated
+              ? 'Slain'
+              : status.ready
+                ? 'Staggered · falls next week'
+                : status.sealed
+                  ? `Sealed · ${sealedLine(status.sealedBy)}`
+                  : `Boss ${status.order}`}
           </span>
           <h1 className="font-display font-extrabold uppercase text-[28px] lg:text-[32px] leading-[0.95]">{status.boss.name}</h1>
           <span className="text-[13px] text-fg-3">{status.boss.epithet}</span>
@@ -116,6 +122,12 @@ export const FightPanel: React.FC<{ status: BossStatus; showBack?: boolean }> = 
           <Crosshair className="w-4 h-4 text-fg-3" />
           <Label>Weak points</Label>
         </span>
+        {status.ready && (
+          <p className="text-[13px] text-fg-2 leading-snug">
+            Every weak point is broken. One boss falls each campaign week, and one already fell this week: this one falls on
+            Monday, as long as the numbers still hold.
+          </p>
+        )}
         {status.requirements.map((req, index) => (
           <WeakPoint key={index} req={req} locked={status.sealed && !status.defeated} />
         ))}
@@ -168,7 +180,7 @@ const WeakPoint: React.FC<{ req: RequirementStatus; locked: boolean }> = ({ req,
     }
   } else if (kind === 'skill' && req.climb) {
     const climb = req.climb;
-    value = `${climb.mastered} / ${climb.floors} skills mastered`;
+    value = climb.done && !climb.proven ? `Placed · prove ${climb.name} to land the blow` : `${climb.mastered} / ${climb.floors} skills mastered`;
     if (!done && !locked && climb.next.length) {
       action = (
         <span className="basis-full flex flex-wrap gap-1.5" aria-label="Master next">
@@ -204,6 +216,11 @@ const WeakPoint: React.FC<{ req: RequirementStatus; locked: boolean }> = ({ req,
       <span className="flex-1 min-w-[120px] flex flex-col gap-0.5">
         <span className="text-[13.5px] font-medium text-fg-2 leading-tight">{req.label}</span>
         <span className={`num font-bold text-[17px] ${done ? 'text-earned' : 'text-fg'}`}>{value}</span>
+        {!done && req.lift && req.pending != null && req.pending > req.current && (
+          <span className="text-[12px] text-fg-3 leading-snug">
+            {formatStatValue(req.pending, req.lift.unit)} logged · counts when you show it again on another day within two weeks
+          </span>
+        )}
       </span>
       {done && kind !== 'milestone' ? (
         <span className="w-11 h-11 rounded-card bg-earned flex items-center justify-center" aria-label="Broken">

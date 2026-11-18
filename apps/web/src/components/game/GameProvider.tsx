@@ -36,6 +36,7 @@ import { HISTORY_LIMIT, HistoryPoint } from '../../utils/campaignV3';
 import { V2_LIFT_OF_RECORD } from '../../utils/records';
 import { adoptDeviceProgress } from '../../utils/skillProgressStore';
 import { proofOf, skillsProvenByLogs } from '../../utils/skillStandards';
+import { confirmationOf } from '../../utils/evidence';
 import { Toast, ToastStack } from '../protocol/Toasts';
 import { MomentOverlay } from './MomentOverlay';
 
@@ -149,7 +150,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const viewWeek = weekOverride ?? currentWeek;
   const selectedDayId = dayOverride ?? todayDayId ?? 'mon';
 
-  const derived = useMemo(() => derive(save, { currentWeek, viewWeek }, plan), [save, currentWeek, viewWeek, plan]);
+  const derived = useMemo(() => derive(save, { currentWeek, viewWeek, today: todayIso }, plan), [save, currentWeek, viewWeek, plan, todayIso]);
   const streak = useMemo(() => (todayIso ? streakOf(save, plan, todayIso) : 0), [save, plan, todayIso]);
   const planDirty = useMemo(
     () => planDraft !== null && JSON.stringify(planDraft) !== JSON.stringify(spec),
@@ -191,7 +192,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     (mutate: (current: ProtocolSave) => ProtocolSave, extra: GameEvent[] = []) => {
       const before = peekSave();
       const after = mutate(before);
-      const clock = { currentWeek, viewWeek };
+      const clock = { currentWeek, viewWeek, today: todayIso };
       const afterDerived = derive(after, clock, plan);
       const events = notReplayed([...extra, ...diffEvents(derive(before, clock, plan), afterDerived)], before.log);
       if (celebrated.current) celebrated.current = celebratedIn(afterDerived);
@@ -258,7 +259,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const recountBadges = useCallback(() => {
     const current = peekSave();
-    const unbacked = badgesUnbacked(current, derive(current, { currentWeek, viewWeek }, plan), plan, todayIso ?? toIsoDate(new Date()));
+    const unbacked = badgesUnbacked(current, derive(current, { currentWeek, viewWeek, today: todayIso }, plan), plan, todayIso ?? toIsoDate(new Date()));
     if (!unbacked.length) return;
     const badges = { ...current.badges };
     for (const id of unbacked) delete badges[id];
@@ -321,19 +322,29 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const previous = currentOf(peekSave(), stat);
       const best = bestOf(peekSave(), stat);
       const firstLog = !stat.hasBaseline && previous === 0;
+      const date = todayIso ?? toIsoDate(new Date());
+      // A big jump is kept, and counts once it is shown again on another day.
+      const nextPoints: HistoryPoint[] = [...(peekSave().history[id] ?? []).filter(([day]) => day !== date), [date, value]];
+      const waiting = confirmationOf({ ...peekSave(), history: { ...peekSave().history, [id]: nextPoints } }, stat).pending === value;
       // A record is a new best, not just more than last time: climbing back after a bad week is not a PR.
       const extra: GameEvent[] =
         value > best
           ? [
-              {
-                kind: 'pr',
-                key: `pr_${id}`,
-                title: firstLog ? `First log — ${stat.short}` : `New PR — ${stat.short}`,
-                detail: `${formatStatValue(value, stat.unit)} · ${stat.measure}`,
-              },
+              waiting
+                ? {
+                    kind: 'log',
+                    key: `pr_${id}`,
+                    title: `Big jump — ${stat.short}`,
+                    detail: `${formatStatValue(value, stat.unit)} · log it again on another day within two weeks and it counts`,
+                  }
+                : {
+                    kind: 'pr',
+                    key: `pr_${id}`,
+                    title: firstLog ? `First log — ${stat.short}` : `New PR — ${stat.short}`,
+                    detail: `${formatStatValue(value, stat.unit)} · ${stat.measure}`,
+                  },
             ]
           : [];
-      const date = todayIso ?? toIsoDate(new Date());
       play((current) => {
         // One point per day: logging again the same day replaces it.
         const points: HistoryPoint[] = [...(current.history[id] ?? []).filter(([day]) => day !== date), [date, value]];
@@ -368,7 +379,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const date = todayIso ?? toIsoDate(new Date());
         const points = current.history[lift.id] ?? [];
         if (!(value > 0) || points.some(([day]) => day === date)) return next;
-        const added: HistoryPoint[] = [...points, [date, value]];
+        // Marked as a tick: it keeps the session in the history, but it is not a logged result.
+        const added: HistoryPoint[] = [...points, [date, value, 'tick']];
         added.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
         return { ...next, history: { ...next.history, [lift.id]: added.slice(-HISTORY_LIMIT) } };
       }),

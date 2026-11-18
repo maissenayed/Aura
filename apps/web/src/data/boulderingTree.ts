@@ -92,7 +92,8 @@ const skill = (input: SkillInput): BoulderingSkill => ({
   musclesTargeted: input.trains,
   youtubeQuery: `${input.search ?? input.name} bouldering technique`,
   ...(input.video ? { videoSearchUrl: input.video } : {}),
-  xpReward: (input.grade + 1) * 150,
+  // The campaign XP mastering it pays, as evidence.ts counts it.
+  xpReward: (input.grade + 1) * 40,
 });
 
 /** Every bouldering skill, easiest branches first. Also the tree's export for other features. */

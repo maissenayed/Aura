@@ -5,6 +5,7 @@ import { BLUEPRINT_PLAN, BLUEPRINT_SPEC, BLUEPRINT_SPEC_V2 } from '../data/bluep
 import { getAccountState, refreshAccount, signOut, subscribeAccount } from './accountStore';
 import { CampaignPlan, PlanSpec, PlanSpecV2, normalizeSpec, normalizeSpecV2, resolvePlan } from './campaignPlan';
 import { HISTORY_LIMIT, HistoryPoint } from './campaignV3';
+import type { SessionClock, TestEntry } from './evidence';
 import { isV3Save, migrateSave } from './migrateSaveV2';
 import { LogEntry, ProtocolSave, createInitialSave, mondayOf, toIsoDate, trimLog } from './protocolEngine';
 import { resolveExerciseId } from '../data/exerciseAliases';
@@ -180,6 +181,26 @@ function normalizeSave(raw: unknown): ProtocolSave {
   if (isRecord(raw.vouched)) {
     for (const [key, date] of Object.entries(raw.vouched)) if (typeof date === 'string') vouched[currentSkillKey(key)] = date;
   }
+  const tests: Record<string, TestEntry[]> = {};
+  if (isRecord(raw.tests)) {
+    for (const [key, entries] of Object.entries(raw.tests)) {
+      if (!Array.isArray(entries)) continue;
+      const kept = entries.filter(
+        (entry): entry is TestEntry => Array.isArray(entry) && typeof entry[0] === 'string' && (entry[1] === 0 || entry[1] === 1),
+      );
+      if (kept.length) tests[currentSkillKey(key)] = [...(tests[currentSkillKey(key)] ?? []), ...kept];
+    }
+  }
+  const strings = (value: unknown): Record<string, string> =>
+    isRecord(value) ? Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string')) : {};
+  const sessions: Record<string, SessionClock> = {};
+  if (isRecord(raw.sessions)) {
+    for (const [date, clock] of Object.entries(raw.sessions)) {
+      if (Array.isArray(clock) && typeof clock[0] === 'string' && (clock[1] === null || typeof clock[1] === 'string')) {
+        sessions[date] = [clock[0], clock[1]];
+      }
+    }
+  }
 
   return {
     // Fields a newer version of the app added ride along untouched, so this one never strips them.
@@ -191,6 +212,11 @@ function normalizeSave(raw: unknown): ProtocolSave {
     badges,
     perfectWeeks,
     vouched,
+    tests,
+    placements: strings(raw.placements),
+    sessions,
+    gear: strings(raw.gear),
+    signature: typeof raw.signature === 'string' ? currentSkillKey(raw.signature) : null,
     startedAt: typeof raw.startedAt === 'string' ? raw.startedAt : fresh.startedAt,
     bodyWeightKg:
       typeof raw.bodyWeightKg === 'number' && Number.isFinite(raw.bodyWeightKg) ? raw.bodyWeightKg : fresh.bodyWeightKg,
@@ -227,6 +253,11 @@ const KNOWN_SAVE_FIELDS = new Set([
   'badges',
   'perfectWeeks',
   'vouched',
+  'tests',
+  'placements',
+  'sessions',
+  'gear',
+  'signature',
 ]);
 
 /** Everything in a stored save that this version does not read. */
@@ -268,13 +299,14 @@ function mergeHistory(
 ): Record<string, HistoryPoint[]> {
   const merged: Record<string, HistoryPoint[]> = {};
   for (const key of new Set([...Object.keys(mine), ...Object.keys(theirs)])) {
-    const before = new Map(from[key] ?? []);
-    const mineDays = new Map(mine[key] ?? []);
-    const days = new Map(theirs[key] ?? []);
-    for (const [date, value] of mineDays) {
-      if (!days.has(date) || !Object.is(value, before.get(date))) days.set(date, value);
+    // Whole points by day, so a point's source (typed, ticked, timed) travels with its number.
+    const before = new Map((from[key] ?? []).map((point) => [point[0], point] as const));
+    const mineDays = new Map((mine[key] ?? []).map((point) => [point[0], point] as const));
+    const days = new Map((theirs[key] ?? []).map((point) => [point[0], point] as const));
+    for (const [date, point] of mineDays) {
+      if (!days.has(date) || canonical(point) !== canonical(before.get(date))) days.set(date, point);
     }
-    merged[key] = [...days.entries()].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)).slice(-HISTORY_LIMIT);
+    merged[key] = [...days.values()].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)).slice(-HISTORY_LIMIT);
   }
   return merged;
 }
@@ -338,7 +370,26 @@ function mergeSaves(from: ProtocolSave, mine: ProtocolSave, theirs: ProtocolSave
     // A week banked as perfect on either side stays banked.
     perfectWeeks: [...new Set([...(mine.perfectWeeks ?? []), ...(theirs.perfectWeeks ?? [])])].sort((a, b) => a - b),
     vouched: mergeMap(from.vouched ?? {}, mine.vouched ?? {}, theirs.vouched ?? {}),
+    tests: mergeTests(mine.tests ?? {}, theirs.tests ?? {}),
+    placements: mergeMap(from.placements ?? {}, mine.placements ?? {}, theirs.placements ?? {}),
+    sessions: mergeMap(from.sessions ?? {}, mine.sessions ?? {}, theirs.sessions ?? {}),
+    gear: mergeMap(from.gear ?? {}, mine.gear ?? {}, theirs.gear ?? {}),
+    signature: mine.signature !== from.signature ? mine.signature : theirs.signature,
   };
+}
+
+/** Every test either side took, each day's result once (a pass wins over a fail on the same day). */
+function mergeTests(mine: Record<string, TestEntry[]>, theirs: Record<string, TestEntry[]>): Record<string, TestEntry[]> {
+  const merged: Record<string, TestEntry[]> = {};
+  for (const key of new Set([...Object.keys(mine), ...Object.keys(theirs)])) {
+    const days = new Map<string, TestEntry>();
+    for (const entry of [...(theirs[key] ?? []), ...(mine[key] ?? [])]) {
+      const kept = days.get(entry[0]);
+      if (!kept || entry[1] > kept[1]) days.set(entry[0], entry);
+    }
+    merged[key] = [...days.values()].sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  }
+  return merged;
 }
 
 /* ------------------------------------------------------------------ */

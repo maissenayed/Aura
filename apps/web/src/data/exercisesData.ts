@@ -141,7 +141,8 @@ export function enrichExercises(rawList: RawExercise[]): Exercise[] {
         `Maintain total body tension from head to toes.`
       ],
       musclesTargeted: muscles,
-      xpReward: raw.level * 150,
+      // The campaign XP mastering it pays (Landed pays a quarter of it on the first pass).
+      xpReward: raw.level * 40,
       proStatus: raw.level >= 15,
       ...(raw.discipline ? { discipline: raw.discipline } : {}),
       ...(raw.focus ? { focus: raw.focus } : {}),
