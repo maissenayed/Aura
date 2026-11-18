@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
+import { neon } from '@neondatabase/serverless';
+import pg from 'pg';
 
 /** Injection token for the campaign's storage backend. */
 export const KEY_VALUE_STORE = 'KEY_VALUE_STORE';
@@ -96,8 +97,29 @@ export class FileKeyValueStore implements KeyValueStore {
 }
 
 /* ------------------------------------------------------------------ */
-/* Postgres (Neon over HTTP) — deployed                                */
+/* Postgres — Neon over HTTP when deployed, a plain pg pool on localhost */
 /* ------------------------------------------------------------------ */
+
+/** Runs one parameterised statement and resolves to its rows. */
+type Query = (text: string, params?: unknown[]) => Promise<unknown[]>;
+
+/** A Postgres running on this machine (a local test database), which Neon's HTTP driver cannot reach. */
+const isLocalDatabase = (connectionString: string) => {
+  try {
+    return ['localhost', '127.0.0.1', '::1', '[::1]'].includes(new URL(connectionString).hostname);
+  } catch {
+    return false;
+  }
+};
+
+function queryFor(connectionString: string): Query {
+  if (isLocalDatabase(connectionString)) {
+    const pool = new pg.Pool({ connectionString, max: 4, idleTimeoutMillis: 10_000 });
+    return async (text, params) => (await pool.query(text, params)).rows;
+  }
+  const sql = neon(connectionString);
+  return async (text, params) => (await sql.query(text, params)) as unknown[];
+}
 
 interface KvRow {
   rev: number;
@@ -107,11 +129,11 @@ interface KvRow {
 
 export class PostgresKeyValueStore implements KeyValueStore {
   readonly kind = 'postgres' as const;
-  private readonly sql: NeonQueryFunction<false, false>;
+  private readonly sql: { query: Query };
   private ready: Promise<void> | null = null;
 
   constructor(connectionString: string) {
-    this.sql = neon(connectionString);
+    this.sql = { query: queryFor(connectionString) };
   }
 
   async get<T>(key: string): Promise<StoredDoc<T> | null> {
