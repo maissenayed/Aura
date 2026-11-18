@@ -54,6 +54,19 @@ export default function CampPage() {
         <BossTile className="lg:col-span-4" />
         <ActTile className="lg:col-span-4" />
         <WebTile className="hidden lg:flex lg:col-span-4" />
+        <Link
+          href="/crew"
+          className="lg:hidden flex items-center gap-3 p-4 rounded-card bg-ink-900 hover:bg-ink-850 transition"
+          aria-label="Crew: board, duels and the weekly raid"
+        >
+          <span className="flex-1 min-w-0">
+            <span className="block eyebrow text-fg-4">Crew</span>
+            <span className="block text-[14px] font-semibold text-fg">Board, duels and this week&apos;s raid</span>
+          </span>
+          <span className="text-fg-4" aria-hidden>
+            →
+          </span>
+        </Link>
       </div>
     </main>
   );

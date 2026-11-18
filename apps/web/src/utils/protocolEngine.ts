@@ -41,6 +41,7 @@ import {
   trainingDays,
 } from './evidence';
 import { logPassDates } from './skillStandards';
+import { familiesOf, familyBadgeId, TIER_NAMES } from './badgeFamilies';
 
 export { formatStatValue, unitLabel } from './campaignPlan';
 import { AttributeStatus, evaluateAttributes } from './attributes';
@@ -1327,7 +1328,7 @@ export function derive(save: ProtocolSave, clock: Clock, plan: CampaignPlan): De
 
 export interface BadgeAward {
   id: string;
-  kind: 'boss' | 'tower' | 'record';
+  kind: 'boss' | 'tower' | 'record' | 'family';
   title: string;
   detail: string;
 }
@@ -1355,6 +1356,21 @@ function badgeChecks(save: ProtocolSave, derived: Derived, plan: CampaignPlan): 
     checks.push({
       award: { id: `record:${lift.id}`, kind: 'record', title: lift.name, detail: `End-game number · ${formatStatValue(lift.endgame, lift.unit)}` },
       held: confirmedBestOf(save, lift) >= lift.endgame,
+    });
+  }
+  // Badge families the save can count by itself; the crew's are counted by the server.
+  for (const family of familiesOf(save, plan, derived.level.perfectWeeks)) {
+    if (family.def.crew) continue;
+    family.def.thresholds.forEach((threshold, index) => {
+      checks.push({
+        award: {
+          id: familyBadgeId(family.def.id, index + 1),
+          kind: 'family',
+          title: `${family.def.name} · ${TIER_NAMES[index]}`,
+          detail: `${threshold} ${family.def.counts.toLowerCase()}`,
+        },
+        held: family.count >= threshold,
+      });
     });
   }
   return checks;
