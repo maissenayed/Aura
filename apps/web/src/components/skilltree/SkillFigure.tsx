@@ -135,6 +135,25 @@ const TEMPO = {
 const EASE = '0.45 0 0.55 1';
 const HOLD = '0 0 1 1';
 
+/**
+ * How a playing figure moves: the SMIL timing shared by every animated part,
+ * and the values for one attribute (the base pose, then the moved pose, in the
+ * tempo's order). Anything drawn on the figure with these stays in step with it.
+ */
+export interface MotionPlay {
+  attrs: { dur: string; repeatCount: string; calcMode: 'spline'; keyTimes: string; keySplines: string };
+  values: (from: string, to: string) => string;
+}
+
+export function motionPlay(motion?: Motion): MotionPlay | null {
+  if (!motion) return null;
+  const tempo = TEMPO[motion.tempo ?? 'even'];
+  return {
+    attrs: { dur: `${motion.seconds}s`, repeatCount: 'indefinite', calcMode: 'spline', keyTimes: tempo.keyTimes, keySplines: [EASE, HOLD, EASE, HOLD].join(';') },
+    values: (from, to) => tempo.order.map((frame) => (frame === 0 ? from : to)).join(';'),
+  };
+}
+
 /* Whether the visitor asked for less motion; checked live so a change applies at once. */
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
 const subscribeMotion = (onChange: () => void) => {
@@ -165,6 +184,10 @@ interface SkillFigureProps {
   title?: string;
   /** Recolours the athlete — gold once mastered, dim while locked. Defaults to the usual light ink. */
   tint?: { body: string; far: string };
+  /** Drawn over the floor and walls, behind the athlete: a stage, poles. */
+  underlay?: React.ReactNode;
+  /** Drawn in front of the athlete, given the motion's timing (null when still) so it can move with them. */
+  overlay?: (play: MotionPlay | null) => React.ReactNode;
 }
 
 export const SkillFigure: React.FC<SkillFigureProps> = ({
@@ -176,6 +199,8 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
   className,
   title,
   tint,
+  underlay,
+  overlay,
 }) => {
   // Marker ids must be unique per drawing, and safe inside url(#…).
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
@@ -191,17 +216,9 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
   const arrowWidth = compact ? 2.6 : 1.5;
 
   const motion = animate && !reducedMotion ? spec.motion : undefined;
-  const tempo = TEMPO[motion?.tempo ?? 'even'];
-  const keySplines = [EASE, HOLD, EASE, HOLD].join(';');
-  /** SMIL values for one attribute: the base pose, then the moved pose, in the tempo's order. */
-  const loop = (from: string, to: string) => tempo.order.map((frame) => (frame === 0 ? from : to)).join(';');
-  const timing = motion && {
-    dur: `${motion.seconds}s`,
-    repeatCount: 'indefinite',
-    calcMode: 'spline' as const,
-    keyTimes: tempo.keyTimes,
-    keySplines,
-  };
+  const play = motionPlay(motion);
+  const loop = (from: string, to: string) => play!.values(from, to);
+  const timing = play?.attrs;
 
   const strokes = spec.strokes.map((stroke, index) => ({ stroke, target: motion?.strokes[index] }));
   const discs = (spec.discs ?? []).map((disc, index) => ({ disc, target: motion?.discs[index] }));
@@ -271,6 +288,7 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
       {framed && <rect x="0.5" y="0.5" width="99" height="99" rx="10" style={{ fill: INK.panel }} />}
       <g clipPath={`url(#${clip})`}>
         {spec.wall && <path d={spec.wall} strokeWidth="1.2" strokeLinejoin="round" style={{ fill: INK.wall, stroke: INK.wallEdge }} />}
+        {underlay}
 
         {shadow && <ellipse cx={shadow.cx} cy={shadow.cy} rx={shadow.rx} ry="1.8" opacity="0.85" style={{ fill: INK.shadow }} />}
 
@@ -333,6 +351,8 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
         {spec.rings?.map(([x, y], index) => (
           <circle key={index} cx={x} cy={y} r={compact ? 5 : 5.5} strokeWidth={compact ? 1.6 : 1.1} strokeDasharray="2 1.6" style={{ fill: 'none', stroke: accent }} />
         ))}
+
+        {overlay?.(play)}
 
         {spec.arrows?.map((arrow, index) => (
           <path

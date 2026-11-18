@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Repeat } from 'lucide-react';
 import { AccountMenu } from '../../../components/account/AccountMenu';
 import { useGame } from '../../../components/game/GameProvider';
 import { figureForBoss, figureForExercise } from '../../../components/game/figures';
@@ -20,6 +19,9 @@ export default function CampPage() {
   const { derived, streak } = useGame();
   const { level } = derived;
   const xp = level.xpIntoLevel / level.xpForLevel;
+  // Which of today's missions the character shows, picked from the list; the next one not done until then.
+  const [picked, setPicked] = useState<number | null>(null);
+  const move = useTodayMove(picked);
 
   return (
     <main className="w-full max-w-[1180px] mx-auto px-4 pt-5 lg:px-8 lg:pt-8 pb-8 flex flex-col gap-4 lg:gap-5">
@@ -51,8 +53,8 @@ export default function CampPage() {
       <h1 className="hidden lg:block font-display font-extrabold uppercase text-[40px] leading-none">Camp</h1>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:gap-5 lg:grid-cols-12">
-        <HeroStage className="lg:col-span-5" />
-        <TodayCard className="lg:col-span-7" />
+        <HeroStage move={move} className="lg:col-span-5" />
+        <TodayCard shown={move.index} onShow={setPicked} className="lg:col-span-7" />
         <BossTile className="lg:col-span-4" />
         <ActTile className="lg:col-span-4" />
         <WebTile className="hidden lg:flex lg:col-span-4" />
@@ -77,14 +79,13 @@ export default function CampPage() {
 /* ------------------------------------------------------------------ */
 
 /**
- * What the character is doing: today's exercises, starting on the next one
- * not done yet; tapping steps through the day. On a rest day (or a day with
- * nothing planned) it strikes your signature move instead.
+ * What the character is doing: one of today's exercises, the next one not done
+ * yet unless another is picked from today's list. On a rest day (or a day
+ * with nothing planned) it does the move picked in Hero → Gear.
  */
-function useTodayMove() {
+function useTodayMove(picked: number | null) {
   const { derived, save, currentWeek, todayDayId } = useGame();
   const signature = useSignature();
-  const [picked, setPicked] = useState<number | null>(null);
   const day = derived.week.days.find((entry) => entry.day.id === todayDayId)?.day;
   const exercises = day && day.kind !== 'rest' ? day.exercises : [];
 
@@ -92,12 +93,12 @@ function useTodayMove() {
     return {
       spec: signature.spec,
       name: signature.name,
-      tag: day?.kind === 'rest' ? 'Rest day' : 'Signature',
+      tag: day?.kind === 'rest' ? 'Rest day' : 'Your move',
       done: false,
       dose: null,
       idle: !signature.earned,
       position: null as string | null,
-      cycle: signature.choices > 1 ? signature.next : undefined,
+      index: null as number | null,
     };
   }
 
@@ -114,52 +115,41 @@ function useTodayMove() {
     dose: splitTarget(current.target),
     idle: false,
     position: exercises.length > 1 ? `${index + 1} of ${exercises.length}` : null,
-    cycle: exercises.length > 1 ? () => setPicked((index + 1) % exercises.length) : undefined,
+    index: index as number | null,
   };
 }
 
+type TodayMove = ReturnType<typeof useTodayMove>;
+
 /** The character on the floor, doing today's move. No halo: light comes from the chalk. */
-const HeroStage: React.FC<{ className?: string }> = ({ className = '' }) => {
-  const move = useTodayMove();
-  // The athlete wears their gear whatever move they strike.
+const HeroStage: React.FC<{ move: TodayMove; className?: string }> = ({ move, className = '' }) => {
+  // The athlete wears their gear whatever move they do; a stage that doesn't suit the move stays out.
   const gear = useMyGearLook();
 
   return (
     <section className={`relative flex flex-col rounded-card bg-ink-900 overflow-hidden ${className}`} aria-label="Your character">
       <div className="absolute top-3 inset-x-3.5 flex items-center justify-between gap-2 z-10">
         <span className={`eyebrow ${move.done ? 'text-earned' : 'text-fg-4'}`}>{move.tag}</span>
-        {move.position && <span className="eyebrow text-fg-5">{move.position}</span>}
+        {move.position && move.position !== move.tag && <span className="eyebrow text-fg-5">{move.position}</span>}
       </div>
-      <button
-        type="button"
-        onClick={move.cycle}
-        disabled={!move.cycle}
-        aria-label={`${move.tag}: ${move.name}${move.cycle ? '. Tap for the next one' : ''}`}
-        className="relative mx-auto mt-6 w-full max-w-[280px] aspect-square cursor-pointer disabled:cursor-default"
-      >
+      <div className="relative mx-auto mt-6 w-full max-w-[280px] aspect-square">
         <span key={move.name} className="block w-full h-full anim-fade">
-          <GearedFigure spec={move.spec} state={move.idle ? 'locked' : move.done ? 'mastered' : 'ready'} look={gear} animate className="w-full h-full" />
+          <GearedFigure spec={move.spec} state={move.idle ? 'locked' : move.done ? 'mastered' : 'ready'} look={gear} animate className="w-full h-full" title={`${move.tag}: ${move.name}`} />
         </span>
-      </button>
-      <button
-        type="button"
-        onClick={move.cycle}
-        disabled={!move.cycle}
-        className="flex items-baseline gap-2 px-3.5 pb-3.5 pt-1 text-left cursor-pointer disabled:cursor-default"
-      >
+      </div>
+      <div className="flex items-baseline gap-2 px-3.5 pb-3.5 pt-1">
         <span className={`flex-1 min-w-0 text-[15px] font-semibold truncate ${move.done ? 'text-earned-soft' : 'text-fg-2'}`}>{move.name}</span>
         {move.dose && (
           <span className={`shrink-0 num font-bold text-[22px] leading-none ${move.done ? 'text-earned' : 'text-fg'}`}>
             {move.dose.sets ? `${move.dose.sets} × ${move.dose.reps}` : move.dose.reps}
           </span>
         )}
-        {move.cycle && <Repeat className="w-4 h-4 shrink-0 self-center text-fg-5" />}
-      </button>
+      </div>
     </section>
   );
 };
 
-const TodayCard: React.FC<{ className?: string }> = ({ className = '' }) => {
+const TodayCard: React.FC<{ shown: number | null; onShow: (index: number) => void; className?: string }> = ({ shown, onShow, className = '' }) => {
   const { derived, save, currentWeek, todayDayId } = useGame();
   // Camp always talks about today, whatever week the mission board is showing.
   const today = derived.week.days.find((entry) => entry.day.id === todayDayId) ?? derived.week.days[0];
@@ -186,11 +176,14 @@ const TodayCard: React.FC<{ className?: string }> = ({ className = '' }) => {
       </div>
       <SegmentBar done={items.map((item) => item.done)} />
       <ul className="flex flex-col" aria-label={`${day.title}: ${items.length} missions`}>
-        {items.map((item) => {
+        {items.map((item, index) => {
           const dose = item.exercise ? splitTarget(item.exercise.target) : null;
-          return (
-            <li key={item.id} className="flex items-center gap-3 py-2 border-t border-ink-700 first:border-t-0">
-              <span className={`w-11 h-11 shrink-0 rounded-tag flex items-center justify-center ${item.done ? 'bg-earned-deep' : 'bg-ink-850'}`}>
+          // Tapping a mission shows it on the character.
+          const on = Boolean(item.exercise) && index === shown;
+          const row = 'w-full flex items-center gap-3 py-2 text-left';
+          const content = (
+            <>
+              <span className={`w-11 h-11 shrink-0 rounded-tag flex items-center justify-center ${item.done ? 'bg-earned-deep' : 'bg-ink-850'} ${on ? 'ring-1 ring-fg-3' : ''}`}>
                 {item.exercise ? (
                   <Figure spec={figureForExercise(item.exercise.exercise, day.kind)} state={item.done ? 'mastered' : 'ready'} className="w-10 h-10" />
                 ) : (
@@ -217,6 +210,17 @@ const TodayCard: React.FC<{ className?: string }> = ({ className = '' }) => {
                 <span className="w-5 h-5 shrink-0 rounded-[5px] bg-earned flex items-center justify-center" aria-label="Done">
                   <CheckIcon className="w-3 h-3 text-earned-deep" strokeWidth={3.6} />
                 </span>
+              )}
+            </>
+          );
+          return (
+            <li key={item.id} className="list-none border-t border-ink-700 first:border-t-0">
+              {item.exercise ? (
+                <button type="button" aria-pressed={on} onClick={() => onShow(index)} className={`${row} cursor-pointer`}>
+                  {content}
+                </button>
+              ) : (
+                <div className={row}>{content}</div>
               )}
             </li>
           );

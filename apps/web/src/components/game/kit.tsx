@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
-import { FigureSpec, SkillFigure } from '../skilltree/SkillFigure';
+import { FigureSpec, MotionPlay, SkillFigure } from '../skilltree/SkillFigure';
 import { FIGURE_ACCENT, FIGURE_TINT } from './figures';
 import { CheckIcon, LockIcon } from './icons';
 
@@ -296,7 +296,9 @@ export const Figure: React.FC<{
   animate?: boolean;
   className?: string;
   title?: string;
-}> = ({ spec, state = 'ready', accent, animate = false, className = 'w-12 h-12', title }) => (
+  underlay?: React.ReactNode;
+  overlay?: (play: MotionPlay | null) => React.ReactNode;
+}> = ({ spec, state = 'ready', accent, animate = false, className = 'w-12 h-12', title, underlay, overlay }) => (
   <SkillFigure
     spec={spec}
     accent={accent ?? FIGURE_ACCENT[state]}
@@ -305,6 +307,8 @@ export const Figure: React.FC<{
     animate={animate}
     className={className}
     title={title}
+    underlay={underlay}
+    overlay={overlay}
   />
 );
 

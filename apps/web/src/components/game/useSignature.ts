@@ -7,45 +7,49 @@ import { useExercises } from '../../utils/skillProgressStore';
 import { useGame } from './GameProvider';
 
 /**
- * Your avatar strikes the pose of a skill you have proven: the pick saved on
- * the account, else your hardest. Tapping it cycles through your three
- * hardest. Placed skills never lend a pose; nothing proven yet: a plain squat,
- * waiting for a first skill.
+ * The move your avatar does: one you have proven, picked from the list of
+ * them (saved on the account), else your hardest. Placed skills never lend a
+ * pose. Nothing proven yet: a plain squat, waiting for a first skill.
  */
+
+export interface PoseOption {
+  /** Save key, `calisthenics:<id>`. */
+  key: string;
+  name: string;
+  level: number;
+  spec: FigureSpec;
+}
 
 export interface Signature {
   spec: FigureSpec;
   name: string;
+  /** The picked move's save key; null until a skill is proven. */
+  key: string | null;
   /** False until a skill is proven. */
   earned: boolean;
-  /** How many signatures there are to cycle through. */
-  choices: number;
-  next: () => void;
+  /** Every proven move with a drawing, hardest first. */
+  options: PoseOption[];
+  pick: (key: string) => void;
 }
 
 export function useSignature(): Signature {
   const exercises = useExercises();
   const { save, setSignature } = useGame();
 
-  const top = useMemo(() => {
+  const options = useMemo(() => {
     const proven = (id: string) => Boolean(save.skills?.[`calisthenics:${id}`]) && !save.vouched?.[`calisthenics:${id}`];
     return exercises
-      .filter((exercise) => proven(exercise.id) && calisthenicsFigure(exercise.id))
-      .sort((a, b) => b.level - a.level)
-      .slice(0, 3);
+      .filter((exercise) => proven(exercise.id))
+      .flatMap((exercise) => {
+        const spec = calisthenicsFigure(exercise.id);
+        return spec ? [{ key: `calisthenics:${exercise.id}`, name: exercise.name, level: exercise.level, spec }] : [];
+      })
+      .sort((a, b) => b.level - a.level || a.name.localeCompare(b.name));
   }, [exercises, save.skills, save.vouched]);
 
-  const picked = save.signature?.startsWith('calisthenics:') ? save.signature.slice('calisthenics:'.length) : null;
-  const index = Math.max(0, top.findIndex((exercise) => exercise.id === picked));
-  const current = top[index];
+  const current = options.find((option) => option.key === save.signature) ?? options[0];
+  const pick = (key: string) => setSignature(key);
 
-  const next = () => {
-    if (top.length < 2) return;
-    setSignature(`calisthenics:${top[(index + 1) % top.length].id}`);
-  };
-
-  if (!current) {
-    return { spec: calisthenicsFigure('ex_11')!, name: 'Master your first skill', earned: false, choices: 0, next };
-  }
-  return { spec: calisthenicsFigure(current.id)!, name: current.name, earned: true, choices: top.length, next };
+  if (!current) return { spec: calisthenicsFigure('ex_11')!, name: 'Master your first skill', key: null, earned: false, options, pick };
+  return { spec: current.spec, name: current.name, key: current.key, earned: true, options, pick };
 }
