@@ -560,7 +560,9 @@ function evaluateLadder(ladder: SkillTree, save: ProtocolSave, plan: CampaignPla
     // A tower floor is cleared by mastering its skill on the tree.
     if (tier.skill && owned) {
       const cleared = owned.has(tier.skill.id);
-      return { tier, gates: [], cleared, byBlueprint: false, progress: cleared ? 1 : 0, isCurrent: false };
+      // A placed floor opens the climb but is credited, not earned: it unlocks nothing on the character.
+      const placed = cleared && Boolean(save.vouched?.[`${ladder.tower?.tree}:${tier.skill.id}`]);
+      return { tier, gates: [], cleared, byBlueprint: placed, progress: cleared ? 1 : 0, isCurrent: false };
     }
     const gates: TierGate[] = [];
     for (const gate of tier.gates) {

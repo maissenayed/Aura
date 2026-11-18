@@ -62,6 +62,9 @@ import { MomentOverlay } from './MomentOverlay';
  * into battle-log entries, toasts and — for the big ones — full-screen moments.
  */
 
+/** "20 Nov", for dates in toasts. */
+const dayText = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+
 const TOAST_LIMIT = 4;
 const TOAST_MS = 5200;
 
@@ -227,7 +230,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const after = mutate(before);
       const clock = { currentWeek, viewWeek, today: todayIso };
       const afterDerived = derive(after, clock, plan);
-      const events = notReplayed([...extra, ...diffEvents(derive(before, clock, plan), afterDerived)], before.log);
+      // With a session on the clock, the day's own moment waits: Finish opens the session card instead.
+      const running = Boolean(todayIso && after.sessions?.[todayIso] && !after.sessions[todayIso][1]);
+      const events = notReplayed([...extra, ...diffEvents(derive(before, clock, plan), afterDerived)], before.log).filter(
+        (event) => !(running && event.kind === 'day'),
+      );
       if (celebrated.current) celebrated.current = celebratedIn(afterDerived);
       commitSave(
         events.length ? { ...after, log: mergeLog(after.log, events, todayIso ?? toIsoDate(new Date())) } : after,
@@ -334,7 +341,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             kind: 'skill' as const,
             key: `skill_${standard.skill}`,
             title: `Landed — ${standard.name}`,
-            detail: `${proofOf(standard)} · show it again between ${addDays(date, 2)} and ${addDays(date, 21)} to master it`,
+            detail: `${proofOf(standard)} · show it again between ${dayText(addDays(date, 2))} and ${dayText(addDays(date, 21))} to master it`,
           })),
         );
       }
@@ -521,14 +528,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             kind: 'skill',
             key: `skill_${key}`,
             title: `Mastered — ${name}`,
-            detail: queued ? `Three masteries a week, one per line: its +${slot.xp} XP arrives the week of ${slot.slotWeek}` : `Proven on two days · +${slot?.xp ?? 0} XP`,
+            detail: queued ? `Three masteries a week, one per line: its +${slot.xp} XP arrives the week of ${dayText(slot.slotWeek)}` : `Proven on two days · +${slot?.xp ?? 0} XP`,
           });
         } else if (passesBefore.length === 0) {
           events.push({
             kind: 'skill',
             key: `skill_${key}`,
             title: `Landed — ${name}`,
-            detail: `+${landedXp(level)} XP · prove it again between ${addDays(date, 2)} and ${addDays(date, 21)}`,
+            detail: `+${landedXp(level)} XP · prove it again between ${dayText(addDays(date, 2))} and ${dayText(addDays(date, 21))}`,
           });
         } else {
           const last = passesBefore[passesBefore.length - 1];
@@ -537,7 +544,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             kind: 'skill',
             key: `skill_${key}`,
             title: `Passed again — ${name}`,
-            detail: early ? `Rest it: a second pass counts from ${addDays(last, 2)}` : `Prove it again between ${addDays(date, 2)} and ${addDays(date, 21)}`,
+            detail: early ? `Rest it: a second pass counts from ${dayText(addDays(last, 2))}` : `Prove it again between ${dayText(addDays(date, 2))} and ${dayText(addDays(date, 21))}`,
           });
         }
       }

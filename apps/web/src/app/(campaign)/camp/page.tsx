@@ -314,7 +314,10 @@ const ActTile: React.FC<{ className?: string }> = ({ className = '' }) => {
 const WebTile: React.FC<{ className?: string }> = ({ className = '' }) => {
   const { derived } = useGame();
   const byId = new Map(derived.attributes.map((attribute) => [attribute.def.id as string, attribute]));
-  const core = WEB_ORDER.map((id) => byId.get(id)).filter((attribute): attribute is NonNullable<typeof attribute> => Boolean(attribute));
+  // A locked quality stays on the web, at its floor.
+  const core = WEB_ORDER.map((id) => byId.get(id))
+    .filter((attribute): attribute is NonNullable<typeof attribute> => Boolean(attribute))
+    .map((attribute) => (attribute.unlocked ? attribute : { ...attribute, value: null, display: null }));
   return (
     <Link href="/hero" aria-label="Hero sheet" className={`items-center gap-3 p-4 rounded-card bg-ink-900 ${className}`}>
       <RadarWeb attributes={core} size={150} bare />
