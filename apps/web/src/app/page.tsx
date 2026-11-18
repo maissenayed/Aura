@@ -9,6 +9,7 @@ import { SkillPanel } from '../components/skilltree/SkillPanel';
 import { SKILL_TREES, SkillTreeDef } from '../components/skilltree/skillTrees';
 import { TreeBar } from '../components/skilltree/TreeBar';
 import { GameEvent } from '../utils/protocolEngine';
+import { commitSave, peekSave } from '../utils/protocolStore';
 import {
   SkillTreeId,
   isSkillTreeId,
@@ -178,6 +179,14 @@ function SkillTreeScreen({ tree, initialSkillId, onTreeChange }: SkillTreeScreen
         tree.id,
         masteredIds.filter((other) => other !== id),
       );
+      // Undone means untested: its passes go too, so it is not proven again on the spot.
+      const current = peekSave();
+      const key = `${tree.id}:${id}`;
+      if (current.tests?.[key]) {
+        const tests = { ...current.tests };
+        delete tests[key];
+        commitSave({ ...current, tests });
+      }
       return;
     }
 

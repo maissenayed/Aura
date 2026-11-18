@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, LocateFixed } from 'lucide-react';
 import { ChestIcon, CheckIcon, FlameIcon, MoonIcon, ShieldIcon } from '../../../components/game/icons';
@@ -16,11 +16,16 @@ import { EVENT_VISUAL } from '../../../components/protocol/Toasts';
 import { DAY_NAMES, DayId, PlanExercise, PlanWarmUp, formatStatValue, liftOf } from '../../../utils/campaignPlan';
 import { slotOfPiece } from '../../../utils/armor';
 import { LATE_TICK_DAYS, XP_RULES, dateOfDay, isDayOpen, questKey, restKey } from '../../../utils/protocolEngine';
+import { MISSION_XP, MissionEvidence, SESSION_MIN_MINUTES, SESSION_XP, missionEvidence } from '../../../utils/evidence';
+import { RestTimer, clockText } from '../../../components/game/HoldTimer';
+import { SessionCard } from '../../../components/game/SessionCard';
 
 /** Today's quest: the day's missions, ticked and logged, filling a bar towards the day's chest. */
 export default function QuestPage() {
   const game = useGame();
-  const { derived, save, viewWeek, currentWeek, todayDayId, selectedDayId, streak, todayIso } = game;
+  const { derived, save, plan, viewWeek, currentWeek, todayDayId, selectedDayId, streak, todayIso } = game;
+  const evidence = useMemo(() => new Map(missionEvidence(save, plan).map((mission) => [mission.key, mission])), [save, plan]);
+  const [cardDate, setCardDate] = useState<string | null>(null);
   const { week } = derived;
   const selected = week.days.find((entry) => entry.day.id === selectedDayId) ?? week.days[0];
   const day = selected.day;
@@ -122,11 +127,14 @@ export default function QuestPage() {
             </button>
           )}
 
-          {/* Progress to the chest */}
+          {/* Progress to the chest: with a session on the clock, it opens on Finish */}
           <div className="flex items-center gap-3">
             <SegmentBar done={missionDone} className="flex-1" />
-            <Chest open={selected.cleared} />
+            <Chest open={selected.cleared && (!boardDate || !save.sessions?.[boardDate] || Boolean(save.sessions[boardDate][1]))} />
           </div>
+          {!isRest && !awayFromToday && !locked && day.exercises.length > 0 && boardDate && (
+            <SessionBar date={boardDate} onOpenCard={() => setCardDate(boardDate)} />
+          )}
 
           {locked && (
             <p className="text-xs text-fg-4 -mb-1">
@@ -169,6 +177,7 @@ export default function QuestPage() {
                   exercise={exercise}
                   dayKind={day.kind}
                   done={Boolean(save.quests[questKey(viewWeek, exercise.id)])}
+                  evidence={evidence.get(questKey(viewWeek, exercise.id))}
                   locked={locked}
                   onToday={!awayFromToday}
                   onToggle={() => game.toggleQuest(questKey(viewWeek, exercise.id), awayFromToday ? undefined : exercise.lift)}
@@ -189,6 +198,7 @@ export default function QuestPage() {
         </aside>
       </div>
 
+      {cardDate && <SessionCard date={cardDate} onClose={() => setCardDate(null)} />}
       {opened && (
         <ExerciseSheet
           exercise={opened}
@@ -215,16 +225,74 @@ const Chest: React.FC<{ open: boolean }> = ({ open }) => (
   </span>
 );
 
+const GRADE_TEXT: Record<MissionEvidence['grade'], string> = { done: 'Done', hit: 'Hit', overload: 'Overload', pr: 'PR' };
+
+/** The session clock: Start, a running clock with a rest timer, Finish, and the card afterwards. */
+const SessionBar: React.FC<{ date: string; onOpenCard: () => void }> = ({ date, onOpenCard }) => {
+  const { save, startSession, finishSession } = useGame();
+  const session = save.sessions?.[date] ?? null;
+  const [now, setNow] = useState(() => Date.now());
+  const running = Boolean(session && !session[1]);
+  useEffect(() => {
+    if (!running) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [running]);
+
+  if (!session) {
+    return (
+      <div className="flex items-center gap-3 p-3 rounded-card bg-ink-900">
+        <span className="flex-1 text-[13px] text-fg-3 leading-snug">
+          Train on the clock: finish after {SESSION_MIN_MINUTES} minutes with every mission handled for +{SESSION_XP} XP and the session card.
+        </span>
+        <button type="button" onClick={startSession} className="h-11 px-4 rounded-card bg-fg text-ink-950 font-display font-extrabold uppercase text-lg tracking-[0.02em] active:scale-[.97] transition cursor-pointer">
+          Start
+        </button>
+      </div>
+    );
+  }
+  if (running) {
+    const seconds = Math.max(0, (now - new Date(session[0]).getTime()) / 1000);
+    return (
+      <div className="flex flex-wrap items-center gap-2 p-3 rounded-card bg-ink-900" aria-live="off">
+        <span className="eyebrow text-act">On the clock</span>
+        <span className="num font-bold text-[22px] text-fg flex-1">{clockText(seconds)}</span>
+        <RestTimer />
+        <button
+          type="button"
+          onClick={() => {
+            finishSession();
+            onOpenCard();
+          }}
+          className="h-11 px-4 rounded-card bg-fg text-ink-950 font-display font-extrabold uppercase text-lg tracking-[0.02em] active:scale-[.97] transition cursor-pointer"
+        >
+          Finish
+        </button>
+      </div>
+    );
+  }
+  const minutes = Math.round((new Date(session[1] as string).getTime() - new Date(session[0]).getTime()) / 60_000);
+  return (
+    <button type="button" onClick={onOpenCard} className="flex items-center gap-3 p-3 rounded-card bg-ink-900 text-left hover:bg-ink-850 cursor-pointer">
+      <span className="eyebrow text-earned">Session finished</span>
+      <span className="flex-1 num font-bold text-fg">{minutes} min</span>
+      <span className="text-[13px] font-semibold text-fg-2">Open the card</span>
+    </button>
+  );
+};
+
 const MissionCard: React.FC<{
   exercise: PlanExercise;
   dayKind: string;
   done: boolean;
+  /** How the mission was graded from that day's log, once it is ticked. */
+  evidence?: MissionEvidence;
   locked: boolean;
   /** The card is on today's board, so logging its number also completes it. */
   onToday: boolean;
   onToggle: () => void;
   onOpen: () => void;
-}> = ({ exercise, dayKind, done, locked, onToday, onToggle, onOpen }) => {
+}> = ({ exercise, dayKind, done, evidence, locked, onToday, onToggle, onOpen }) => {
   const { plan, derived } = useGame();
   const [xpFloat, setXpFloat] = useState(0);
   const logs = Boolean(liftOf(plan, exercise.lift));
@@ -277,7 +345,7 @@ const MissionCard: React.FC<{
         <span className="relative">
           {xpFloat > 0 && (
             <span key={xpFloat} className="absolute right-0 -top-6 num font-bold text-[15px] text-earned whitespace-nowrap anim-float">
-              +{XP_RULES.mission} XP
+              +{evidence?.xp ?? MISSION_XP.done} XP
             </span>
           )}
           <TickButton done={done} onClick={toggle} disabled={locked} label={`${done ? 'Undo' : 'Complete'} ${exercise.name}`} />
@@ -292,6 +360,11 @@ const MissionCard: React.FC<{
           {exercise.armor && (
             <Chip tone="armour">
               <ShieldIcon className="w-3.5 h-3.5" /> Armour
+            </Chip>
+          )}
+          {done && evidence && (
+            <Chip tone={evidence.grade === 'pr' || evidence.grade === 'overload' ? 'earned' : 'dim'}>
+              {GRADE_TEXT[evidence.grade]} +{evidence.xp}
             </Chip>
           )}
           <span className="flex-1" />

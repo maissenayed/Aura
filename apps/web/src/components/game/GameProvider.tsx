@@ -35,8 +35,23 @@ import {
 import { HISTORY_LIMIT, HistoryPoint } from '../../utils/campaignV3';
 import { V2_LIFT_OF_RECORD } from '../../utils/records';
 import { adoptDeviceProgress } from '../../utils/skillProgressStore';
-import { proofOf, skillsProvenByLogs } from '../../utils/skillStandards';
-import { confirmationOf } from '../../utils/evidence';
+import { SKILL_STANDARDS, proofOf, skillsProvenByLogs } from '../../utils/skillStandards';
+import {
+  TESTS_PER_DAY,
+  addDays,
+  confirmationOf,
+  daysBetween,
+  landedXp,
+  masterySlots,
+  passDatesOf,
+  provenByPasses,
+  skillXpLevel,
+  testsOn,
+} from '../../utils/evidence';
+import type { SessionClock } from '../../utils/evidence';
+import type { SkillTreeRef } from '../../utils/campaignV3';
+import { canonicalSkill, floorsOf, skillOf } from '../../utils/treeIndex';
+import { logPassDates } from '../../utils/skillStandards';
 import { Toast, ToastStack } from '../protocol/Toasts';
 import { MomentOverlay } from './MomentOverlay';
 
@@ -97,6 +112,24 @@ export interface GameValue extends CampaignSnapshot {
   planDirty: boolean;
   /** Shows events that happened outside the campaign, e.g. a skill mastered on the tree. */
   announce: (events: GameEvent[]) => void;
+  /**
+   * Records a skill test. A pass lands the skill; a second pass on another day,
+   * 48 hours to 21 days later, masters it. With `place`, a pass also places
+   * every step before it (they open what follows and pay nothing).
+   */
+  testSkill: (tree: SkillTreeRef, skillId: string, passed: boolean, place?: boolean) => void;
+  /** Tests left today: two a day, across every skill. */
+  testsLeft: number;
+  /** Today's session on the clock, if one was started. */
+  session: SessionClock | null;
+  startSession: () => void;
+  finishSession: () => void;
+  /** Logs a number measured by the hold timer: the clock is the evidence. */
+  logTimed: (id: string, seconds: number) => void;
+  /** Equips an avatar item in its slot, or clears the slot with null. */
+  equip: (slot: string, itemId: string | null) => void;
+  /** Chooses the skill whose pose the avatar strikes. */
+  setSignature: (key: string | null) => void;
 }
 
 const GameContext = createContext<GameValue | null>(null);
@@ -273,17 +306,46 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // again after it, so its XP plays no Level Up); afterwards it goes through `play`, so a
   // tower floor or a skill boss it completes gets its moment.
   const skillsPrimed = useRef(false);
+  const landedByLogs = useRef<Set<string> | null>(null);
   useEffect(() => {
     if (snapshot.gate !== 'ready' || (!skillsPrimed.current && snapshot.sync !== 'synced')) return;
     const proven = skillsProvenByLogs(save);
     const quiet = !skillsPrimed.current;
     skillsPrimed.current = true;
+
+    // A log that meets a standard for the first time lands the skill: say so, and when to prove it again.
+    const landedNow = new Set(
+      SKILL_STANDARDS.filter((standard) => logPassDates(save, `calisthenics:${standard.skill}`).length > 0).map((standard) => standard.skill),
+    );
+    const known = landedByLogs.current;
+    landedByLogs.current = landedNow;
+    if (known && !quiet) {
+      const date = todayIso ?? toIsoDate(new Date());
+      const fresh = SKILL_STANDARDS.filter(
+        (standard) =>
+          landedNow.has(standard.skill) &&
+          !known.has(standard.skill) &&
+          !proven.includes(standard) &&
+          !(save.skills[`calisthenics:${standard.skill}`] && !save.vouched?.[`calisthenics:${standard.skill}`]),
+      );
+      if (fresh.length) {
+        announce(
+          fresh.map((standard) => ({
+            kind: 'skill' as const,
+            key: `skill_${standard.skill}`,
+            title: `Landed — ${standard.name}`,
+            detail: `${proofOf(standard)} · show it again between ${addDays(date, 2)} and ${addDays(date, 21)} to master it`,
+          })),
+        );
+      }
+    }
     if (!proven.length) return;
     const date = todayIso ?? toIsoDate(new Date());
     const keys = proven.map((standard) => `calisthenics:${standard.skill}`);
     const master = (current: ProtocolSave): ProtocolSave => ({
       ...current,
-      skills: { ...current.skills, ...Object.fromEntries(keys.map((key) => [key, current.skills[key] ?? date])) },
+      // A placed skill proven now is mastered today, for its XP slot.
+      skills: { ...current.skills, ...Object.fromEntries(keys.map((key) => [key, current.vouched?.[key] ? date : (current.skills[key] ?? date)])) },
       vouched: Object.fromEntries(Object.entries(current.vouched ?? {}).filter(([key]) => !keys.includes(key))),
     });
     if (quiet) {
@@ -299,10 +361,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           kind: 'skill',
           key: `skill_${standard.skill}`,
           title: `Skill mastered — ${standard.name}`,
-          detail: proofOf(standard),
+          detail: `${proofOf(standard)} on two days · proven`,
         })),
     );
-  }, [play, save, snapshot.gate, snapshot.sync, todayIso]);
+  }, [announce, play, save, snapshot.gate, snapshot.sync, todayIso]);
 
   // A perfect week is banked once it is perfect, against the plan it was played on, so a later
   // edit that adds a mission never takes its XP back. Banking changes no XP, so it plays nothing.
@@ -400,6 +462,138 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [play, todayIso],
   );
 
+  const testSkill = useCallback(
+    (tree: SkillTreeRef, skillId: string, passed: boolean, place = false) => {
+      const date = todayIso ?? toIsoDate(new Date());
+      const id = canonicalSkill(tree, skillId);
+      const key = `${tree}:${id}`;
+      const skill = skillOf(tree, id);
+      const name = skill?.name ?? 'the skill';
+      const before = peekSave();
+      if (testsOn(before, date) >= TESTS_PER_DAY && !(before.tests?.[key] ?? []).some(([day]) => day === date)) {
+        announce([{ kind: 'log', key: `test_${key}`, title: 'Two tests a day', detail: 'Test fresh tomorrow, after your warm-up.' }]);
+        return;
+      }
+      const passesBefore = passDatesOf(before, key, logPassDates(before, key));
+
+      const mutate = (current: ProtocolSave): ProtocolSave => {
+        const entries = (current.tests?.[key] ?? []).filter(([day]) => day !== date);
+        const passedToday = passed || (current.tests?.[key] ?? []).some(([day, ok]) => day === date && ok === 1);
+        const tests = { ...(current.tests ?? {}), [key]: [...entries, [date, passedToday ? 1 : 0] as [string, 0 | 1]].sort((a, b) => (a[0] < b[0] ? -1 : 1)) };
+        let next: ProtocolSave = { ...current, tests };
+        if (!passed) return next;
+        if (place && skill) {
+          // The steps before it are credited, not proven: they open the way and pay nothing.
+          const skills = { ...next.skills };
+          const vouched = { ...(next.vouched ?? {}) };
+          for (const floor of floorsOf(tree, id)) {
+            const floorKey = `${tree}:${floor.id}`;
+            if (floor.id === id || skills[floorKey]) continue;
+            skills[floorKey] = date;
+            vouched[floorKey] = date;
+          }
+          next = { ...next, skills, vouched, placements: { ...(next.placements ?? {}), [`${tree}:${skill.subCategory}`]: date } };
+        }
+        if (provenByPasses(passDatesOf(next, key, logPassDates(next, key)))) {
+          const vouched = { ...(next.vouched ?? {}) };
+          const wasPlaced = Boolean(vouched[key]);
+          delete vouched[key];
+          next = { ...next, skills: { ...next.skills, [key]: wasPlaced || !next.skills[key] ? date : next.skills[key] }, vouched };
+        }
+        return next;
+      };
+
+      const after = mutate(before);
+      const events: GameEvent[] = [];
+      if (!passed) {
+        events.push({ kind: 'log', key: `test_${key}`, title: `Not yet — ${name}`, detail: 'Logged. Rest it and test again on another day.' });
+      } else {
+        const placedCount = Object.keys(after.vouched ?? {}).length - Object.keys(before.vouched ?? {}).length;
+        if (place && placedCount > 0) {
+          events.push({ kind: 'skill', key: `place_${key}`, title: `Placed — ${placedCount} ${placedCount === 1 ? 'step' : 'steps'} under ${name}`, detail: 'They open what follows. Prove them to earn their XP.' });
+        }
+        const proven = Boolean(after.skills[key]) && !after.vouched?.[key] && !(before.skills[key] && !before.vouched?.[key]);
+        const level = skillXpLevel(tree, id);
+        if (proven) {
+          const slot = masterySlots(after).find((entry) => entry.key === key);
+          const queued = slot && slot.slotWeek > date;
+          events.push({
+            kind: 'skill',
+            key: `skill_${key}`,
+            title: `Mastered — ${name}`,
+            detail: queued ? `Three masteries a week, one per line: its +${slot.xp} XP arrives the week of ${slot.slotWeek}` : `Proven on two days · +${slot?.xp ?? 0} XP`,
+          });
+        } else if (passesBefore.length === 0) {
+          events.push({
+            kind: 'skill',
+            key: `skill_${key}`,
+            title: `Landed — ${name}`,
+            detail: `+${landedXp(level)} XP · prove it again between ${addDays(date, 2)} and ${addDays(date, 21)}`,
+          });
+        } else {
+          const last = passesBefore[passesBefore.length - 1];
+          const early = daysBetween(last, date) < 2;
+          events.push({
+            kind: 'skill',
+            key: `skill_${key}`,
+            title: `Passed again — ${name}`,
+            detail: early ? `Rest it: a second pass counts from ${addDays(last, 2)}` : `Prove it again between ${addDays(date, 2)} and ${addDays(date, 21)}`,
+          });
+        }
+      }
+      play(() => after, events);
+    },
+    [announce, play, todayIso],
+  );
+
+  const testsLeft = Math.max(0, TESTS_PER_DAY - (todayIso ? testsOn(save, todayIso) : 0));
+  const session = todayIso ? (save.sessions?.[todayIso] ?? null) : null;
+
+  const startSession = useCallback(() => {
+    const date = todayIso ?? toIsoDate(new Date());
+    play((current) => ({ ...current, sessions: { ...(current.sessions ?? {}), [date]: [new Date().toISOString(), null] } }));
+  }, [play, todayIso]);
+
+  const finishSession = useCallback(() => {
+    const date = todayIso ?? toIsoDate(new Date());
+    play((current) => {
+      const running = current.sessions?.[date];
+      if (!running) return current;
+      return { ...current, sessions: { ...(current.sessions ?? {}), [date]: [running[0], new Date().toISOString()] } };
+    });
+  }, [play, todayIso]);
+
+  const logTimed = useCallback(
+    (id: string, seconds: number) => {
+      const stat = liftOf(plan, id);
+      if (!stat) return;
+      const date = todayIso ?? toIsoDate(new Date());
+      const value = Math.max(0, Math.round(seconds));
+      const best = bestOf(peekSave(), stat);
+      const extra: GameEvent[] =
+        value > best ? [{ kind: 'pr', key: `pr_${id}`, title: `New PR — ${stat.short}`, detail: `${formatStatValue(value, stat.unit)} · on the clock` }] : [];
+      play((current) => {
+        const points: HistoryPoint[] = [...(current.history[id] ?? []).filter(([day]) => day !== date), [date, value, 'timer']];
+        points.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+        return { ...current, records: { ...current.records, [id]: value }, history: { ...current.history, [id]: points.slice(-HISTORY_LIMIT) } };
+      }, extra);
+    },
+    [plan, play, todayIso],
+  );
+
+  const equip = useCallback(
+    (slot: string, itemId: string | null) =>
+      play((current) => {
+        const gear = { ...(current.gear ?? {}) };
+        if (itemId) gear[slot] = itemId;
+        else delete gear[slot];
+        return { ...current, gear };
+      }),
+    [play],
+  );
+
+  const setSignature = useCallback((key: string | null) => play((current) => ({ ...current, signature: key })), [play]);
+
   const resetCampaign = useCallback(() => {
     resetSave();
     setWeekOverride(null);
@@ -432,6 +626,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setPlanDraft,
     planDirty,
     announce,
+    testSkill,
+    testsLeft,
+    session,
+    startSession,
+    finishSession,
+    logTimed,
+    equip,
+    setSignature,
   };
 
   return (
