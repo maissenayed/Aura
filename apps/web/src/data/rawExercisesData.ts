@@ -133,7 +133,7 @@ export const rawExercises: RawExercise[] = [
     "prerequisites": [
       "ex_7"
     ],
-    "youtubeQuery": "Ring Wide Pull Up tutorial bodyweight fitness"
+    "youtubeQuery": "Rings Wide Push-up tutorial bodyweight fitness"
   },
   {
     "id": "ex_75",
@@ -307,7 +307,7 @@ export const rawExercises: RawExercise[] = [
     "prerequisites": [
       "ex_50"
     ],
-    "youtubeQuery": "Support Press tutorial bodyweight fitness",
+    "youtubeQuery": "Straight Bar Dip tutorial bodyweight fitness",
     "videoSearchUrl": "https://youtu.be/w6uo90PAIfI?t=84"
   },
   {
@@ -560,7 +560,7 @@ export const rawExercises: RawExercise[] = [
     "prerequisites": [],
     "steps": [
       "Hold bodyweight on gymnastic rings with straight arms.",
-      "Keep rings turned out (RTO) for stability."
+      "Keep the palms facing in and the rings still."
     ],
     "standard": "30 s hold",
     "expertTip": "Pin rings close to hips."
@@ -2644,7 +2644,7 @@ export const rawExercises: RawExercise[] = [
       "ex_441"
     ],
     "standard": "10 s hold",
-    "youtubeQuery": "Adv Tuck FL Row tutorial bodyweight fitness",
+    "youtubeQuery": "Tuck Front Lever tutorial bodyweight fitness",
     "videoSearchUrl": "https://www.youtube.com/watch?v=VUe3M0iLPG0&feature=youtu.be"
   },
   {
@@ -2670,7 +2670,7 @@ export const rawExercises: RawExercise[] = [
     "prerequisites": [
       "ex_98"
     ],
-    "youtubeQuery": "Straddle FL Row tutorial bodyweight fitness"
+    "youtubeQuery": "Straddle Front Lever tutorial bodyweight fitness"
   },
   {
     "id": "ex_173",
@@ -3084,7 +3084,7 @@ export const rawExercises: RawExercise[] = [
     "prerequisites": [
       "ex_184"
     ],
-    "youtubeQuery": "OA Straight MU tutorial bodyweight fitness",
+    "youtubeQuery": "Archer Muscle-up tutorial bodyweight fitness",
     "videoSearchUrl": "https://www.youtube.com/watch?v=ke1sbJLeshg"
   },
   {
@@ -3132,7 +3132,7 @@ export const rawExercises: RawExercise[] = [
     "prerequisites": [
       "ex_345"
     ],
-    "youtubeQuery": "Muscle Up tutorial bodyweight fitness",
+    "youtubeQuery": "Elevator Muscle-up tutorial bodyweight fitness",
     "videoSearchUrl": "https://www.youtube.com/watch?v=2FZ9t2vl1kc"
   },
   {
