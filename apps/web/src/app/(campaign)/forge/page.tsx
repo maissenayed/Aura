@@ -10,6 +10,8 @@ import { LiftsEditor } from '../../../components/plan/LiftsEditor';
 import { MapEditor } from '../../../components/plan/MapEditor';
 import { TowersEditor } from '../../../components/plan/TowersEditor';
 import { BLUEPRINT_SPEC } from '../../../data/blueprintPlan';
+import { CAMPAIGN_TEMPLATES } from '../../../data/campaignTemplates';
+import { useAccount } from '../../../utils/accountStore';
 import { CampaignPlan, DAY_NAMES, DayId, PlanSpec, blankSpec, resolvePlan } from '../../../utils/campaignPlan';
 import { PlanSaveResult, savePlan, takeServerPlan } from '../../../utils/protocolStore';
 
@@ -41,7 +43,9 @@ export default function ForgePage() {
   const [saving, setSaving] = useState(false);
   const [conflict, setConflict] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
-  const [confirm, setConfirm] = useState<'blueprint' | 'blank' | 'reset' | null>(null);
+  const [confirm, setConfirm] = useState<string | null>(null);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const { account } = useAccount();
 
   const working = planDraft ?? spec;
   const resolved = useMemo(() => resolvePlan(working), [working]);
@@ -110,31 +114,71 @@ export default function ForgePage() {
           />
         </label>
         <div className="flex gap-1.5">
-          {([
-            ['blueprint', 'Blueprint', Star],
-            ['blank', 'Blank', Moon],
-          ] as const).map(([id, label, Icon]) => (
+          <button
+            type="button"
+            onClick={() => {
+              setTemplatesOpen((open) => !open);
+              setConfirm(null);
+            }}
+            aria-expanded={templatesOpen}
+            title="Start again from a ready-made campaign"
+            className={`h-12 px-3.5 rounded-[14px] border flex items-center gap-2 text-[13px] font-bold transition cursor-pointer ${
+              templatesOpen ? 'bg-ink-750 border-act text-fg' : 'bg-ink-850 border-ink-700 text-fg-3 hover:text-fg'
+            }`}
+          >
+            <Star className="w-4 h-4" />
+            Templates
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm !== 'blank') return setConfirm('blank');
+              edit(blankSpec(Math.round(save.bodyWeightKg)));
+              setConfirm(null);
+              setSection('lifts');
+            }}
+            title="Start again from seven rest days"
+            className={`h-12 px-3.5 rounded-[14px] border flex items-center gap-2 text-[13px] font-bold transition cursor-pointer ${
+              confirm === 'blank' ? 'bg-boss border-boss text-boss-deep' : 'bg-ink-850 border-ink-700 text-fg-3 hover:text-fg'
+            }`}
+          >
+            {confirm === 'blank' ? <Layers className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {confirm === 'blank' ? 'Replace?' : 'Blank'}
+          </button>
+        </div>
+      </div>
+      {templatesOpen && (
+        <div className="flex flex-wrap gap-1.5" aria-label="Templates">
+          {[
+            ...CAMPAIGN_TEMPLATES.map((template) => ({
+              id: template.id,
+              label: `${template.sport} · ${template.name}`,
+              build: () => template.build(Math.round(save.bodyWeightKg), working.bodyweight.goal),
+            })),
+            // The owner's own campaign stays on hand for the owner; everyone else starts from the templates.
+            ...(account?.role === 'admin' ? [{ id: 'blueprint', label: 'Master Blueprint', build: () => BLUEPRINT_SPEC }] : []),
+          ].map((choice) => (
             <button
-              key={id}
+              key={choice.id}
               type="button"
               onClick={() => {
-                if (confirm !== id) return setConfirm(id);
-                edit(id === 'blueprint' ? BLUEPRINT_SPEC : blankSpec(Math.round(save.bodyWeightKg)));
+                if (confirm !== choice.id) return setConfirm(choice.id);
+                edit(choice.build());
                 setConfirm(null);
-                setSection(id === 'blueprint' ? 'week' : 'lifts');
+                setTemplatesOpen(false);
+                setSection('week');
               }}
-              title={id === 'blueprint' ? 'Start again from the Master Blueprint' : 'Start again from seven rest days'}
-              className={`h-12 px-3.5 rounded-[14px] border flex items-center gap-2 text-[13px] font-bold transition cursor-pointer ${
-                confirm === id ? 'bg-boss border-boss text-boss-deep' : 'bg-ink-850 border-ink-700 text-fg-3 hover:text-fg'
+              className={`h-10 px-3 rounded-[12px] border flex items-center gap-2 text-[12.5px] font-bold transition cursor-pointer ${
+                confirm === choice.id ? 'bg-boss border-boss text-boss-deep' : 'bg-ink-850 border-ink-700 text-fg-2 hover:text-fg'
               }`}
             >
-              {confirm === id ? <Layers className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
-              {confirm === id ? 'Replace?' : label}
+              {confirm === choice.id && <Layers className="w-4 h-4" />}
+              {confirm === choice.id ? `Replace with ${choice.label}?` : choice.label}
             </button>
           ))}
         </div>
-      </div>
-      {(confirm === 'blueprint' || confirm === 'blank') && (
+      )}
+      {confirm !== null && confirm !== 'reset' && (
         <p className="text-xs text-fg-4 -mt-1">Tap again to replace the whole plan. Logged lifts, ticks and weigh-ins stay.</p>
       )}
 
