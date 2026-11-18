@@ -77,6 +77,12 @@ function liftsOf(ctx: AttributeContext, exercises: PlanExercise[]) {
 /** The top of every axis on the web. */
 export const ATTRIBUTE_MAX = 999;
 
+/** A lift's best: its last log or any day in its history, so a bad week does not shrink the character. */
+function bestNumber(save: ProtocolSave, id: string, baseline: number): number {
+  const points = save.history?.[id] ?? [];
+  return points.reduce((best, [, value]) => Math.max(best, value), save.records?.[id] ?? save.stats[id] ?? baseline);
+}
+
 /** One thing an attribute is built from, as shown in its breakdown. */
 export interface AttributePart {
   label: string;
@@ -106,7 +112,7 @@ function liftAssessment(ctx: AttributeContext, exercises: PlanExercise[]): Asses
   const lifts = liftsOf(ctx, exercises);
   if (lifts.length === 0) return null;
   const parts: AttributePart[] = lifts.map((lift) => {
-    const current = ctx.save.records?.[lift.id] ?? ctx.save.stats[lift.id] ?? lift.baseline;
+    const current = bestNumber(ctx.save, lift.id, lift.baseline);
     if (!lift.endgame) return { label: lift.name, detail: 'No end-game number — not counted', share: null };
     if (!lift.hasBaseline && current === 0) return { label: lift.name, detail: 'Not logged yet — left out until you log it', share: null };
     return {
@@ -273,7 +279,7 @@ export const ATTRIBUTES: AttributeDef[] = [
       },
       test: (ctx) =>
         liftsOf(ctx, tagged(ctx, 'power')).some(
-          (lift) => lift.endgame !== null && (ctx.save.records?.[lift.id] ?? ctx.save.stats[lift.id] ?? lift.baseline) >= (lift.endgame * 2) / 3,
+          (lift) => lift.endgame !== null && bestNumber(ctx.save, lift.id, lift.baseline) >= (lift.endgame * 2) / 3,
         ),
     },
   },

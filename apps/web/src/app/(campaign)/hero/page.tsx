@@ -322,6 +322,7 @@ const LiftsTab: React.FC = () => {
                   placeholder={lift.hasBaseline ? undefined : 'log it'}
                   ariaLabel={lift.name}
                   onCommit={(next) => logStat(lift.id, next)}
+                  commitSame
                 />
               </div>
             </li>
@@ -378,8 +379,8 @@ const BADGE_LOOK: Record<BadgeKind, { label: string; icon: React.ComponentType<{
  * Badges stay when the plan moves on; one the numbers stop backing can be taken back.
  */
 const BadgesTab: React.FC = () => {
-  const { save, plan, derived, recountBadges } = useGame();
-  const unbacked = badgesUnbacked(save, derived, plan);
+  const { save, plan, derived, recountBadges, todayIso } = useGame();
+  const unbacked = todayIso ? badgesUnbacked(save, derived, plan, todayIso) : [];
   const badges: { id: string; kind: BadgeKind; name: string; date: string }[] = [];
   for (const [id, date] of Object.entries(save.badges ?? {})) {
     const [kind, ...rest] = id.split(':');
