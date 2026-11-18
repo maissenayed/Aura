@@ -11,7 +11,7 @@ import { RadarWeb } from '../../../components/game/RadarWeb';
 import { ATTRIBUTE_MAX } from '../../../utils/attributes';
 import { DAY_NAMES, formatStatValue, recordName, unitLabel } from '../../../utils/campaignPlan';
 import { HistoryPoint } from '../../../utils/campaignV3';
-import { Sport, badgesUnbacked, currentOf, rankForLevel } from '../../../utils/protocolEngine';
+import { BODYWEIGHT_RECORD, Sport, badgesUnbacked, currentOf, rankForLevel } from '../../../utils/protocolEngine';
 import { metricOf } from '../../../utils/records';
 import { skillOf } from '../../../utils/treeIndex';
 
@@ -26,7 +26,7 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: st
 
 /** The level where the next rank starts, or null at the top. */
 function nextRank(level: number, sport: Sport): { level: number; rank: string } | null {
-  for (let next = level + 1; next <= 60; next += 1) {
+  for (let next = level + 1; next <= level + 40; next += 1) {
     if (rankForLevel(next, sport) !== rankForLevel(level, sport)) return { level: next, rank: rankForLevel(next, sport) };
   }
   return null;
@@ -292,7 +292,7 @@ const LiftsTab: React.FC = () => {
   const { derived, save, plan, logStat } = useGame();
   // Lifts that left the plan keep their history here instead of vanishing with the mission.
   const earlier = Object.entries(save.history ?? {})
-    .filter(([key, points]) => points.length > 0 && !plan.lifts.some((lift) => lift.id === key))
+    .filter(([key, points]) => points.length > 0 && key !== BODYWEIGHT_RECORD && !plan.lifts.some((lift) => lift.id === key))
     .sort((a, b) => (a[1][a[1].length - 1][0] < b[1][b[1].length - 1][0] ? 1 : -1));
 
   return (

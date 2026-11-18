@@ -14,6 +14,8 @@ import {
   videoIdOf,
 } from '../../utils/skillTree';
 import { CheckIcon, CrownIcon, LockIcon, RouteIcon } from '../game/icons';
+import { useGame } from '../game/GameProvider';
+import { skillEvidence } from '../../utils/skillStandards';
 import { Meter } from '../game/kit';
 import { SCENE_LABEL, SkillFigure } from './SkillFigure';
 import { SkillTreeDef, laneThemeOf } from './skillTrees';
@@ -274,6 +276,10 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
   }, []);
 
   const status = statusOf(exercise, mastered);
+  const { save } = useGame();
+  // What the athlete's logs say about this standard, when a log can prove it.
+  const evidence = tree.id === 'calisthenics' ? skillEvidence(save, exercise.id) : null;
+  const vouched = Boolean(save.vouched?.[`calisthenics:${exercise.id}`]);
   const theme = laneThemeOf(tree, exercise.swimlane);
   const prerequisites = exercise.prerequisites.map((id) => graph.byId.get(id)).filter((entry): entry is TreeSkill => Boolean(entry));
   const unlocks = (graph.children.get(exercise.id) ?? []).map((id) => graph.byId.get(id)).filter((entry): entry is TreeSkill => Boolean(entry));
@@ -351,7 +357,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
             <Sparkles className="w-4 h-4" />
             Ready to train
           </p>
-          <Standard text={exercise.unlockRequirements} />
+          <Standard text={exercise.unlockRequirements} evidence={evidence} />
           <button
             type="button"
             onClick={() => onToggleMastered(exercise.id)}
@@ -375,7 +381,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
               </li>
             ))}
           </ul>
-          <Standard text={exercise.unlockRequirements} />
+          <Standard text={exercise.unlockRequirements} evidence={evidence} />
           <button
             type="button"
             onClick={() => onToggleMastered(exercise.id)}
@@ -402,7 +408,12 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
               Undo
             </button>
           </div>
-          <Standard text={exercise.unlockRequirements} />
+          <Standard text={exercise.unlockRequirements} evidence={evidence} />
+          {vouched && (
+            <p className="text-[13px] text-earned-dim">
+              Marked as a step before a harder skill. It counts for less XP until a log meets its standard.
+            </p>
+          )}
         </div>
       )}
 
@@ -545,12 +556,30 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
   </section>
 );
 
-/** What it takes to call the exercise mastered. */
-const Standard: React.FC<{ text: string }> = ({ text }) => (
-  <p className="text-sm text-fg-2 leading-relaxed">
-    <span className="eyebrow block text-fg-4 mb-1">Mastered when</span>
-    {text}
-  </p>
+/** "1 rep", "4 reps", "30 s", "65 kg". */
+const amount = (value: number, unit: 'kg' | 'reps' | 'seconds') =>
+  unit === 'reps' ? `${value} ${value === 1 ? 'rep' : 'reps'}` : `${value} ${unit === 'seconds' ? 's' : 'kg'}`;
+
+/** What it takes to call the exercise mastered, and the best log against it when a log can prove it. */
+const Standard: React.FC<{ text: string; evidence: ReturnType<typeof skillEvidence> }> = ({ text, evidence }) => (
+  <div className="space-y-1.5">
+    <p className="text-sm text-fg-2 leading-relaxed">
+      <span className="eyebrow block text-fg-4 mb-1">Mastered when</span>
+      {text}
+    </p>
+    {evidence && (
+      <p className={`text-[13px] ${evidence.met ? 'text-earned-soft' : 'text-fg-3'}`}>
+        {evidence.best > 0 ? (
+          <>
+            Your best log: <span className="num font-bold">{amount(evidence.best, evidence.unit)}</span>
+            {evidence.met ? ' · meets it' : ` · ${amount(Math.round((evidence.target - evidence.best) * 10) / 10, evidence.unit)} to go`}
+          </>
+        ) : (
+          <>Log it on a quest and it is mastered the day you reach {amount(evidence.target, evidence.unit)}.</>
+        )}
+      </p>
+    )}
+  </div>
 );
 
 /** The same marks as the nodes on the board: gold once mastered, a chalk outline when ready, dashed while locked. */

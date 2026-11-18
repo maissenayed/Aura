@@ -79,10 +79,13 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
-/** Mastery lives in the account's save once one is loaded; this device's copy is the fallback. */
-export function setMasteredIds(tree: SkillTreeId, ids: string[]): void {
+/**
+ * Mastery lives in the account's save once one is loaded; this device's copy is the fallback.
+ * `vouched` are the new ones marked only as the steps before a harder skill (the account keeps them apart).
+ */
+export function setMasteredIds(tree: SkillTreeId, ids: string[], vouched: string[] = []): void {
   const next = Object.freeze([...new Set(ids)]);
-  if (setSyncedSkills(tree, next)) return;
+  if (setSyncedSkills(tree, next, vouched)) return;
   cache.set(tree, next);
   try {
     window.localStorage.setItem(PROGRESS_KEYS[tree], JSON.stringify({ masteredIds: next }));

@@ -10,7 +10,8 @@ import { signOutOfCampaign } from '../../utils/protocolStore';
 const MENU_WIDTH = 256;
 
 /** The signed-in person, in the header: who you are, the team page (owner), and sign out. */
-export const AccountMenu: React.FC = () => {
+/** `large` matches the 44 px buttons of the phone header beside it. */
+export const AccountMenu: React.FC<{ large?: boolean }> = ({ large = false }) => {
   const { status, mode, account, setupRequired } = useAccount();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -69,7 +70,7 @@ export const AccountMenu: React.FC = () => {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={`Account: ${account.name}`}
-        className="flex items-center justify-center w-9 h-9 rounded-full bg-ink-800 text-fg font-display font-extrabold text-base hover:bg-ink-750 active:scale-[.97] transition cursor-pointer"
+        className={`flex items-center justify-center ${large ? 'w-11 h-11 text-lg' : 'w-9 h-9 text-base'} rounded-full bg-ink-800 text-fg font-display font-extrabold hover:bg-ink-750 active:scale-[.97] transition cursor-pointer`}
       >
         {initial}
       </button>
