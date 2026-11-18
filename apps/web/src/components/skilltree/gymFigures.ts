@@ -334,7 +334,8 @@ function curl(kind: 'cable' | 'dumbbell' | 'barbell'): FigureSpec {
 
 type SquatLoad = { kind: 'back' | 'front'; r: number } | { kind: 'goblet' };
 
-function squat(load: SquatLoad): FigureSpec {
+/** With `box`, the squat sits back onto a box set at parallel. */
+function squat(load: SquatLoad, { box = false }: { box?: boolean } = {}): FigureSpec {
   const feet: Pt = [48, GROUND];
   const pose = (pelvis: Pt, neck: Pt) => {
     const hands: Pt =
@@ -358,7 +359,9 @@ function squat(load: SquatLoad): FigureSpec {
       discs,
     );
   };
-  return lift({ scene: 'floor', wall: FLOOR, start: pose([47, 55], [48, 33]), end: pose([36, 68], [47.7, 49.3]), seconds: 2.8 });
+  // The box sits under the hips at the bottom, so the athlete touches down on it.
+  const wall = box ? `M20,71 L41,71 L41,86 L20,86 Z ${FLOOR}` : FLOOR;
+  return lift({ scene: 'floor', wall, start: pose([47, 55], [48, 33]), end: pose([36, 68], [47.7, 49.3]), seconds: 2.8 });
 }
 
 /** Conventional deadlift from the floor, or a Romanian deadlift from the top. */
@@ -472,6 +475,59 @@ function cableCrunch(): FigureSpec {
       [cable(pulley, hands)],
     );
   return lift({ scene: 'floor', ...stackRight(pulley), start: pose([57, 48], [61, 44]), end: pose([69, 62], [71, 57]), seconds: 2.4 });
+}
+
+/**
+ * Captain's chair: back on the backrest, forearms on the pads, hands on the
+ * grips, the legs hanging free; the knees lift to the chest.
+ */
+function captainsChair(): FigureSpec {
+  const chair = [
+    'M40.5,20 L43.5,20 L43.5,58 L40.5,58 Z', // backrest
+    'M45,39.6 L65,39.6 L65,42.4 L45,42.4 Z', // forearm pad
+    'M62,42.4 L64.6,42.4 L64.6,86 L62,86 Z', // front upright
+    'M40.5,58 L43.1,58 L43.1,86 L40.5,86 Z', // back upright
+  ].join(' ');
+  const pose = (lFoot: Pt, knee?: Pt) =>
+    climber(
+      side({
+        neck: [47.5, 26],
+        pelvis: [47.5, 48],
+        lHand: [60, 37.6],
+        rHand: [58.5, 37.6],
+        lFoot,
+        rFoot: behind(lFoot, -1.5, 1),
+        joints: { lArm: [48.5, 37.6], rArm: [47, 37.6], ...(knee ? { lLeg: knee, rLeg: behind(knee) } : {}) },
+      }),
+      ['torso', 'lLeg', 'rLeg'],
+    );
+  return lift({ scene: 'floor', wall: `${chair} ${FLOOR}`, start: pose([48.5, 77]), end: pose([58, 58], [60.5, 44.5]), seconds: 2.6 });
+}
+
+/**
+ * Hack squat: back and shoulders against the sled's pad, which rides a rail
+ * set at an angle; the athlete squats down the rail.
+ */
+function hackSquat(): FigureSpec {
+  const rail: Pt = [0.356, -0.935];
+  const back: Pt = [-0.935, -0.356];
+  const along = (p: Pt, t: number, off = 0): Pt => [p[0] + rail[0] * t + back[0] * off, p[1] + rail[1] * t + back[1] * off];
+  const feet: Pt = [53, GROUND];
+  const pose = (pelvis: Pt) => {
+    const neck = along(pelvis, 22);
+    const hands: Pt = [neck[0] + 2.5, neck[1] + 2.5];
+    // The pad slides with the athlete, just behind the back.
+    const pad = bar(along(pelvis, -1, 3.6), along(pelvis, 23, 3.6));
+    return kit(
+      climber(
+        side({ neck, pelvis, lHand: hands, rHand: behind(hands, 1), lFoot: feet, rFoot: behind(feet, 1.5), lToe: [1, 0], rToe: [1, 0], bend: { lArm: 'down', rArm: 'down', lLeg: 'right', rLeg: 'right' } }),
+        LEGS,
+      ),
+      [],
+      [bar(along([42, 57], -32, 6), along([42, 57], 42, 6)), { ...pad, width: 3.6 }],
+    );
+  };
+  return lift({ scene: 'floor', wall: FLOOR, start: pose([42, 57]), end: pose(along([42, 57], -13)), seconds: 2.8 });
 }
 
 function hangingLegRaise(): FigureSpec {
@@ -899,14 +955,14 @@ const FIGURES: Record<string, FigureSpec | undefined> = {
   leg_press_2x: legPress(LOAD.heavy),
   leg_press_3x: legPress(LOAD.elite),
   leg_extension: legExtension(),
-  hack_squat: squat({ kind: 'back', r: LOAD.working }),
+  hack_squat: hackSquat(),
   hip_abduction: hipMachine(true),
   hip_adduction: hipMachine(false),
   seated_calf_raise: seatedCalfRaise(),
   glute_kickback: gluteKickback(),
   back_extension: backExtension(),
   weighted_back_extension: backExtension(LOAD.light),
-  box_squat: squat({ kind: 'back', r: LOAD.working }),
+  box_squat: squat({ kind: 'back', r: LOAD.working }, { box: true }),
   pause_squat: squat({ kind: 'back', r: LOAD.heavy }),
   trap_bar_deadlift: hinge('deadlift', LOAD.working),
   sumo_deadlift: hinge('deadlift', LOAD.heavy),
@@ -923,7 +979,7 @@ const FIGURES: Record<string, FigureSpec | undefined> = {
   gym_ab_wheel: abWheel(),
   gym_farmers_bodyweight: farmersCarry(6),
   ab_crunch_machine: cableCrunch(),
-  captains_chair: hangingLegRaise(),
+  captains_chair: captainsChair(),
   pallof_press: pallofPress(),
   cable_woodchop: woodchop(),
 };

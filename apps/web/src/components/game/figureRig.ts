@@ -1,3 +1,4 @@
+import { barArmSide } from '../skilltree/SkillFigure';
 import type { Disc, FigureSpec, Pt, Stroke } from '../skilltree/SkillFigure';
 import { FLOOR, LOW_FLOOR } from '../skilltree/calisthenicsFamilies';
 
@@ -52,6 +53,7 @@ export interface Rig {
   /** Torso corners nearest the head (the shoulders), then farthest (the hips). */
   corners: [number, number, number, number];
   head: number | null;
+  /** Each limb as two strokes that meet at the joint, or one stroke through root, joint and end (upper === lower). */
   limbs: { upper: number; lower: number; arm: boolean }[];
 }
 
@@ -72,20 +74,26 @@ export function rigOf(spec: FigureSpec): Rig | null {
   const shoulders = mid(pts[corners[0]], pts[corners[1]]);
   const hips = mid(pts[corners[2]], pts[corners[3]]);
 
-  // Limbs: two open segments that meet at a joint.
+  const isArm = (root: Pt) => len(sub(root, shoulders)) <= len(sub(root, hips));
+  const limbs: Rig['limbs'] = [];
+  // Limbs drawn as one line through root, joint and end (and a toe, on a foot).
+  strokes.forEach((stroke, index) => {
+    if (isBody(stroke) && !stroke.closed && (stroke.pts.length === 3 || stroke.pts.length === 4) && len(sub(stroke.pts[2], stroke.pts[0])) > 4) {
+      limbs.push({ upper: index, lower: index, arm: isArm(stroke.pts[0]) });
+    }
+  });
+  // Limbs drawn as two open segments that meet at a joint.
   const segments = strokes
     .map((stroke, index) => ({ stroke, index }))
     .filter(({ stroke }) => isBody(stroke) && !stroke.closed && stroke.pts.length === 2 && len(sub(stroke.pts[1], stroke.pts[0])) > 1);
   const used = new Set<number>();
-  const limbs: Rig['limbs'] = [];
   segments.forEach((upper) => {
     if (used.has(upper.index)) return;
     const lower = segments.find((entry) => entry.index !== upper.index && !used.has(entry.index) && same(entry.stroke.pts[0], upper.stroke.pts[1]));
     if (!lower) return;
     used.add(upper.index);
     used.add(lower.index);
-    const root = upper.stroke.pts[0];
-    limbs.push({ upper: upper.index, lower: lower.index, arm: len(sub(root, shoulders)) <= len(sub(root, hips)) });
+    limbs.push({ upper: upper.index, lower: lower.index, arm: isArm(upper.stroke.pts[0]) });
   });
   return { torso, corners, head, limbs };
 }
@@ -97,7 +105,7 @@ export function bonesAt(rig: Rig, strokes: Stroke[], discs: Disc[]): Bones {
   const limb = ({ upper, lower }: Rig['limbs'][number]): Limb => ({
     root: strokes[upper].pts[0],
     joint: strokes[upper].pts[1],
-    end: strokes[lower].pts[1],
+    end: upper === lower ? strokes[upper].pts[2] : strokes[lower].pts[1],
     width: Math.max(strokes[upper].width, strokes[lower].width),
   });
   const head = rig.head !== null ? discs[rig.head] : null;
@@ -137,7 +145,9 @@ export function apparatusOf(spec: FigureSpec): Apparatus {
     const onlyBar = (barAcross(spec.wall) !== null && holds.length === 0) || (!spec.wall?.trim() && holds.length > 0 && holds.every((hold) => hold.shape === 'bar'));
     return onlyBar ? 'bar' : 'fixed';
   }
-  if ((spec.scene === 'floor' || spec.scene === 'ground') && holds.length === 0 && floorLine(spec) !== null) return 'floor';
+  // A machine, cable or band (drawn as gear lines) is the move's own equipment, so it stays off a stage.
+  const machine = spec.strokes.some((stroke) => stroke.tone === 'gear');
+  if ((spec.scene === 'floor' || spec.scene === 'ground') && holds.length === 0 && !machine && floorLine(spec) !== null) return 'floor';
   return 'fixed';
 }
 
@@ -297,14 +307,9 @@ export function stageMove(spec: FigureSpec, stage: StageKind | undefined): Stage
      * upright off to the side the body never swings to, an arm out to the bar
      * and a brace under it.
      */
-    const all = posesOf(spec, rig).flatMap(({ strokes, discs }) => [
-      ...strokes.filter(isBody).flatMap((stroke) => stroke.pts),
-      ...discs.filter((disc) => !disc.kind).map((disc) => disc.at),
-    ]);
-    const xs = all.map(([x]) => x);
     const uprights: NonNullable<Staged['uprights']> = {};
     const frame = (spec.holds ?? []).flatMap(({ at: [x, barY] }): FrameLine[] => {
-      const right = Math.max(...xs) - x <= x - Math.min(...xs);
+      const right = barArmSide(spec, x) === 'right';
       const post = right ? 91 : 9;
       uprights[right ? 'right' : 'left'] = { x: post, top: barY - 5 };
       return [
@@ -359,11 +364,15 @@ export function stageMove(spec: FigureSpec, stage: StageKind | undefined): Stage
       for (const { upper, lower, arm } of rig.limbs) {
         if (!arm) continue;
         const [shoulder, elbow] = strokes[upper].pts;
-        const hand = strokes[lower].pts[1];
+        const hand = upper === lower ? strokes[upper].pts[2] : strokes[lower].pts[1];
         const target: Pt = [hand[0], hand[1] - lift];
         const bent = bendTo(shoulder, elbow, hand, target);
-        next[upper] = { ...strokes[upper], pts: [shoulder, bent] };
-        next[lower] = { ...strokes[lower], pts: [bent, target] };
+        if (upper === lower) {
+          next[upper] = { ...strokes[upper], pts: [shoulder, bent, target, ...strokes[upper].pts.slice(3)] };
+        } else {
+          next[upper] = { ...strokes[upper], pts: [shoulder, bent] };
+          next[lower] = { ...strokes[lower], pts: [bent, target] };
+        }
       }
       return { strokes: next, discs, lifted: false };
     };
