@@ -26,6 +26,8 @@ import { signInAndSetCookie } from '../auth/session-cookies.js';
 import { actionEmail, emailEnabled, sendEmail } from '../email/mailer.js';
 import { KEY_VALUE_STORE } from '../repositories/key-value.store.js';
 import type { KeyValueStore } from '../repositories/key-value.store.js';
+import { seenKeyFor } from '../services/campaign.service.js';
+import { CrewService } from '../services/crew.service.js';
 import { InvitationService, inviteLink } from '../services/invitation.service.js';
 import { LegacyPasscodeService } from '../services/legacy-passcode.service.js';
 
@@ -87,6 +89,7 @@ export class AccountsController {
   constructor(
     private readonly invitations: InvitationService,
     private readonly legacy: LegacyPasscodeService,
+    private readonly crew: CrewService,
     @Inject(KEY_VALUE_STORE) private readonly store: KeyValueStore,
   ) {}
 
@@ -180,14 +183,16 @@ export class AccountsController {
   /* Joining through an invitation                                     */
   /* ---------------------------------------------------------------- */
 
+  /** What the join screen shows: who invited them and how big the crew is. Only names the inviter, never the crew. */
   @Get('join/:token')
   async invitation(@Param('token') token: string) {
-    requireAccounts();
+    const { pool: db } = requireAccounts();
     const invite = await this.invitations.lookup(token);
     if (!invite) {
       throw new GoneException({ success: false, code: 'invite-invalid', message: 'This invitation has expired, been used or been withdrawn.' });
     }
-    return { success: true, data: { email: invite.email, expiresAt: invite.expiresAt } };
+    const { rows } = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM "user"');
+    return { success: true, data: { email: invite.email, expiresAt: invite.expiresAt, invitedBy: invite.invitedBy, crewSize: rows[0].n } };
   }
 
   @Post('join/:token')
@@ -207,9 +212,11 @@ export class AccountsController {
       throw new GoneException({ success: false, code: 'invite-invalid', message: 'This invitation has expired, been used or been withdrawn.' });
     }
 
+    let userId: string;
     try {
       const created = await api.api.createUser({ body: { email: invite.email, password, name, role: 'user' } });
-      await this.invitations.attachUser(invite.id, created.user.id);
+      userId = created.user.id;
+      await this.invitations.attachUser(invite.id, userId);
     } catch (error) {
       await this.invitations.release(invite.id);
       if (isDuplicateUser(error)) {
@@ -218,8 +225,12 @@ export class AccountsController {
       throw error;
     }
 
+    // Chosen on the join screen, so a new member is never on the board before they say so.
+    const trainPrivately = field(body, 'trainPrivately') === true;
+    if (trainPrivately) await this.crew.saveSettings(userId, { trainPrivately: true });
+
     await signInAndSetCookie(invite.email, password, request, response);
-    return { success: true, data: { name, email: invite.email } };
+    return { success: true, data: { name, email: invite.email, trainPrivately } };
   }
 
   /* ---------------------------------------------------------------- */
@@ -268,14 +279,18 @@ export class AccountsController {
     return { success: true };
   }
 
+  /** The invitation reads as joining the crew, and says plainly what the crew sees and what it never does. */
   private sendInvite(email: string, inviter: string, link: string) {
+    const title = `${inviter} invited you to their crew on Aura`;
     const { html, text } = actionEmail(
-      `${inviter} invited you to Aura Calisthenics`,
-      'Set a password to create your account. Your campaign, missions and character are your own — nobody else can see or change them.',
-      'Accept the invitation',
+      title,
+      'Set a password to create your account. Your campaign is your own; nobody else can change it. ' +
+        'The crew sees your weekly training XP, your PRs and bosses (not the numbers, unless you choose) and your hero card. ' +
+        'Bodyweight is never shared, and you can train privately at any time.',
+      'Join the crew',
       link,
     );
-    return sendEmail({ to: email, subject: `${inviter} invited you to Aura Calisthenics`, html, text });
+    return sendEmail({ to: email, subject: title, html, text });
   }
 
   /* ---------------------------------------------------------------- */
@@ -324,6 +339,8 @@ export class AccountsController {
     await api.api.removeUser({ body: { userId: id }, headers: fromNodeHeaders(request.headers) });
     await this.store.delete(saveKey(id));
     await this.store.delete(`plan:${id}`);
+    await this.store.delete(seenKeyFor(id));
+    await this.crew.forget(id);
     return { success: true };
   }
 }
