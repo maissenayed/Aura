@@ -82,6 +82,7 @@
   --fig-locked-body: #6b665b;
   --fig-locked-far: #4a463f;
   --fig-panel: #151411;
+  --fig-tape: #f3f0e8; /* worn gear: cotton tape, white in both themes */
   --fig-frame: #2f2c27;
   --fig-wall: #24221e;
   --fig-wall-edge: #3b3832;
@@ -141,6 +142,7 @@
   --fig-locked-body: #a39e93;
   --fig-locked-far: #cbc6bc;
   --fig-panel: #f6f5f1;
+  --fig-tape: #ffffff;
   --fig-frame: #dcd8cf;
   --fig-wall: #e4e1da;
   --fig-wall-edge: #cbc6bc;
