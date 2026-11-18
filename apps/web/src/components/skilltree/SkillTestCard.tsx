@@ -19,6 +19,7 @@ import {
 import { logPassDates, parseCountStandard } from '../../utils/skillStandards';
 import { toIsoDate } from '../../utils/protocolEngine';
 import { SkillTreeDef } from './skillTrees';
+import { ClipControl } from './ClipControl';
 
 /** "18 Nov". */
 const shortDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
@@ -67,6 +68,7 @@ export const SkillTestCard: React.FC<{
         </div>
         {standard}
         {state.passes.length > 0 && <p className="text-[12.5px] text-earned-dim">Proven on {state.passes.map(shortDate).join(', ')}.</p>}
+        <ClipControl skillKey={key} />
       </div>
     );
   }
@@ -110,6 +112,7 @@ export const SkillTestCard: React.FC<{
             : `Prove it again by ${shortDate(state.window.to)} to master it: +${masteryXp(level)} XP.`}
         </p>
       )}
+      {landed && <ClipControl skillKey={key} />}
       {!tooEarly && (
         <TestPanel
           tree={tree}

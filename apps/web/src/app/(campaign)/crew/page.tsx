@@ -332,13 +332,12 @@ const Toggle: React.FC<{ label: string; detail: string; on: boolean; onChange: (
 
 function FeedTab() {
   const { data, error } = useLoad<{ items: FeedEntry[] }>('/crew/feed');
-  const [items, setItems] = useState<FeedEntry[] | null>(null);
-  useEffect(() => {
-    if (data) setItems(data.items);
-  }, [data]);
-  if (!items) return <Loading error={error} />;
+  // Chalk and witness taps answer at once; the server's counts come back in the reply.
+  const [patches, setPatches] = useState<Record<string, Partial<FeedEntry>>>({});
+  if (!data) return <Loading error={error} />;
+  const items = data.items.map((item) => ({ ...item, ...patches[item.id] }));
 
-  const update = (id: string, patch: Partial<FeedEntry>) => setItems((current) => current?.map((item) => (item.id === id ? { ...item, ...patch } : item)) ?? null);
+  const update = (id: string, patch: Partial<FeedEntry>) => setPatches((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
 
   return (
     <ul className="flex flex-col gap-2" aria-label="Crew feed">

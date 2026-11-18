@@ -7,7 +7,15 @@ import { ATTRIBUTE_MAX, AttributeStatus } from '../../utils/attributes';
  * The attribute web: one axis per attribute shown, each out of 999. Axis 0
  * points straight up. Labels are buttons laid over the drawing when
  * `onSelect` is given, so tapping an axis can open its breakdown.
+ *
+ * One shared scale, a light chalk fill, and one comparison only: the same web
+ * four weeks ago as a dashed outline, so the athlete reads themself against
+ * themself. Opposite axes are opposing qualities, so an imbalance shows as a
+ * lopsided shape.
  */
+
+/** The web's six axes, in drawing order: Push opposite Pull, Straight-arm opposite Legs, Core opposite Endurance. */
+export const WEB_ORDER = ['push', 'straight', 'core', 'pull', 'legs', 'endurance'];
 
 const RINGS = [0.25, 0.5, 0.75, 1];
 
@@ -18,9 +26,11 @@ interface RadarWebProps {
   onSelect?: (id: string) => void;
   /** Hide the axis labels (for small previews). */
   bare?: boolean;
+  /** The same axes four weeks ago, drawn as a dashed outline. */
+  previous?: (number | null)[];
 }
 
-export const RadarWeb: React.FC<RadarWebProps> = ({ attributes, size, selectedId, onSelect, bare = false }) => {
+export const RadarWeb: React.FC<RadarWebProps> = ({ attributes, size, selectedId, onSelect, bare = false, previous }) => {
   const count = attributes.length;
   const pad = bare ? 6 : 52;
   const center = size / 2;
@@ -34,6 +44,9 @@ export const RadarWeb: React.FC<RadarWebProps> = ({ attributes, size, selectedId
   const shape = attributes
     .map((attribute, i) => at(i, Math.max(0.04, (attribute.value ?? 0) / ATTRIBUTE_MAX)).map((n) => n.toFixed(1)).join(','))
     .join(' ');
+  const before = previous
+    ? previous.map((value, i) => at(i, Math.max(0.04, (value ?? 0) / ATTRIBUTE_MAX)).map((n) => n.toFixed(1)).join(',')).join(' ')
+    : null;
   const selectedIndex = attributes.findIndex((attribute) => attribute.def.id === selectedId);
   const selectedPoint =
     selectedIndex >= 0 ? at(selectedIndex, Math.max(0.04, (attributes[selectedIndex].value ?? 0) / ATTRIBUTE_MAX)) : null;
@@ -65,12 +78,15 @@ export const RadarWeb: React.FC<RadarWebProps> = ({ attributes, size, selectedId
             />
           );
         })}
+        {before && (
+          <polygon points={before} fill="none" strokeWidth="1.6" strokeDasharray="4 4" strokeLinejoin="round" style={{ stroke: 'var(--color-fg-4)' }} />
+        )}
         <polygon
           points={shape}
-          fillOpacity="0.22"
+          fillOpacity="0.14"
           strokeWidth="2.2"
           strokeLinejoin="round"
-          style={{ fill: 'var(--color-earned)', stroke: 'var(--color-earned)', transition: 'all .6s var(--ease-lift)' }}
+          style={{ fill: 'var(--color-fg)', stroke: 'var(--color-fg)', transition: 'all .6s var(--ease-lift)' }}
         />
         {selectedPoint && (
           <>

@@ -9,6 +9,7 @@ import { BossStatus, RequirementStatus } from '../../utils/protocolEngine';
 import { useGame } from './GameProvider';
 import { figureForBoss } from './figures';
 import { HP_MAX, bossHp, sealedLine } from './helpers';
+import { ClipControl } from '../skilltree/ClipControl';
 import { Figure, Label, Ring, Stepper } from './kit';
 
 /**
@@ -131,6 +132,7 @@ export const FightPanel: React.FC<{ status: BossStatus; showBack?: boolean }> = 
         {status.requirements.map((req, index) => (
           <WeakPoint key={index} req={req} locked={status.sealed && !status.defeated} />
         ))}
+        {(status.defeated || status.ready) && <ClipControl skillKey={`boss:${status.boss.id}`} />}
       </div>
     </section>
   );

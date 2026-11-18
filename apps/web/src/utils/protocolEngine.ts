@@ -129,6 +129,8 @@ export interface ProtocolSave {
   gear?: Record<string, string>;
   /** The skill whose pose the avatar strikes, keyed like `skills`. */
   signature?: string | null;
+  /** Skills with a clip filmed of their test, keyed like `skills`, by date. The clip itself stays on the device. */
+  clips?: Record<string, string>;
 }
 
 export function createInitialSave(plan: CampaignPlan = BLUEPRINT_PLAN): ProtocolSave {
