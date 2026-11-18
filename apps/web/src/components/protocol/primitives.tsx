@@ -10,69 +10,51 @@ export interface Theme {
   text: string;
   border: string;
   bg: string;
+  /** A flat fill (a `bg-*` class) for meters and dots. */
   bar: string;
 }
 
+/** Lanes and day types get no colour of their own: chalk on iron, told apart by label. */
+const NEUTRAL = { text: 'text-fg-2', border: 'border-ink-600', bg: 'bg-ink-800', bar: 'bg-progress' };
+
 /**
  * Full class strings on purpose — Tailwind scans source literally, so a
- * `bg-${colour}-500` template would compile to nothing.
+ * `bg-${colour}-500` template would compile to nothing. Only the accents that
+ * mean something keep a hue: steel for recovery (armour work), gold for what
+ * is earned, crimson for HP.
  */
 export const THEME: Record<ThemeKey, Theme> = {
-  push: {
-    label: 'Push',
-    text: 'text-neon-cyan',
-    border: 'border-cyan-500/40',
-    bg: 'bg-cyan-950/40',
-    bar: 'from-cyan-600 to-neon-cyan',
-  },
-  pull: {
-    label: 'Pull',
-    text: 'text-neon-emerald',
-    border: 'border-emerald-500/40',
-    bg: 'bg-emerald-950/40',
-    bar: 'from-emerald-600 to-neon-emerald',
-  },
-  legs: {
-    label: 'Legs',
-    text: 'text-neon-amber',
-    border: 'border-amber-500/40',
-    bg: 'bg-amber-950/40',
-    bar: 'from-amber-600 to-neon-amber',
-  },
-  core: {
-    label: 'Core',
-    text: 'text-neon-purple',
-    border: 'border-purple-500/40',
-    bg: 'bg-purple-950/40',
-    bar: 'from-purple-600 to-neon-purple',
-  },
+  push: { label: 'Push', ...NEUTRAL },
+  pull: { label: 'Pull', ...NEUTRAL },
+  legs: { label: 'Legs', ...NEUTRAL },
+  core: { label: 'Core', ...NEUTRAL },
   recovery: {
     label: 'Recovery',
-    text: 'text-sky-300',
-    border: 'border-sky-500/40',
-    bg: 'bg-sky-950/40',
-    bar: 'from-sky-600 to-sky-300',
+    text: 'text-armour',
+    border: 'border-armour-line',
+    bg: 'bg-armour-deep',
+    bar: 'bg-armour',
   },
   rest: {
     label: 'Rest',
-    text: 'text-slate-300',
-    border: 'border-slate-600/60',
-    bg: 'bg-slate-900/60',
-    bar: 'from-slate-600 to-slate-400',
+    text: 'text-fg-3',
+    border: 'border-ink-600',
+    bg: 'bg-ink-900',
+    bar: 'bg-ink-500',
   },
   gold: {
     label: 'Boss',
-    text: 'text-neon-gold',
-    border: 'border-amber-400/50',
-    bg: 'bg-amber-950/40',
-    bar: 'from-amber-500 via-neon-gold to-yellow-300',
+    text: 'text-earned',
+    border: 'border-earned-line',
+    bg: 'bg-earned-deep',
+    bar: 'bg-earned',
   },
   hp: {
     label: 'HP',
-    text: 'text-neon-rose',
-    border: 'border-rose-500/40',
-    bg: 'bg-rose-950/40',
-    bar: 'from-rose-700 to-neon-rose',
+    text: 'text-boss',
+    border: 'border-boss-line',
+    bg: 'bg-boss-deep',
+    bar: 'bg-boss',
   },
 };
 
@@ -94,7 +76,7 @@ export const MeterBar: React.FC<MeterBarProps> = ({ value, theme = 'push', size 
 
   return (
     <div
-      className={`w-full ${height} rounded-full bg-dark-950 border border-slate-800/80 overflow-hidden`}
+      className={`w-full ${height} rounded-[2px] bg-ink-700 overflow-hidden`}
       role="progressbar"
       aria-label={label}
       aria-valuenow={Math.round(pct)}
@@ -102,7 +84,7 @@ export const MeterBar: React.FC<MeterBarProps> = ({ value, theme = 'push', size 
       aria-valuemax={100}
     >
       <div
-        className={`h-full rounded-full bg-gradient-to-r ${THEME[theme].bar} transition-[width] duration-700 ease-out`}
+        className={`h-full ${THEME[theme].bar} transition-[width] duration-700 ease-[var(--ease-lift)]`}
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -113,7 +95,7 @@ export const Panel: React.FC<{ children: React.ReactNode; className?: string }> 
   children,
   className = '',
 }) => (
-  <section className={`bg-dark-900/70 backdrop-blur-sm border border-slate-800/80 rounded-2xl shadow-xl ${className}`}>
+  <section className={`rounded-card bg-ink-900 ${className}`}>
     {children}
   </section>
 );
@@ -128,10 +110,10 @@ interface PanelHeadProps {
 export const PanelHead: React.FC<PanelHeadProps> = ({ icon, title, subtitle, right }) => (
   <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
     <div className="flex items-start gap-3 min-w-0">
-      <div className="p-2 rounded-xl bg-dark-950 border border-slate-800 text-neon-cyan shrink-0">{icon}</div>
+      <div className="p-2 rounded-tag bg-ink-800 text-fg-2 shrink-0">{icon}</div>
       <div className="min-w-0">
-        <h2 className="text-base font-black text-white tracking-tight">{title}</h2>
-        {subtitle && <p className="text-xs text-slate-400 mt-0.5 max-w-2xl">{subtitle}</p>}
+        <h2 className="font-display font-extrabold uppercase text-[22px] leading-none text-fg">{title}</h2>
+        {subtitle && <p className="text-[13px] text-fg-4 mt-1.5 max-w-2xl">{subtitle}</p>}
       </div>
     </div>
     {right}
@@ -144,10 +126,10 @@ export const Tally: React.FC<{ icon: React.ReactNode; value: React.ReactNode; la
   value,
   label,
 }) => (
-  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-dark-950 border border-slate-800 shrink-0">
+  <div className="flex items-center gap-1.5 h-7 px-2 rounded-tag bg-ink-800 shrink-0">
     {icon}
-    <span className="font-mono font-black text-white text-sm">{value}</span>
-    <span className="text-[11px] text-slate-500">{label}</span>
+    <span className="num font-bold text-fg text-[15px]">{value}</span>
+    <span className="text-[12px] text-fg-4">{label}</span>
   </div>
 );
 
@@ -177,7 +159,7 @@ export const Stepper: React.FC<StepperProps> = ({
   max = 999,
   unit,
   prefix = '',
-  accent = 'text-white',
+  accent = 'text-fg',
   size = 'md',
   placeholder,
   ariaLabel,
@@ -193,11 +175,9 @@ export const Stepper: React.FC<StepperProps> = ({
     if (Number.isFinite(parsed) && clamp(parsed) !== value) onCommit(clamp(parsed));
   };
 
-  const button =
-    size === 'sm'
-      ? 'w-7 h-7 rounded-lg'
-      : 'w-9 h-9 rounded-xl';
-  const field = size === 'sm' ? 'h-7 px-2 rounded-lg min-w-[84px]' : 'h-9 px-3 rounded-xl min-w-[112px]';
+  // Input rules: an iron well with a hairline edge that turns chalk on focus.
+  const button = size === 'sm' ? 'w-8 h-8 rounded-card' : 'w-11 h-11 rounded-card';
+  const field = size === 'sm' ? 'h-8 px-2 rounded-card min-w-[84px]' : 'h-11 px-3 rounded-card min-w-[112px]';
   const digits = size === 'sm' ? 'text-sm w-[46px]' : 'text-lg w-[58px]';
   const showPlaceholder = placeholder !== undefined && draft === null && value === 0;
 
@@ -207,13 +187,13 @@ export const Stepper: React.FC<StepperProps> = ({
         type="button"
         onClick={() => onCommit(clamp(value - step))}
         aria-label={`${ariaLabel}: decrease by ${step}`}
-        className={`flex items-center justify-center ${button} bg-dark-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-600 active:scale-90 transition cursor-pointer shrink-0`}
+        className={`flex items-center justify-center ${button} bg-ink-900 border border-ink-700 text-fg-3 hover:text-fg hover:bg-ink-850 active:scale-[.97] transition cursor-pointer shrink-0`}
       >
-        <Minus className="w-3.5 h-3.5" />
+        <Minus className="w-3.5 h-3.5" strokeWidth={2.6} />
       </button>
 
-      <label className={`flex items-baseline justify-center gap-0.5 ${field} bg-dark-950 border border-slate-800 focus-within:border-slate-500 transition-colors cursor-text`}>
-        {prefix && !showPlaceholder && <span className={`font-mono font-black ${accent} ${size === 'sm' ? 'text-sm' : 'text-lg'}`}>{prefix}</span>}
+      <label className={`flex items-center justify-center gap-0.5 ${field} bg-ink-900 border border-ink-700 focus-within:border-act transition-colors cursor-text`}>
+        {prefix && !showPlaceholder && <span className={`num font-bold ${accent} ${size === 'sm' ? 'text-sm' : 'text-lg'}`}>{prefix}</span>}
         <input
           type="number"
           inputMode="decimal"
@@ -228,18 +208,18 @@ export const Stepper: React.FC<StepperProps> = ({
           onKeyDown={(event) => {
             if (event.key === 'Enter') event.currentTarget.blur();
           }}
-          className={`${digits} bg-transparent font-mono font-black text-center outline-none ${accent} placeholder:text-slate-600 placeholder:font-sans placeholder:text-[11px] placeholder:font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+          className={`${digits} bg-transparent num font-bold text-center outline-none ${accent} placeholder:text-fg-5 placeholder:font-sans placeholder:text-[11px] placeholder:font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
         />
-        <span className="text-[10px] font-bold text-slate-500 uppercase">{unit}</span>
+        <span className="text-[11px] font-semibold text-fg-4">{unit}</span>
       </label>
 
       <button
         type="button"
         onClick={() => onCommit(clamp(value + step))}
         aria-label={`${ariaLabel}: increase by ${step}`}
-        className={`flex items-center justify-center ${button} bg-dark-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-600 active:scale-90 transition cursor-pointer shrink-0`}
+        className={`flex items-center justify-center ${button} bg-ink-900 border border-ink-700 text-fg hover:bg-ink-850 active:scale-[.97] transition cursor-pointer shrink-0`}
       >
-        <Plus className="w-3.5 h-3.5" />
+        <Plus className="w-3.5 h-3.5" strokeWidth={2.6} />
       </button>
     </div>
   );

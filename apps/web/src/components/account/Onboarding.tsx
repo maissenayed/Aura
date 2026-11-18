@@ -2,16 +2,20 @@
 
 import React, { useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BicepsFlexed, Check, Crown, Dumbbell, Hammer, LogOut, Mountain } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { CAMPAIGN_TEMPLATES, CampaignTemplate, TemplateId } from '../../data/campaignTemplates';
 import { useAccount } from '../../utils/accountStore';
 import { blankSpec } from '../../utils/campaignPlan';
 import { signOutOfCampaign, startCampaign } from '../../utils/protocolStore';
+import { Chip } from '../game/kit';
+import { BossIcon, CheckIcon, ForgeIcon, HoldIcon, PlateIcon, RingsIcon } from '../game/icons';
+import { PRIMARY_BUTTON, SECONDARY_BUTTON } from './ui';
 
+/** A discipline is a glyph, not a colour. */
 const ICON: Record<TemplateId, React.ComponentType<{ className?: string }>> = {
-  calisthenics: BicepsFlexed,
-  bodybuilding: Dumbbell,
-  bouldering: Mountain,
+  calisthenics: RingsIcon,
+  bodybuilding: PlateIcon,
+  bouldering: HoldIcon,
 };
 
 const MIN_KG = 30;
@@ -30,33 +34,33 @@ const TemplateCard: React.FC<{ template: CampaignTemplate; selected: boolean; on
       role="radio"
       aria-checked={selected}
       onClick={onSelect}
-      className={`relative w-full text-left flex flex-col gap-3 p-4 rounded-[20px] border transition cursor-pointer ${
-        selected ? 'border-act bg-[#08161d] shadow-[0_0_0_1px_var(--color-act)]' : 'border-ink-700 bg-ink-900 hover:border-ink-600'
+      className={`relative w-full text-left flex flex-col gap-3 p-4 rounded-card border-2 transition active:scale-[.99] cursor-pointer ${
+        selected ? 'border-act bg-ink-850' : 'border-transparent bg-ink-900 hover:bg-ink-850'
       }`}
     >
       <span className="flex items-center gap-3">
-        <span className={`flex items-center justify-center w-11 h-11 rounded-2xl ${selected ? 'bg-act text-act-deep' : 'bg-ink-800 text-fg-2'}`}>
-          <Icon className="w-5 h-5" />
+        <span className={`flex items-center justify-center w-11 h-11 rounded-card ${selected ? 'bg-act text-act-deep' : 'bg-ink-800 text-fg-2'}`}>
+          <Icon className="w-6 h-6" />
         </span>
-        <span className="flex-1 min-w-0">
-          <span className="block text-[11px] font-display font-bold uppercase tracking-widest text-fg-3">{template.sport}</span>
-          <span className="block font-display font-bold text-lg text-fg leading-tight">{template.name}</span>
+        <span className="flex-1 min-w-0 flex flex-col gap-1">
+          <span className="eyebrow text-fg-4">{template.sport}</span>
+          <span className="font-display font-extrabold uppercase text-[22px] text-fg leading-none">{template.name}</span>
         </span>
-        {selected && <Check className="w-5 h-5 text-act shrink-0" aria-hidden />}
+        {selected && <CheckIcon className="w-6 h-6 text-act shrink-0" strokeWidth={2.6} />}
       </span>
       <span className="text-sm text-fg-2 leading-snug">{template.tagline}</span>
       <span className="text-[12px] text-fg-3 leading-snug">
         <span className="font-semibold text-fg-2">{template.trainingDays} training days</span> · {template.split}
       </span>
       <span className="flex flex-wrap gap-1.5">
-        <span className="flex items-center gap-1 h-7 px-2.5 rounded-full bg-[#16110a] border border-[#5c4a22] text-earned text-[11.5px] font-semibold">
-          <Crown className="w-3.5 h-3.5" />
+        <Chip tone="boss">
+          <BossIcon className="w-4 h-4" />
           10 bosses
-        </span>
+        </Chip>
         {template.bossNames.map((name) => (
-          <span key={name} className="flex items-center h-7 px-2.5 rounded-full bg-ink-800 text-fg-2 text-[11.5px] font-semibold">
+          <Chip key={name} tone="dim">
             {name}
-          </span>
+          </Chip>
         ))}
       </span>
     </button>
@@ -67,10 +71,10 @@ const KgField: React.FC<{ label: string; hint: string; value: string; onChange: 
   const id = useId();
   return (
     <div className="flex-1 min-w-0">
-      <label htmlFor={id} className="block mb-1.5 text-[11px] font-display font-bold uppercase tracking-widest text-fg-3">
+      <label htmlFor={id} className="eyebrow block mb-1.5 text-fg-4">
         {label}
       </label>
-      <span className="flex items-center h-12 px-3 rounded-[14px] bg-ink-900 border border-ink-700 focus-within:border-act transition">
+      <span className="flex items-center h-12 px-3 rounded-card bg-ink-900 border border-ink-700 focus-within:border-act transition">
         <input
           id={id}
           inputMode="decimal"
@@ -78,7 +82,7 @@ const KgField: React.FC<{ label: string; hint: string; value: string; onChange: 
           onChange={(event) => onChange(event.target.value)}
           required={required}
           placeholder="70"
-          className="flex-1 min-w-0 bg-transparent outline-none font-display font-bold text-lg text-fg placeholder:text-fg-5"
+          className="flex-1 min-w-0 bg-transparent outline-none num font-bold text-xl text-fg placeholder:text-fg-5"
         />
         <span className="text-sm font-semibold text-fg-3">kg</span>
       </span>
@@ -141,7 +145,7 @@ export const Onboarding: React.FC = () => {
   return (
     <form onSubmit={start} className="w-full max-w-xl flex flex-col gap-6">
       <header className="flex flex-col gap-2 text-center">
-        <h1 className="font-display font-bold text-2xl text-fg">{account ? `Welcome, ${account.name.split(' ')[0]}` : 'Welcome'}</h1>
+        <h1 className="font-display font-extrabold uppercase text-[32px] leading-[0.95] text-fg">{account ? `Welcome, ${account.name.split(' ')[0]}` : 'Welcome'}</h1>
         <p className="text-sm text-fg-2 leading-relaxed">
           Pick the campaign you start with: a full week of training, ten bosses to beat and a map to climb. You can change any of it later in
           the Forge.
@@ -160,7 +164,7 @@ export const Onboarding: React.FC = () => {
       </div>
 
       {problem && (
-        <p role="alert" className="text-sm font-semibold text-rose-300">
+        <p role="alert" className="text-sm font-semibold text-boss">
           {problem}
         </p>
       )}
@@ -169,7 +173,7 @@ export const Onboarding: React.FC = () => {
         <button
           type="submit"
           disabled={busy}
-          className="h-12 rounded-[14px] bg-act text-act-deep font-display font-bold text-[15px] cursor-pointer transition hover:brightness-110 disabled:opacity-60 disabled:cursor-wait"
+          className={`${PRIMARY_BUTTON} h-12`}
         >
           {busy ? 'Setting up your campaign…' : `Start ${template.name}`}
         </button>
@@ -177,9 +181,9 @@ export const Onboarding: React.FC = () => {
           type="button"
           onClick={buildOwn}
           disabled={busy}
-          className="flex items-center justify-center gap-2 h-11 rounded-[14px] border border-ink-700 text-sm font-semibold text-fg-2 hover:text-fg hover:border-ink-600 cursor-pointer transition disabled:opacity-60"
+          className={`${SECONDARY_BUTTON} h-11 text-sm`}
         >
-          <Hammer className="w-4 h-4" />
+          <ForgeIcon className="w-[18px] h-[18px]" />
           Or build my own plan in the Forge
         </button>
       </div>
@@ -188,7 +192,7 @@ export const Onboarding: React.FC = () => {
         <button
           type="button"
           onClick={() => void signOutOfCampaign()}
-          className="self-center flex items-center gap-1.5 text-xs font-semibold text-fg-4 hover:text-fg-2 cursor-pointer"
+          className="self-center flex items-center gap-1.5 h-9 px-2 text-xs font-semibold text-fg-4 hover:text-fg cursor-pointer"
         >
           <LogOut className="w-3.5 h-3.5" />
           Not {account.name.split(' ')[0]}? Sign out

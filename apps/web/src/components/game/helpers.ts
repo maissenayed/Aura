@@ -70,3 +70,14 @@ export function prToday(save: ProtocolSave, key: string, todayIso: string | null
 
 /** "Thursday" → "Thu". */
 export const shortDay = (name: string) => name.slice(0, 3);
+
+/**
+ * What a sealed boss waits for, said as what opens it. The requirement label
+ * reads "The Handstand Push-up defeated", which on a sealed card sounds as if
+ * the boss had won.
+ */
+export function sealedLine(sealedBy?: string): string {
+  if (!sealedBy) return 'Sealed';
+  const boss = sealedBy.match(/^(?:The )?(.+) defeated$/);
+  return boss ? `Opens when you beat ${boss[1]}` : `Opens when: ${sealedBy}`;
+}

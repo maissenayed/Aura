@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Crown, Dumbbell, Repeat, Scale } from 'lucide-react';
+import { Repeat, Scale } from 'lucide-react';
 import { Branch, CampaignPlan, PlanSpec, newId, normalizeSpec, recordName, usesOf } from '../../utils/campaignPlan';
 import { BossSpec } from '../../utils/campaignV3';
 import { multipleTarget } from '../../utils/protocolEngine';
 import { metricOf } from '../../utils/records';
 import { floorsOf, skillOf } from '../../utils/treeIndex';
 import { useGame } from '../game/GameProvider';
-import { themeFor } from '../protocol/primitives';
+import { PlateIcon, RouteIcon } from '../game/icons';
 import { DeleteButton, EditCard, Group, GroupedSelect, MoveButtons, NumberField, TextField, moveBy, removeAt, setAt } from './fields';
 import { CategoryChips, SkillSelect, exerciseGroups } from './pickers';
 
@@ -21,9 +21,9 @@ interface Props {
 type Kind = 'skill' | 'reps' | 'multiple' | 'scale';
 
 const KINDS: { id: Kind; label: string; hint: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'skill', label: 'Tree skill', hint: 'Beaten when you master it on the skill tree. Every skill below it is a weak point.', icon: Crown },
+  { id: 'skill', label: 'Tree skill', hint: 'Beaten when you master it on the skill tree. Every skill below it is a weak point.', icon: RouteIcon },
   { id: 'reps', label: 'Max reps', hint: 'An exercise and a number to reach in one set — reps, or seconds for holds.', icon: Repeat },
-  { id: 'multiple', label: '× Bodyweight', hint: 'Lift a multiple of your bodyweight. The target follows your weigh-ins.', icon: Dumbbell },
+  { id: 'multiple', label: '× Bodyweight', hint: 'Lift a multiple of your bodyweight. The target follows your weigh-ins.', icon: PlateIcon },
   { id: 'scale', label: 'Target weight', hint: 'Reach a body weight on the scale.', icon: Scale },
 ];
 
@@ -67,10 +67,9 @@ export const BossesEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
         <CategoryChips label="Boss category" value={category} onChange={setCategory} counts={counts} />
 
         <ul className="space-y-2">
-          {shown.length === 0 && <li className="list-none text-[12px] text-fg-4 px-1">No {category} bosses yet.</li>}
+          {shown.length === 0 && <li className="list-none text-[13px] text-fg-4 px-1">No {category} bosses yet.</li>}
           {shown.map(({ boss, index }) => {
             const resolved = plan.bosses.find((entry) => entry.id === boss.id);
-            const theme = themeFor(boss.category);
             const kind = kindOf(boss);
             const uses = usesOf(plan, 'boss', boss.id);
             const others = spec.bosses.filter((other) => other.id !== boss.id);
@@ -81,7 +80,7 @@ export const BossesEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
                 title={boss.name}
                 meta={`${KINDS.find((entry) => entry.id === kind)?.label} · ${resolved?.epithet ?? ''}`}
                 badge={
-                  <span className={`flex items-center justify-center min-w-7 h-7 px-1 rounded-lg border text-[11px] font-black font-mono shrink-0 ${theme.bg} ${theme.text} ${theme.border}`}>
+                  <span className="flex items-center justify-center min-w-8 h-8 px-1 rounded-tag bg-boss-deep text-boss-soft font-display font-extrabold text-[16px] leading-none shrink-0">
                     {index + 1}
                   </span>
                 }
@@ -99,7 +98,7 @@ export const BossesEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
                       value={boss.skill}
                       onChange={(skill) => setBoss(index, { ...boss, skill })}
                     />
-                    <p className="text-[11px] text-fg-4">
+                    <p className="text-[12px] text-fg-4">
                       {Math.max(0, floorsOf(boss.tree, boss.skill).length - 1)} skills lead to it. Each one you master is a hit; mastering{' '}
                       {skillOf(boss.tree, boss.skill)?.name ?? 'it'} slays it.
                     </p>
@@ -141,7 +140,7 @@ export const BossesEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
                         onChange={(multiple) => setBoss(index, { ...boss, multiple: Math.min(5, Math.max(0.25, multiple ?? boss.multiple)) })}
                       />
                     </div>
-                    <p className="text-[11px] text-fg-4">
+                    <p className="text-[12px] text-fg-4">
                       At {save.bodyWeightKg} kg that is{' '}
                       {(() => {
                         const lift = plan.lifts.find((entry) => entry.id === boss.exercise);
@@ -159,7 +158,7 @@ export const BossesEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
 
                 {others.length > 0 && (
                   <fieldset>
-                    <legend className="block mb-1 text-[10px] font-black uppercase tracking-widest text-slate-500">Fight after</legend>
+                    <legend className="eyebrow block mb-1 text-fg-4">Fight after</legend>
                     <div className="flex flex-wrap gap-1.5">
                       {others.map((other) => {
                         const on = Boolean(boss.after?.includes(other.id));
@@ -174,8 +173,8 @@ export const BossesEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
                               void _after;
                               setBoss(index, (after.length ? { ...rest, after } : rest) as BossSpec);
                             }}
-                            className={`h-8 px-3 rounded-full border text-[11.5px] font-semibold cursor-pointer ${
-                              on ? 'bg-boss/15 border-boss text-boss-soft' : 'bg-ink-850 border-ink-700 text-fg-3'
+                            className={`h-8 px-2.5 rounded-tag text-[13px] font-semibold transition active:scale-[.97] cursor-pointer ${
+                              on ? 'bg-act text-act-deep' : 'bg-ink-850 text-fg-3 hover:bg-ink-800 hover:text-fg'
                             }`}
                           >
                             {other.name}
@@ -210,8 +209,8 @@ export const BossesEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
               type="button"
               aria-pressed={adding === id}
               onClick={() => (id === 'scale' ? create({ ...base(), kind: 'bodyweight', mode: 'scale', kg: spec.bodyweight.goal }) : setAdding(adding === id ? null : id))}
-              className={`h-12 rounded-[14px] border-[1.5px] border-dashed text-[13px] font-bold flex items-center justify-center gap-2 cursor-pointer ${
-                adding === id ? 'border-act text-act bg-act/5' : 'border-ink-600 text-fg-3 hover:text-fg'
+              className={`h-12 rounded-card border-[1.5px] text-[14px] font-semibold flex items-center justify-center gap-2 transition active:scale-[.97] cursor-pointer ${
+                adding === id ? 'bg-ink-800 border-act text-fg' : 'border-dashed border-ink-600 text-fg-2 hover:bg-ink-850 hover:text-fg'
               }`}
             >
               <Icon className="w-4 h-4" /> {label}

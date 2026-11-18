@@ -4,6 +4,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { AppShell, ScreenHeader } from '../../components/game/AppShell';
 import { useGame } from '../../components/game/GameProvider';
 import { BodyMap, GroupStatus } from '../../components/anatomy/BodyMap';
+import { Chip } from '../../components/game/kit';
 import { MusclePanel, MusclePick, TodayCard, TodayTargets } from '../../components/anatomy/MusclePanel';
 import { BodySide, GROUPS, GROUP_BY_ID, MuscleGroup, groupsOfExercise } from '../../components/anatomy/muscleGroups';
 import { questKey } from '../../utils/protocolEngine';
@@ -37,7 +38,7 @@ export default function AnatomyPage() {
           <ScreenHeader eyebrow="Body" title="Anatomy" right={<SideSwitch side={side} onChange={setSide} />} />
 
           <section
-            className="relative rounded-[22px] border border-ink-700 bg-[linear-gradient(180deg,#0f1322,#0a0d16)] overflow-hidden"
+            className="relative rounded-card bg-ink-900 overflow-hidden"
             aria-label="Body map"
           >
             <div className="absolute inset-0 dot-grid pointer-events-none" aria-hidden />
@@ -52,14 +53,9 @@ export default function AnatomyPage() {
             />
             <div className="absolute inset-x-0 bottom-4 flex justify-center pointer-events-none" aria-live="polite">
               {label && (
-                <span
-                  key={label}
-                  className={`anim-fade h-8 px-3.5 rounded-full border bg-ink-950/90 font-display font-bold text-[14px] flex items-center ${
-                    pick?.group === label ? 'border-aura/60 text-aura-soft' : 'border-ink-600 text-fg-2'
-                  }`}
-                >
+                <Chip key={label} tone={pick?.group === label ? 'armour' : 'act'} className="anim-fade">
                   {GROUP_BY_ID[label].name}
-                </span>
+                </Chip>
               )}
             </div>
           </section>
@@ -105,7 +101,7 @@ function useTodayTargets(): TodayTargets | null {
 }
 
 const SideSwitch: React.FC<{ side: BodySide; onChange: (side: BodySide) => void }> = ({ side, onChange }) => (
-  <div className="flex p-1 rounded-[14px] bg-ink-850 border border-ink-700" role="tablist" aria-label="Side">
+  <div className="flex gap-1 p-1 rounded-card bg-ink-900" role="tablist" aria-label="Side">
     {(['front', 'back'] as const).map((value) => (
       <button
         key={value}
@@ -113,10 +109,13 @@ const SideSwitch: React.FC<{ side: BodySide; onChange: (side: BodySide) => void 
         role="tab"
         aria-selected={side === value}
         onClick={() => onChange(value)}
-        className={`h-9 px-3.5 rounded-[10px] font-display font-bold text-[14px] capitalize transition ${
-          side === value ? 'bg-act text-act-deep' : 'text-fg-3 hover:text-fg'
+        className={`relative h-9 px-3.5 rounded-card font-display font-bold text-[15px] capitalize transition active:scale-[.97] ${
+          side === value ? 'bg-ink-800 text-fg' : 'text-fg-4 hover:text-fg'
         }`}
       >
+        {side === value && (
+          <span className="absolute top-0 left-1/2 -translate-x-1/2 w-[18px] h-[3px] rounded-[2px] bg-act" aria-hidden />
+        )}
         {value}
       </button>
     ))}
@@ -131,22 +130,22 @@ const Legend: React.FC<{ status: Partial<Record<MuscleGroup, GroupStatus>> }> = 
   return (
     <div className="absolute top-3 left-3 z-10 flex gap-2 pointer-events-none">
       {todo > 0 && (
-        <span className="h-7 px-2.5 rounded-full border border-[#17566a] bg-ink-950/80 text-act font-display font-bold text-[13px] flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-act" />
-          Today {todo}
-        </span>
+        <Chip tone="act">
+          <span className="w-2 h-2 rounded-[2px] bg-fg-3" aria-hidden />
+          Today <span className="num">{todo}</span>
+        </Chip>
       )}
       {done > 0 && (
-        <span className="h-7 px-2.5 rounded-full border border-[#3a2c12] bg-ink-950/80 text-earned font-display font-bold text-[13px] flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-earned" />
-          Done {done}
-        </span>
+        <Chip tone="earned">
+          <span className="w-2 h-2 rounded-[2px] bg-earned" aria-hidden />
+          Done <span className="num">{done}</span>
+        </Chip>
       )}
     </div>
   );
 };
 
-/** Every group as a chip; today's are coloured and come first. */
+/** Every group as a chip; today's come first, chalk to train and gold once trained, the picked one steel. */
 const GroupChips: React.FC<{
   status: Partial<Record<MuscleGroup, GroupStatus>>;
   selected: MuscleGroup | null;
@@ -155,7 +154,7 @@ const GroupChips: React.FC<{
   const rank = (group: MuscleGroup) => (status[group] === 'todo' ? 0 : status[group] === 'done' ? 1 : 2);
   const ordered = [...GROUPS].sort((a, b) => rank(a.id) - rank(b.id));
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 lg:mx-0 lg:px-0 lg:flex-wrap scrollbar-none" aria-label="Muscles">
+    <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 lg:mx-0 lg:px-0 lg:flex-wrap no-scrollbar" aria-label="Muscles">
       {ordered.map((group) => {
         const lit = status[group.id];
         const isSelected = selected === group.id;
@@ -165,14 +164,14 @@ const GroupChips: React.FC<{
             type="button"
             aria-pressed={isSelected}
             onClick={() => onPick(group.id)}
-            className={`h-9 px-3.5 shrink-0 rounded-full border font-display font-bold text-[14px] whitespace-nowrap transition active:scale-95 ${
+            className={`h-9 px-3 shrink-0 rounded-tag font-display font-bold text-[14px] tracking-[0.02em] whitespace-nowrap transition active:scale-[.97] ${
               isSelected
-                ? 'border-aura bg-aura/15 text-aura-soft'
+                ? 'bg-armour-deep text-armour'
                 : lit === 'todo'
-                  ? 'border-[#17566a] bg-[#08161d] text-act'
+                  ? 'bg-ink-800 text-fg'
                   : lit === 'done'
-                    ? 'border-[#3a2c12] bg-[#14100a] text-earned'
-                    : 'border-ink-700 bg-ink-850 text-fg-3 hover:text-fg'
+                    ? 'bg-earned-deep text-earned-soft'
+                    : 'bg-ink-900 text-fg-4 hover:text-fg'
             }`}
           >
             {group.name}

@@ -178,12 +178,26 @@ export function figureForBoss(boss: Pick<Boss, 'id' | 'branch'> & Partial<Pick<B
   );
 }
 
-/** Tints for the three states every node can be in, plus bosses. */
+/**
+ * Tints for the three states every node can be in, plus bosses. Chalk on iron:
+ * the body in the state's dim tone, the far limbs a step darker; the working
+ * part (the accent) is the bright tone. CSS variables, so Daylight redraws them.
+ */
 export const FIGURE_TINT = {
-  mastered: { body: '#ffd37a', far: '#9b7a35' },
-  ready: { body: '#eef2ff', far: '#8a93b0' },
-  locked: { body: '#4a5470', far: '#2f364b' },
-  boss: { body: '#ff8fa3', far: '#8e3a4b' },
-  slain: { body: '#ffd37a', far: '#9b7a35' },
-  sealed: { body: '#56607a', far: '#353d54' },
+  mastered: { body: 'var(--fig-gold-body)', far: 'var(--fig-gold-far)' },
+  ready: { body: 'var(--fig-ready-body)', far: 'var(--fig-ready-far)' },
+  locked: { body: 'var(--fig-locked-body)', far: 'var(--fig-locked-far)' },
+  boss: { body: 'var(--fig-boss-body)', far: 'var(--fig-boss-far)' },
+  slain: { body: 'var(--fig-gold-body)', far: 'var(--fig-gold-far)' },
+  sealed: { body: 'var(--fig-locked-body)', far: 'var(--fig-locked-far)' },
+} as const;
+
+/** The bright tone each state draws its working part in. */
+export const FIGURE_ACCENT = {
+  mastered: 'var(--fig-gold-focus)',
+  ready: 'var(--fig-ready-focus)',
+  locked: 'var(--fig-locked-body)',
+  boss: 'var(--fig-boss-focus)',
+  slain: 'var(--fig-gold-focus)',
+  sealed: 'var(--fig-locked-body)',
 } as const;

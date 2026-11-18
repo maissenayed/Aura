@@ -13,7 +13,7 @@ export default function BossFightPage() {
 
   if (!status) {
     return (
-      <div className="p-6 rounded-3xl border border-ink-700 bg-ink-900 flex flex-col items-start gap-3">
+      <div className="p-6 rounded-card border border-ink-700 bg-ink-900 flex flex-col items-start gap-3">
         <p className="font-display font-bold text-lg">This boss isn&apos;t in your campaign.</p>
         <Link href="/bosses" className="text-act font-bold">
           Back to bosses

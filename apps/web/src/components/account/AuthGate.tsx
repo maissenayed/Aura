@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { KeyRound, LogIn, ShieldCheck } from 'lucide-react';
 import { api, refreshAccount, requestPasswordReset, signIn, useAccount } from '../../utils/accountStore';
-import { AuthCard, Field, FormMessage, PasswordField, Submit, passwordProblem } from './ui';
+import { AuthCard, Field, FormMessage, PasswordField, SECONDARY_BUTTON, Submit, passwordProblem } from './ui';
 
 /** Stands in for the campaign until someone is signed in — or, the very first time, until the owner exists. */
 export const AuthGate: React.FC<{ mode: 'signin' | 'setup' }> = ({ mode }) =>
@@ -57,26 +57,21 @@ const SignIn: React.FC = () => {
         </Submit>
       </form>
 
-      <div className="mt-5 pt-4 border-t border-slate-800 text-center">
+      <div className="mt-5 pt-4 border-t border-ink-700 text-center">
         {forgot === 'closed' && (
           <button
             type="button"
             onClick={() => setForgot('open')}
-            className="text-xs font-bold text-slate-400 hover:text-white cursor-pointer"
+            className="text-[13px] font-bold text-fg-3 hover:text-fg underline-offset-2 hover:underline cursor-pointer"
           >
             Forgot your password?
           </button>
         )}
         {forgot === 'open' &&
           (emailEnabled ? (
-            <div className="space-y-2">
+            <div className="flex flex-col items-center gap-3">
               <FormMessage tone="info">We will email a reset link to the address above.</FormMessage>
-              <button
-                type="button"
-                onClick={sendReset}
-                disabled={busy}
-                className="h-10 px-4 rounded-xl text-xs font-bold text-neon-cyan border border-cyan-500/40 hover:bg-cyan-950/40 transition cursor-pointer"
-              >
+              <button type="button" onClick={sendReset} disabled={busy} className={`${SECONDARY_BUTTON} h-11 px-4 text-sm`}>
                 Email me a reset link
               </button>
             </div>
@@ -89,7 +84,7 @@ const SignIn: React.FC = () => {
         {forgot === 'sent' && (
           <FormMessage tone="success">If that address has an account, a reset link is on its way. Check your inbox.</FormMessage>
         )}
-        <p className="mt-3 text-[11px] text-slate-500">New here? You need an invitation link from the owner.</p>
+        <p className="mt-3 text-[11px] text-fg-5">New here? You need an invitation link from the owner.</p>
       </div>
     </AuthCard>
   );

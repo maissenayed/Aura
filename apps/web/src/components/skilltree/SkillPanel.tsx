@@ -1,20 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  ArrowLeft,
-  Check,
-  ChevronRight,
-  Crown,
-  ExternalLink,
-  Lightbulb,
-  Lock,
-  Play,
-  Route,
-  Sparkles,
-  Undo2,
-  X,
-} from 'lucide-react';
+import { ArrowLeft, ChevronRight, ExternalLink, Lightbulb, Play, Sparkles, Undo2, X } from 'lucide-react';
 import {
   SkillGraph,
   SkillStatus,
@@ -26,6 +13,8 @@ import {
   tutorialSearchUrl,
   videoIdOf,
 } from '../../utils/skillTree';
+import { CheckIcon, CrownIcon, LockIcon, RouteIcon } from '../game/icons';
+import { Meter } from '../game/kit';
 import { SCENE_LABEL, SkillFigure } from './SkillFigure';
 import { SkillTreeDef, laneThemeOf } from './skillTrees';
 
@@ -58,16 +47,16 @@ export const SkillPanel: React.FC<SkillPanelProps> = (props) => {
 
   return (
     <>
-      {open && <div className="lg:hidden fixed inset-0 z-[45] bg-black/60 anim-fade" onClick={onClose} aria-hidden />}
+      {open && <div className="lg:hidden fixed inset-0 z-[45] bg-[var(--scrim)] anim-fade" onClick={onClose} aria-hidden />}
 
       <aside
         aria-label={selected ? `${capitalise(tree.noun.one)} details` : 'Your progress'}
         className={`${
           open ? 'flex' : 'hidden'
-        } lg:flex flex-col fixed lg:static inset-x-0 bottom-0 z-50 lg:z-auto w-full lg:w-[380px] lg:shrink-0 max-h-[88dvh] lg:max-h-none lg:h-full rounded-t-[30px] lg:rounded-none border-t lg:border-t-0 lg:border-l border-slate-800 bg-dark-900 shadow-2xl lg:shadow-none anim-sheet lg:animate-none`}
+        } lg:flex flex-col fixed lg:static inset-x-0 bottom-0 z-50 lg:z-auto w-full lg:w-[380px] lg:shrink-0 max-h-[88dvh] lg:max-h-none lg:h-full rounded-t-card lg:rounded-none lg:border-l border-ink-700 bg-ink-900 lift-shadow lg:shadow-none anim-sheet lg:animate-none`}
       >
         <div className="lg:hidden flex justify-center pt-2.5 pb-1" aria-hidden>
-          <span className="w-10 h-1 rounded-full bg-slate-700" />
+          <span className="w-10 h-1 rounded-[2px] bg-ink-600" />
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
@@ -102,18 +91,18 @@ const ProgressView: React.FC<SkillPanelProps> = ({
     <div className="p-5 space-y-6">
       <header className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Your {tree.label.toLowerCase()} progress</p>
-          <h2 className="text-xl font-black text-white tracking-tight">{summary.rank}</h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            <span className="font-mono font-bold text-white">{summary.mastered}</span> of {summary.total} mastered ·{' '}
-            <span className="font-mono font-bold text-neon-gold">{summary.xp.toLocaleString()} XP</span>
+          <p className="eyebrow text-fg-4">Your {tree.label.toLowerCase()} progress</p>
+          <h2 className="mt-1 font-display font-extrabold uppercase text-[26px] leading-none text-fg">{summary.rank}</h2>
+          <p className="text-[13px] text-fg-4 mt-1.5">
+            <span className="num font-bold text-[15px] text-fg">{summary.mastered}</span> of {summary.total} mastered ·{' '}
+            <span className="num font-bold text-[15px] text-earned">{summary.xp.toLocaleString()} XP</span>
           </p>
         </div>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="lg:hidden flex items-center justify-center w-10 h-10 -mr-2 -mt-1 rounded-xl text-slate-400 hover:text-white cursor-pointer"
+          className="lg:hidden flex items-center justify-center w-10 h-10 -mr-2 -mt-1 rounded-card text-fg-4 hover:text-fg hover:bg-ink-850 active:scale-[.97] transition cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -121,13 +110,15 @@ const ProgressView: React.FC<SkillPanelProps> = ({
 
       {summary.nextRank && (
         <div>
-          <div className="flex justify-between text-[11px] text-slate-400 mb-1.5">
+          <div className="flex justify-between text-xs text-fg-4 mb-1.5">
             <span>
-              Next rank: <strong className="text-slate-200">{summary.nextRank.title}</strong>
+              Next rank: <strong className="text-fg-2">{summary.nextRank.title}</strong>
             </span>
-            <span className="font-mono">{summary.nextRank.remaining} to go</span>
+            <span>
+              <span className="num font-bold text-[14px] text-fg-2">{summary.nextRank.remaining}</span> to go
+            </span>
           </div>
-          <Bar value={summary.nextRank.progress} bar="from-amber-500 to-neon-gold" />
+          <Meter value={summary.nextRank.progress} tone="earned" className="h-1.5" label="Progress to the next rank" />
         </div>
       )}
 
@@ -141,19 +132,25 @@ const ProgressView: React.FC<SkillPanelProps> = ({
                   type="button"
                   onClick={() => onLaneFilter(lane.lane)}
                   title={`Show only ${theme.label}`}
-                  className="w-full p-2.5 rounded-xl bg-dark-950/60 border border-slate-800 hover:border-slate-600 text-left transition cursor-pointer"
+                  className="block w-full p-3 rounded-card bg-ink-850 hover:bg-ink-800 text-left active:scale-[.97] transition cursor-pointer"
                 >
-                  <span className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wider ${theme.text}`}>
+                  <span className="flex items-center justify-between gap-2 mb-2">
+                    <span className={`eyebrow flex items-center gap-1.5 ${theme.text}`}>
                       {theme.icon}
                       {theme.label}
                     </span>
-                    <span className="text-[11px] font-mono text-slate-400">
-                      <span className="font-bold text-slate-200">{lane.mastered}</span>/{lane.total}
-                      {lane.ready > 0 && <span className="ml-2 font-bold text-neon-cyan">{lane.ready} ready</span>}
+                    <span className="num font-bold text-[14px] text-fg-4">
+                      <span className="text-fg-2">{lane.mastered}</span>/{lane.total}
+                      {lane.ready > 0 && <span className="ml-2 text-act">{lane.ready} ready</span>}
                     </span>
                   </span>
-                  <Bar value={lane.total ? lane.mastered / lane.total : 0} bar={theme.bar} />
+                  {/* Spans, not the Meter's divs: this sits inside a button. */}
+                  <span className="block h-1.5 rounded-[1px] bg-ink-700 overflow-hidden">
+                    <span
+                      className="block h-full bg-earned transition-[width] duration-500"
+                      style={{ width: `${lane.total ? (lane.mastered / lane.total) * 100 : 0}%` }}
+                    />
+                  </span>
                 </button>
               </li>
             );
@@ -163,15 +160,17 @@ const ProgressView: React.FC<SkillPanelProps> = ({
 
       <section aria-labelledby="up-next-heading">
         <div className="flex items-baseline justify-between gap-2 mb-1">
-          <h3 id="up-next-heading" className="text-sm font-black text-white">
+          <h3 id="up-next-heading" className="eyebrow text-fg-4">
             Up next
           </h3>
-          <span className="text-[11px] font-mono text-slate-500">{summary.ready.length} ready</span>
+          <span className="text-xs text-fg-4">
+            <span className="num font-bold text-[14px] text-fg-2">{summary.ready.length}</span> ready
+          </span>
         </div>
-        <p className="text-[11px] text-slate-400 mb-3">Unlocked and waiting for you — easiest first.</p>
+        <p className="text-xs text-fg-4 mb-3">Unlocked and waiting for you — easiest first.</p>
 
         {upNext.length === 0 ? (
-          <p className="p-3 rounded-xl bg-dark-950/60 border border-slate-800 text-xs text-slate-400">
+          <p className="p-3 rounded-card bg-ink-850 text-xs text-fg-4">
             Nothing is waiting: everything you have unlocked is mastered.
           </p>
         ) : (
@@ -188,7 +187,7 @@ const ProgressView: React.FC<SkillPanelProps> = ({
           <button
             type="button"
             onClick={onShowReady}
-            className="mt-2 w-full h-10 rounded-xl text-xs font-bold text-neon-cyan border border-cyan-500/30 hover:bg-cyan-950/40 transition cursor-pointer"
+            className="mt-2 w-full h-11 rounded-card border border-ink-600 text-fg text-[13px] font-bold hover:bg-ink-850 active:scale-[.97] transition cursor-pointer"
           >
             Show all {summary.ready.length} on the tree
           </button>
@@ -196,13 +195,13 @@ const ProgressView: React.FC<SkillPanelProps> = ({
       </section>
 
       {summary.mastered === 0 && (
-        <p className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/30 text-xs text-slate-200 leading-relaxed">
-          <strong className="text-neon-cyan">New here?</strong> Pick anything marked Ready, learn it, and mark it mastered
+        <p className="p-3 rounded-card bg-ink-850 text-xs text-fg-2 leading-relaxed">
+          <strong className="text-fg">New here?</strong> Pick anything marked Ready, learn it, and mark it mastered
           when you meet its standard. That unlocks the next step in its progression.
         </p>
       )}
 
-      <section aria-label="Manage progress" className="pt-4 border-t border-slate-800 space-y-2">
+      <section aria-label="Manage progress" className="pt-4 border-t border-ink-700 space-y-2">
         {basicsRemaining > 0 &&
           (confirmSkip ? (
             <Confirm
@@ -218,7 +217,7 @@ const ProgressView: React.FC<SkillPanelProps> = ({
             <button
               type="button"
               onClick={() => setConfirmSkip(true)}
-              className="w-full h-10 rounded-xl text-xs font-bold text-slate-300 border border-slate-800 hover:border-slate-600 transition cursor-pointer"
+              className="w-full h-11 rounded-card border border-ink-600 text-fg text-[13px] font-bold hover:bg-ink-850 active:scale-[.97] transition cursor-pointer"
             >
               I already own the basics ({basics})
             </button>
@@ -240,7 +239,7 @@ const ProgressView: React.FC<SkillPanelProps> = ({
             <button
               type="button"
               onClick={() => setConfirmReset(true)}
-              className="w-full h-10 rounded-xl text-xs font-bold text-slate-500 hover:text-rose-300 transition cursor-pointer"
+              className="w-full h-11 rounded-card text-[13px] font-bold text-fg-4 hover:text-boss active:scale-[.97] transition cursor-pointer"
             >
               Reset progress
             </button>
@@ -292,7 +291,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-1.5 h-10 -ml-2 px-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white cursor-pointer"
+          className="flex items-center gap-1.5 h-10 -ml-2 px-2 rounded-card text-[13px] font-bold text-fg-4 hover:text-fg hover:bg-ink-850 active:scale-[.97] transition cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Progress
@@ -301,46 +300,45 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
           type="button"
           onClick={onClose}
           aria-label="Close details"
-          className="flex items-center justify-center w-10 h-10 -mr-2 rounded-xl text-slate-400 hover:text-white cursor-pointer"
+          className="flex items-center justify-center w-10 h-10 -mr-2 rounded-card text-fg-4 hover:text-fg hover:bg-ink-850 active:scale-[.97] transition cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
       </div>
 
       <header>
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-bold">
-          <span className={`flex items-center gap-1 uppercase tracking-wider ${theme.text}`}>
+        <p className="eyebrow flex flex-wrap items-center gap-x-2 gap-y-1 text-fg-4">
+          <span className={`flex items-center gap-1 ${theme.text}`}>
             {theme.icon}
             {theme.label}
           </span>
-          <span className="text-slate-600">·</span>
-          <span className="text-slate-300">{exercise.subCategory}</span>
-          <span className="text-slate-600">·</span>
-          <span className="font-mono text-slate-300">{tree.levelName(exercise.level)}</span>
+          <span className="text-fg-5">·</span>
+          <span>{exercise.subCategory}</span>
+          <span className="text-fg-5">·</span>
+          <span>{tree.levelName(exercise.level)}</span>
           {exercise.proStatus && (
-            <span className="flex items-center gap-1 text-neon-gold">
-              <Crown className="w-3 h-3" />
+            <span className="flex items-center gap-1 text-fg-2">
+              <CrownIcon className="w-3.5 h-3.5" />
               Pro
             </span>
           )}
         </p>
-        <h2 ref={heading} tabIndex={-1} className="mt-1.5 text-xl font-black text-white tracking-tight outline-none">
+        <h2 ref={heading} tabIndex={-1} className="mt-2 font-display font-extrabold uppercase text-[26px] leading-none text-fg outline-none">
           {exercise.name}
         </h2>
-        {summaryLine && <p className="mt-1.5 text-sm text-slate-300 leading-relaxed">{summaryLine}</p>}
+        {summaryLine && <p className="mt-1.5 text-sm text-fg-3 leading-relaxed">{summaryLine}</p>}
       </header>
 
       {figure && (
-        <figure className="relative mx-auto w-full max-w-[280px]">
+        <figure className="relative mx-auto w-full max-w-[280px] rounded-card bg-ink-850 overflow-hidden">
           <SkillFigure
             spec={figure}
             accent={theme.hex}
-            framed
             animate
             title={`Illustration of ${exercise.name}`}
             className="block w-full aspect-square"
           />
-          <figcaption className="absolute left-3 top-3 px-2 py-0.5 rounded-md bg-dark-900/90 border border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <figcaption className="eyebrow absolute left-3 top-3 px-2 py-0.5 rounded-tag bg-ink-900 text-fg-4">
             {SCENE_LABEL[figure.scene]}
           </figcaption>
         </figure>
@@ -348,8 +346,8 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
 
       {/* Status and the one thing to do about it */}
       {status === 'ready' && (
-        <div className="p-3.5 rounded-2xl bg-cyan-950/30 border border-cyan-500/40 space-y-3">
-          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-neon-cyan">
+        <div className="p-4 rounded-card bg-ink-850 space-y-3">
+          <p className="eyebrow flex items-center gap-2 text-act">
             <Sparkles className="w-4 h-4" />
             Ready to train
           </p>
@@ -357,7 +355,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
           <button
             type="button"
             onClick={() => onToggleMastered(exercise.id)}
-            className="w-full h-11 rounded-xl bg-neon-cyan text-dark-950 text-sm font-black hover:brightness-110 active:scale-[0.99] transition cursor-pointer"
+            className="w-full h-12 rounded-card bg-earned text-earned-deep font-display font-extrabold uppercase text-lg tracking-[0.02em] active:scale-[.97] transition cursor-pointer"
           >
             Mark as mastered · +{exercise.xpReward} XP
           </button>
@@ -365,15 +363,15 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
       )}
 
       {status === 'locked' && (
-        <div className="p-3.5 rounded-2xl bg-dark-950/70 border border-slate-700 space-y-3">
-          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-300">
-            <Lock className="w-4 h-4" />
+        <div className="p-4 rounded-card bg-ink-850 space-y-3">
+          <p className="eyebrow flex items-center gap-2 text-fg-3">
+            <LockIcon className="w-4 h-4" />
             Locked · master {missing.length === 1 ? 'this' : `these ${missing.length}`} first
           </p>
           <ul className="space-y-1.5">
             {missing.map((entry) => (
               <li key={entry.id}>
-                <ExerciseRow tree={tree} exercise={entry} status={statusOf(entry, mastered)} onClick={() => onGoTo(entry.id)} />
+                <ExerciseRow tree={tree} exercise={entry} status={statusOf(entry, mastered)} raised onClick={() => onGoTo(entry.id)} />
               </li>
             ))}
           </ul>
@@ -381,7 +379,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
           <button
             type="button"
             onClick={() => onToggleMastered(exercise.id)}
-            className="w-full min-h-10 px-3 py-2 rounded-xl text-xs font-bold text-slate-300 border border-slate-700 hover:border-slate-500 transition cursor-pointer"
+            className="w-full min-h-11 px-3 py-2 rounded-card border border-ink-600 text-fg text-[13px] font-bold hover:bg-ink-800 active:scale-[.97] transition cursor-pointer"
           >
             I can already do this — mark it and the {stepsBefore} {stepsBefore === 1 ? 'step' : 'steps'} before it as mastered
           </button>
@@ -389,16 +387,16 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
       )}
 
       {status === 'mastered' && (
-        <div className="p-3.5 rounded-2xl bg-emerald-950/30 border border-emerald-500/40 space-y-3">
+        <div className="p-4 rounded-card bg-earned-deep space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-emerald-300">
-              <Check className="w-4 h-4" strokeWidth={3} />
+            <p className="eyebrow flex items-center gap-2 text-earned-soft">
+              <CheckIcon className="w-4 h-4" strokeWidth={3} />
               Mastered · +{exercise.xpReward} XP
             </p>
             <button
               type="button"
               onClick={() => onToggleMastered(exercise.id)}
-              className="flex items-center gap-1.5 h-9 px-2.5 rounded-lg text-[11px] font-bold text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 transition cursor-pointer"
+              className="flex items-center gap-1.5 h-9 px-2.5 rounded-card border border-earned-line text-earned-soft text-xs font-bold hover:border-earned-dim active:scale-[.97] transition cursor-pointer"
             >
               <Undo2 className="w-3.5 h-3.5" />
               Undo
@@ -413,26 +411,27 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
           type="button"
           onClick={() => onTogglePath(exercise.id)}
           aria-pressed={onPath}
-          className={`flex items-center gap-3 w-full p-3 rounded-xl border text-left transition cursor-pointer ${
-            onPath ? 'bg-cyan-950/40 border-cyan-500/50' : 'bg-dark-950/60 border-slate-800 hover:border-slate-600'
+          className={`relative flex items-center gap-3 w-full p-3 rounded-card text-left active:scale-[.97] transition cursor-pointer ${
+            onPath ? 'bg-ink-800' : 'bg-ink-850 hover:bg-ink-800'
           }`}
         >
-          <Route className={`w-4 h-4 shrink-0 ${onPath ? 'text-neon-cyan' : 'text-slate-400'}`} />
+          {onPath && <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-[2px] bg-act" aria-hidden />}
+          <RouteIcon className={`w-5 h-5 shrink-0 ${onPath ? 'text-act' : 'text-fg-4'}`} />
           <span className="flex-1 min-w-0">
-            <span className="block text-xs font-bold text-white">{onPath ? 'Showing the path to this' : 'Show the path to this'}</span>
-            <span className="block text-[11px] text-slate-400">
+            <span className="block text-[13px] font-bold text-fg">{onPath ? 'Showing the path to this' : 'Show the path to this'}</span>
+            <span className="block text-xs text-fg-4">
               {ancestors.size} {ancestors.size === 1 ? `${tree.noun.one} leads` : `${tree.noun.many} lead`} here
               {stepsBefore > 0 ? ` · ${stepsBefore} still to master` : ' · all mastered'}
             </span>
           </span>
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{onPath ? 'On' : 'Off'}</span>
+          <span className={`eyebrow ${onPath ? 'text-fg' : 'text-fg-4'}`}>{onPath ? 'On' : 'Off'}</span>
         </button>
       )}
 
       {status !== 'locked' && (
         <Section title={`Comes after (${prerequisites.length})`}>
           {prerequisites.length === 0 ? (
-            <p className="text-xs text-slate-400">Nothing — this is a starting point.</p>
+            <p className="text-xs text-fg-4">Nothing — this is a starting point.</p>
           ) : (
             <ul className="space-y-1.5">
               {prerequisites.map((entry) => (
@@ -447,7 +446,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
 
       <Section title={`Unlocks next (${unlocks.length})`}>
         {unlocks.length === 0 ? (
-          <p className="text-xs text-slate-400">Nothing further — this is the end of its progression.</p>
+          <p className="text-xs text-fg-4">Nothing further — this is the end of its progression.</p>
         ) : (
           <ul className="space-y-1.5">
             {unlocks.map((entry) => (
@@ -463,8 +462,8 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
         {hasWrittenGuide(exercise) ? (
           <ol className="space-y-2">
             {exercise.description.map((step, index) => (
-              <li key={index} className="flex gap-2.5 text-sm text-slate-200 leading-relaxed">
-                <span className="flex items-center justify-center w-5 h-5 mt-0.5 rounded-full bg-dark-700 text-[11px] font-mono font-bold text-neon-cyan shrink-0">
+              <li key={index} className="flex gap-2.5 text-sm text-fg-2 leading-relaxed">
+                <span className="flex items-center justify-center w-6 h-6 rounded-tag bg-ink-850 num font-bold text-[13px] text-fg shrink-0">
                   {index + 1}
                 </span>
                 <span>{step.replace(/^\d+\.\s*/, '')}</span>
@@ -472,12 +471,12 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
             ))}
           </ol>
         ) : (
-          <p className="text-xs text-slate-400">No written guide for this one yet — the tutorial below is the best place to learn it.</p>
+          <p className="text-xs text-fg-4">No written guide for this one yet — the tutorial below is the best place to learn it.</p>
         )}
 
         {exercise.expertTip && (
-          <p className="mt-3 flex gap-2.5 p-3 rounded-xl bg-amber-950/30 border border-amber-500/30 text-sm text-amber-100 leading-relaxed">
-            <Lightbulb className="w-4 h-4 mt-0.5 text-neon-gold shrink-0" />
+          <p className="mt-3 flex gap-2.5 p-3 rounded-card bg-ink-850 text-sm text-fg-2 leading-relaxed">
+            <Lightbulb className="w-4 h-4 mt-0.5 text-act shrink-0" />
             <span>{exercise.expertTip}</span>
           </p>
         )}
@@ -486,7 +485,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
       <Section title="Tutorial">
         {videoId ? (
           videoOpen ? (
-            <div className="aspect-video rounded-xl overflow-hidden border border-slate-800 bg-black">
+            <div className="aspect-video rounded-card overflow-hidden bg-ink-950">
               <iframe
                 src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`}
                 title={`${exercise.name} tutorial`}
@@ -500,11 +499,11 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
               type="button"
               onClick={() => setVideoOpen(true)}
               aria-label={`Play the ${exercise.name} tutorial`}
-              className="group relative flex items-center justify-center w-full aspect-video rounded-xl overflow-hidden border border-slate-800 bg-dark-950 bg-cover bg-center cursor-pointer"
+              className="group relative flex items-center justify-center w-full aspect-video rounded-card overflow-hidden bg-ink-950 bg-cover bg-center active:scale-[.97] transition cursor-pointer"
               style={{ backgroundImage: `url(https://i.ytimg.com/vi/${videoId}/hqdefault.jpg)` }}
             >
-              <span className="absolute inset-0 bg-black/45 group-hover:bg-black/30 transition" />
-              <span className="relative flex items-center justify-center w-14 h-14 rounded-full bg-white/95 text-dark-950">
+              <span className="absolute inset-0 bg-[var(--scrim)] group-hover:opacity-70 transition" />
+              <span className="relative flex items-center justify-center w-14 h-14 rounded-card bg-act text-act-deep">
                 <Play className="w-6 h-6 ml-0.5" fill="currentColor" />
               </span>
             </button>
@@ -514,10 +513,10 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
             href={tutorialSearchUrl(exercise, tree.tutorialTopic)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-between gap-3 min-h-11 px-3 py-2 rounded-xl bg-dark-950/60 border border-slate-800 hover:border-slate-600 text-xs font-bold text-slate-200 transition"
+            className="flex items-center justify-between gap-3 min-h-11 px-3 py-2 rounded-card border border-ink-600 text-fg text-[13px] font-bold hover:bg-ink-850 active:scale-[.97] transition"
           >
             Find a tutorial on YouTube
-            <ExternalLink className="w-4 h-4 text-neon-cyan shrink-0" />
+            <ExternalLink className="w-4 h-4 text-fg-3 shrink-0" />
           </a>
         )}
       </Section>
@@ -525,7 +524,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
       <Section title="Trains">
         <ul className="flex flex-wrap gap-1.5">
           {exercise.musclesTargeted.map((muscle) => (
-            <li key={muscle} className="px-2 py-1 rounded-lg bg-dark-950/60 border border-slate-800 text-[11px] text-slate-300">
+            <li key={muscle} className="flex items-center h-7 px-2 rounded-tag bg-ink-850 text-xs font-semibold text-fg-3">
               {muscle}
             </li>
           ))}
@@ -540,57 +539,55 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
 /* ------------------------------------------------------------------ */
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <section>
-    <h3 className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-500">{title}</h3>
+  <section className="pt-4 border-t border-ink-700">
+    <h3 className="eyebrow mb-2.5 text-fg-4">{title}</h3>
     {children}
   </section>
 );
 
 /** What it takes to call the exercise mastered. */
 const Standard: React.FC<{ text: string }> = ({ text }) => (
-  <p className="text-sm text-slate-200 leading-relaxed">
-    <span className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Mastered when</span>
+  <p className="text-sm text-fg-2 leading-relaxed">
+    <span className="eyebrow block text-fg-4 mb-1">Mastered when</span>
     {text}
   </p>
 );
 
-const Bar: React.FC<{ value: number; bar: string }> = ({ value, bar }) => (
-  <span className="block h-1.5 rounded-full bg-dark-950 border border-slate-800 overflow-hidden">
-    <span
-      className={`block h-full rounded-full bg-gradient-to-r ${bar} transition-[width] duration-500`}
-      style={{ width: `${Math.min(100, Math.max(0, value * 100))}%` }}
-    />
-  </span>
-);
-
+/** The same marks as the nodes on the board: gold once mastered, a chalk outline when ready, dashed while locked. */
 const ROW_STATUS: Record<SkillStatus, { icon: React.ReactNode; tone: string }> = {
-  mastered: { icon: <Check className="w-3.5 h-3.5" strokeWidth={3} />, tone: 'text-emerald-300 border-emerald-500/40 bg-emerald-950/40' },
-  ready: { icon: <Sparkles className="w-3.5 h-3.5" />, tone: 'text-neon-cyan border-cyan-500/40 bg-cyan-950/40' },
-  locked: { icon: <Lock className="w-3.5 h-3.5" />, tone: 'text-slate-500 border-slate-700 bg-dark-950' },
+  mastered: { icon: <CheckIcon className="w-3.5 h-3.5" strokeWidth={3} />, tone: 'bg-earned-deep text-earned-soft' },
+  ready: { icon: <Sparkles className="w-3.5 h-3.5" />, tone: 'border border-act text-act' },
+  locked: { icon: <LockIcon className="w-3.5 h-3.5" />, tone: 'border border-dashed border-ink-500 text-fg-4' },
 };
 
-const ExerciseRow: React.FC<{ tree: SkillTreeDef; exercise: TreeSkill; status: SkillStatus; onClick: () => void }> = ({
-  tree,
-  exercise,
-  status,
-  onClick,
-}) => (
+const ExerciseRow: React.FC<{
+  tree: SkillTreeDef;
+  exercise: TreeSkill;
+  status: SkillStatus;
+  /** On a card already: one step lighter, so the row still reads as its own surface. */
+  raised?: boolean;
+  onClick: () => void;
+}> = ({ tree, exercise, status, raised = false, onClick }) => (
   <button
     type="button"
     onClick={onClick}
-    className="flex items-center gap-3 w-full min-h-11 px-2.5 py-2 rounded-xl bg-dark-950/60 border border-slate-800 hover:border-slate-600 text-left transition cursor-pointer"
+    className={`flex items-center gap-3 w-full min-h-11 px-2.5 py-2 rounded-card text-left active:scale-[.97] transition cursor-pointer ${
+      raised ? 'bg-ink-800 hover:bg-ink-750' : 'bg-ink-850 hover:bg-ink-800'
+    }`}
   >
-    <span className={`flex items-center justify-center w-7 h-7 rounded-lg border shrink-0 ${ROW_STATUS[status].tone}`}>
+    <span className={`flex items-center justify-center w-7 h-7 rounded-tag shrink-0 ${ROW_STATUS[status].tone}`}>
       {ROW_STATUS[status].icon}
     </span>
     <span className="flex-1 min-w-0">
-      <span className="block text-[13px] font-bold text-white truncate">{exercise.name}</span>
-      <span className="block text-[11px] text-slate-400 truncate">
+      <span className="block text-[13px] font-bold text-fg truncate">{exercise.name}</span>
+      <span className="block text-[11px] text-fg-4 truncate">
         {tree.levelName(exercise.level)} · {exercise.subCategory}
       </span>
     </span>
-    <span className={`w-1.5 h-6 rounded-full shrink-0 ${laneThemeOf(tree, exercise.swimlane).solid}`} aria-hidden />
-    <ChevronRight className="w-4 h-4 text-slate-600 shrink-0" />
+    <span className="shrink-0 text-fg-4" aria-hidden>
+      {laneThemeOf(tree, exercise.swimlane).icon}
+    </span>
+    <ChevronRight className="w-4 h-4 text-fg-5 shrink-0" />
   </button>
 );
 
@@ -603,16 +600,16 @@ interface ConfirmProps {
 }
 
 const Confirm: React.FC<ConfirmProps> = ({ message, confirmLabel, danger, onConfirm, onCancel }) => (
-  <div className="p-3 rounded-xl bg-dark-950/70 border border-slate-700 space-y-2.5">
-    <p className="text-xs text-slate-200">{message}</p>
+  <div className="p-3 rounded-card bg-ink-850 space-y-3">
+    <p className="text-[13px] text-fg-2">{message}</p>
     <div className="flex gap-2">
       <button
         type="button"
         onClick={onConfirm}
-        className={`flex-1 h-10 rounded-lg text-xs font-black border transition cursor-pointer ${
+        className={`flex-1 h-11 rounded-card active:scale-[.97] transition cursor-pointer ${
           danger
-            ? 'bg-rose-950/50 text-rose-200 border-rose-700/60 hover:bg-rose-900/50'
-            : 'bg-cyan-950/50 text-neon-cyan border-cyan-500/50 hover:bg-cyan-900/50'
+            ? 'border border-ink-600 text-boss text-[13px] font-bold hover:bg-ink-800'
+            : 'bg-act text-act-deep font-display font-extrabold uppercase text-base tracking-[0.02em]'
         }`}
       >
         {confirmLabel}
@@ -620,7 +617,7 @@ const Confirm: React.FC<ConfirmProps> = ({ message, confirmLabel, danger, onConf
       <button
         type="button"
         onClick={onCancel}
-        className="flex-1 h-10 rounded-lg text-xs font-bold text-slate-300 border border-slate-700 hover:border-slate-500 transition cursor-pointer"
+        className="flex-1 h-11 rounded-card border border-ink-600 text-fg text-[13px] font-bold hover:bg-ink-800 active:scale-[.97] transition cursor-pointer"
       >
         Cancel
       </button>

@@ -1,7 +1,7 @@
 import React, { useId, useSyncExternalStore } from 'react';
 
 /**
- * Draws one skill illustration in the app's dark/neon look: a figure on a wall,
+ * Draws one skill illustration in chalk on iron: a figure on a wall,
  * a bar or the floor, or a hand close up. The drawing is plain data — see
  * `figureKit.ts` and the per-tree figure files — so a figure stays a few lines
  * of numbers instead of a hand-made SVG per skill. A figure with `motion`
@@ -107,21 +107,22 @@ export const SCENE_LABEL: Record<Scene, string> = {
   rings: 'On rings',
 };
 
+/** Theme colours (CSS variables), so Daylight redraws the same figures in ink on paper. */
 const INK = {
-  panel: '#0a0c12',
-  frame: '#1c2336',
-  dot: '#1c2336',
-  wall: '#131824',
-  wallEdge: '#334155',
-  hold: '#1c2336',
-  holdEdge: '#475569',
-  body: '#cbd5e1',
-  ghost: '#64748b',
-  gear: '#64748b',
-  far: '#7b8aa1',
-  plate: '#94a3b8',
-  arrow: '#f8fafc',
-  label: '#f8fafc',
+  panel: 'var(--fig-panel)',
+  frame: 'var(--fig-frame)',
+  wall: 'var(--fig-wall)',
+  wallEdge: 'var(--fig-wall-edge)',
+  hold: 'var(--fig-hold)',
+  holdEdge: 'var(--fig-hold-edge)',
+  body: 'var(--fig-ready-body)',
+  ghost: 'var(--fig-ghost)',
+  gear: 'var(--fig-gear)',
+  far: 'var(--fig-ready-far)',
+  plate: 'var(--fig-plate)',
+  arrow: 'var(--fig-arrow)',
+  label: 'var(--fig-arrow)',
+  shadow: 'var(--fig-shadow)',
 };
 
 /** Timing of one loop, as SMIL keyTimes and the matching value order. */
@@ -185,8 +186,8 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
   const farInk = tint?.far ?? INK.far;
   const colourOf = (tone: Tone, far = false) =>
     tone === 'focus' ? accent : tone === 'ghost' ? INK.ghost : tone === 'gear' ? INK.gear : far ? farInk : body;
-  // The glow is for the large drawing; thumbnails stay cheap to paint.
-  const glowOf = (tone: Tone) => (tone === 'focus' && !compact ? { filter: `drop-shadow(0 0 1.8px ${accent})` } : undefined);
+  // No glow: the working part is pressed harder instead, half a stroke heavier on the large drawing.
+  const widthOf = (stroke: Stroke) => (stroke.tone === 'focus' && !stroke.far && !compact ? stroke.width + 0.5 : stroke.width);
   const arrowWidth = compact ? 2.6 : 1.5;
 
   const motion = animate && !reducedMotion ? spec.motion : undefined;
@@ -236,6 +237,18 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
   ];
   const equipment = discs.filter(({ disc }) => isGear(disc));
 
+  // A flat cast shadow where the figure meets the floor, instead of a glow.
+  const shadow = (() => {
+    if (spec.scene !== 'floor' && spec.scene !== 'ground') return null;
+    const pts = spec.strokes.filter((stroke) => stroke.tone !== 'gear' && stroke.tone !== 'ghost').flatMap((stroke) => stroke.pts);
+    if (pts.length === 0) return null;
+    const floor = Math.max(...pts.map(([, y]) => y));
+    const touching = pts.filter(([, y]) => y >= floor - 3).map(([x]) => x);
+    const left = Math.min(...touching);
+    const right = Math.max(...touching);
+    return { cx: at2((left + right) / 2), cy: at2(Math.min(97, floor + 2.2)), rx: at2((right - left) / 2 + 7) };
+  })();
+
   return (
     <svg
       viewBox="0 0 100 100"
@@ -247,23 +260,19 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
     >
       <defs>
         <marker id={arrowHead} viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
-          <path d="M0,0 L10,5 L0,10 z" fill={INK.arrow} />
+          <path d="M0,0 L10,5 L0,10 z" style={{ fill: INK.arrow }} />
         </marker>
         {/* Rock and floors run to the panel's rounded edge, not past it. */}
         <clipPath id={clip}>
-          <rect x="0.5" y="0.5" width="99" height="99" rx={framed ? 12 : 0} />
+          <rect x="0.5" y="0.5" width="99" height="99" rx={framed ? 10 : 0} />
         </clipPath>
       </defs>
 
-      {framed && <rect x="0.5" y="0.5" width="99" height="99" rx="12" fill={INK.panel} />}
+      {framed && <rect x="0.5" y="0.5" width="99" height="99" rx="10" style={{ fill: INK.panel }} />}
       <g clipPath={`url(#${clip})`}>
-        {framed && !compact && (
-          <g fill={INK.dot}>
-            {[10, 30, 50, 70, 90].flatMap((x) => [10, 30, 50, 70, 90].map((y) => <circle key={`${x}-${y}`} cx={x} cy={y} r="0.9" />))}
-          </g>
-        )}
+        {spec.wall && <path d={spec.wall} strokeWidth="1.2" strokeLinejoin="round" style={{ fill: INK.wall, stroke: INK.wallEdge }} />}
 
-        {spec.wall && <path d={spec.wall} fill={INK.wall} stroke={INK.wallEdge} strokeWidth="1.2" strokeLinejoin="round" />}
+        {shadow && <ellipse cx={shadow.cx} cy={shadow.cy} rx={shadow.rx} ry="1.8" opacity="0.85" style={{ fill: INK.shadow }} />}
 
         {spec.holds?.map((hold, index) => (
           <HoldMark key={index} hold={hold} accent={accent} />
@@ -277,10 +286,8 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
                 cx={at2(disc.at[0])}
                 cy={at2(disc.at[1])}
                 r={disc.r}
-                fill={disc.tone === 'ghost' ? 'none' : colourOf(disc.tone)}
-                stroke={colourOf(disc.tone)}
                 strokeWidth={disc.tone === 'ghost' ? 1.2 : 0}
-                style={glowOf(disc.tone)}
+                style={{ fill: disc.tone === 'ghost' ? 'none' : colourOf(disc.tone), stroke: colourOf(disc.tone) }}
               >
                 {follow(disc, target)}
               </circle>
@@ -292,14 +299,12 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
                 <path
                   key={`s${index}`}
                   d={d}
-                  fill={stroke.closed ? colour : 'none'}
-                  stroke={colour}
-                  strokeWidth={stroke.width}
+                  strokeWidth={widthOf(stroke)}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeDasharray={stroke.tone === 'ghost' && !stroke.closed ? '2.4 2.2' : undefined}
                   opacity={stroke.far && stroke.tone === 'focus' ? 0.55 : undefined}
-                  style={stroke.far ? undefined : glowOf(stroke.tone)}
+                  style={{ fill: stroke.closed ? colour : 'none', stroke: colour }}
                 >
                   {timing && target && <animate attributeName="d" values={loop(d, toPath(target.pts, target.closed))} {...timing} />}
                 </path>
@@ -310,15 +315,15 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
 
         {equipment.map(({ disc, target }, index) =>
           disc.kind === 'ring' ? (
-            <circle key={index} cx={at2(disc.at[0])} cy={at2(disc.at[1])} r={disc.r} fill="none" stroke={INK.plate} strokeWidth={compact ? 2 : 1.6}>
+            <circle key={index} cx={at2(disc.at[0])} cy={at2(disc.at[1])} r={disc.r} strokeWidth={compact ? 2 : 1.6} style={{ fill: 'none', stroke: INK.plate }}>
               {follow(disc, target)}
             </circle>
           ) : (
             <g key={index}>
-              <circle cx={at2(disc.at[0])} cy={at2(disc.at[1])} r={disc.r} fill={INK.wall} stroke={INK.plate} strokeWidth={compact ? 1.8 : 1.4}>
+              <circle cx={at2(disc.at[0])} cy={at2(disc.at[1])} r={disc.r} strokeWidth={compact ? 1.8 : 1.4} style={{ fill: INK.wall, stroke: INK.plate }}>
                 {follow(disc, target)}
               </circle>
-              <circle cx={at2(disc.at[0])} cy={at2(disc.at[1])} r={Math.max(0.9, disc.r * 0.22)} fill={INK.plate}>
+              <circle cx={at2(disc.at[0])} cy={at2(disc.at[1])} r={Math.max(0.9, disc.r * 0.22)} style={{ fill: INK.plate }}>
                 {follow(disc, target)}
               </circle>
             </g>
@@ -326,20 +331,19 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
         )}
 
         {spec.rings?.map(([x, y], index) => (
-          <circle key={index} cx={x} cy={y} r={compact ? 5 : 5.5} fill="none" stroke={accent} strokeWidth={compact ? 1.6 : 1.1} strokeDasharray="2 1.6" />
+          <circle key={index} cx={x} cy={y} r={compact ? 5 : 5.5} strokeWidth={compact ? 1.6 : 1.1} strokeDasharray="2 1.6" style={{ fill: 'none', stroke: accent }} />
         ))}
 
         {spec.arrows?.map((arrow, index) => (
           <path
             key={index}
             d={arrow.d}
-            fill="none"
-            stroke={INK.arrow}
             strokeOpacity={arrow.kind === 'guide' ? 0.55 : 0.9}
             strokeWidth={arrowWidth}
             strokeLinecap="round"
             strokeDasharray={arrow.kind === 'force' ? undefined : arrow.kind === 'guide' ? '1 2.4' : '3 2.4'}
             markerEnd={arrow.kind === 'guide' ? undefined : `url(#${arrowHead})`}
+            style={{ fill: 'none', stroke: INK.arrow }}
           />
         ))}
 
@@ -349,18 +353,18 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
               key={index}
               x={label.at[0]}
               y={label.at[1]}
-              fill={INK.label}
               fontSize="6"
               fontWeight="800"
-              fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+              fontFamily="var(--font-archivo), system-ui, sans-serif"
               textAnchor="middle"
               dominantBaseline="central"
+              style={{ fill: INK.label, fontStretch: '75%' }}
             >
               {label.text}
             </text>
           ))}
       </g>
-      {framed && <rect x="0.5" y="0.5" width="99" height="99" rx="12" fill="none" stroke={INK.frame} />}
+      {framed && <rect x="0.5" y="0.5" width="99" height="99" rx="10" style={{ fill: 'none', stroke: INK.frame }} />}
     </svg>
   );
 };
@@ -380,7 +384,7 @@ const HoldMark: React.FC<{ hold: Hold; accent: string }> = ({ hold, accent }) =>
   const fill = hold.key ? accent : INK.hold;
   const fillOpacity = hold.key ? 0.28 : 1;
   const stroke = hold.key ? accent : INK.holdEdge;
-  const common = { fill, fillOpacity, stroke, strokeWidth: 0.9, vectorEffect: 'non-scaling-stroke' as const };
+  const common = { fillOpacity, strokeWidth: 0.9, vectorEffect: 'non-scaling-stroke' as const, style: { fill, stroke } };
   const transform = `translate(${x} ${y}) rotate(${hold.rotate ?? 0}) scale(${hold.size ?? 1})`;
 
   switch (hold.shape) {
@@ -388,7 +392,7 @@ const HoldMark: React.FC<{ hold: Hold; accent: string }> = ({ hold, accent }) =>
       return (
         <g transform={transform}>
           <ellipse rx="5" ry="3" {...common} />
-          <path d="M-3.2,-0.4 Q0,1.8 3.2,-0.4" fill="none" stroke={INK.panel} strokeWidth="1.1" />
+          <path d="M-3.2,-0.4 Q0,1.8 3.2,-0.4" strokeWidth="1.1" style={{ fill: 'none', stroke: INK.panel }} />
         </g>
       );
     case 'edge':
@@ -401,7 +405,7 @@ const HoldMark: React.FC<{ hold: Hold; accent: string }> = ({ hold, accent }) =>
       return (
         <g transform={transform}>
           <circle r="3.2" {...common} />
-          <circle r="1.4" fill={INK.panel} />
+          <circle r="1.4" style={{ fill: INK.panel }} />
         </g>
       );
     case 'foot':

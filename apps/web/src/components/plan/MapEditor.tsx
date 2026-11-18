@@ -151,7 +151,7 @@ const ActCard: React.FC<ActCardProps> = ({ plan, act, index, count, open, onTogg
       title={act.name}
       meta={`${act.goals.length} goal${act.goals.length === 1 ? '' : 's'}${act.tagline ? ` · ${act.tagline}` : ''}`}
       badge={
-        <span className="flex items-center justify-center w-8 h-8 rounded-lg border border-cyan-500/40 bg-cyan-950/30 text-neon-cyan text-xs font-black font-mono shrink-0">
+        <span className="flex items-center justify-center w-8 h-8 rounded-tag bg-ink-800 text-fg font-display font-extrabold text-[16px] leading-none shrink-0">
           {NUMERALS[index] ?? index + 1}
         </span>
       }
@@ -164,10 +164,10 @@ const ActCard: React.FC<ActCardProps> = ({ plan, act, index, count, open, onTogg
       </div>
 
       <fieldset className="space-y-2">
-        <legend className="block mb-1 text-[10px] font-black uppercase tracking-widest text-slate-500">Goals</legend>
-        {act.goals.length === 0 && <p className="text-[11px] text-slate-500">No goals yet. An act without goals is skipped on the map.</p>}
+        <legend className="eyebrow block mb-1 text-fg-4">Goals</legend>
+        {act.goals.length === 0 && <p className="text-[12px] text-fg-4">No goals yet. An act without goals is skipped on the map.</p>}
         {act.goals.map((goal, goalIndex) => (
-          <div key={goal.id} className="p-3 rounded-xl border border-slate-800 bg-dark-950/70 space-y-2">
+          <div key={goal.id} className="p-3 rounded-card bg-ink-850 space-y-2">
             <div className="flex flex-wrap items-end gap-2">
               <SelectField<GoalKind>
                 className="flex-1 min-w-[180px]"
@@ -283,7 +283,7 @@ const ActCard: React.FC<ActCardProps> = ({ plan, act, index, count, open, onTogg
                   const next = blank(kind.id);
                   if (next) setGoals([...act.goals, next]);
                 }}
-                className="h-9 px-3 rounded-xl border border-dashed border-slate-700 text-[11px] font-bold text-slate-400 hover:text-neon-cyan hover:border-cyan-500/50 transition cursor-pointer"
+                className="h-9 px-3 rounded-card border border-dashed border-ink-600 text-[13px] font-semibold text-fg-3 hover:text-fg hover:bg-ink-850 transition active:scale-[.97] cursor-pointer"
               >
                 + {kind.label}
               </button>

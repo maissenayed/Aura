@@ -41,9 +41,9 @@ export const Dialog: React.FC<DialogProps> = ({
       />
 
       {/* Modal Dialog Content */}
-      <div className={`relative w-full ${maxWidth} bg-dark-900 border border-slate-800/90 rounded-2xl shadow-2xl z-10 overflow-hidden text-slate-100 animate-in zoom-in-95 fade-in duration-200`}>
+      <div className={`relative w-full ${maxWidth} bg-ink-900 border border-ink-700/90 rounded-card shadow-2xl z-10 overflow-hidden text-fg animate-in zoom-in-95 fade-in duration-200`}>
         {/* Glow decorative top line */}
-        <div className="h-1 w-full bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-emerald" />
+        <div className="h-1 w-full bg-gradient-to-r from-act via-armour to-earned" />
         
         <div className="p-6">
           {children}

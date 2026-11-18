@@ -11,7 +11,7 @@ import { gymFigure } from './gymFigures';
 
 /**
  * Everything that makes one skill tree look and read differently from another:
- * its branches and their colours, how a level is named, what a skill is called.
+ * its branches and their icons, how a level is named, what a skill is called.
  * The canvas, toolbar and panel take one of these and stay the same code.
  */
 export interface SkillTreeDef {

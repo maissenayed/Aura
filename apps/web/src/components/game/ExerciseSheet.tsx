@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Check, ExternalLink, GitBranch, Shield, X } from 'lucide-react';
+import { ExternalLink, GitBranch, X } from 'lucide-react';
+import { CheckIcon, ShieldIcon } from './icons';
 import { PlanExercise, formatStatValue, liftOf } from '../../utils/campaignPlan';
 import { XP_RULES } from '../../utils/protocolEngine';
 import { BossHpChip } from './BossHpChip';
@@ -49,12 +50,12 @@ export const ExerciseSheet: React.FC<{
 
   return (
     <>
-      <div className="fixed inset-0 z-[45] bg-black/60 anim-fade" onClick={onClose} aria-hidden />
+      <div className="fixed inset-0 z-[45] bg-[var(--scrim)] anim-fade" onClick={onClose} aria-hidden />
       <aside
         role="dialog"
         aria-modal="true"
         aria-label={exercise.name}
-        className="fixed z-50 inset-x-0 bottom-0 max-h-[90dvh] lg:inset-x-auto lg:right-0 lg:top-0 lg:bottom-0 lg:max-h-none lg:w-[440px] flex flex-col rounded-t-[28px] lg:rounded-none border-t lg:border-t-0 lg:border-l border-ink-700 bg-ink-900 shadow-2xl anim-sheet"
+        className="fixed z-50 inset-x-0 bottom-0 max-h-[90dvh] lg:inset-x-auto lg:right-0 lg:top-0 lg:bottom-0 lg:max-h-none lg:w-[440px] flex flex-col rounded-t-card lg:rounded-none border-t lg:border-t-0 lg:border-l border-ink-700 bg-ink-900 lift-shadow anim-sheet"
       >
         <div className="lg:hidden flex justify-center pt-2.5" aria-hidden>
           <span className="w-10 h-1 rounded-full bg-ink-600" />
@@ -67,18 +68,18 @@ export const ExerciseSheet: React.FC<{
               <div className="flex flex-wrap items-center gap-2">
                 {done && (
                   <Chip tone="earned">
-                    <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                    <CheckIcon className="w-3.5 h-3.5" strokeWidth={3} />
                     Done
                   </Chip>
                 )}
                 {info?.exact && <Chip>{info.levelName}</Chip>}
                 {exercise.armor && (
-                  <Chip tone="aura">
-                    <Shield className="w-3.5 h-3.5" /> Armor
+                  <Chip tone="armour">
+                    <ShieldIcon className="w-3.5 h-3.5" /> Armour
                   </Chip>
                 )}
               </div>
-              <h2 className="font-display font-bold text-[26px] leading-tight">{exercise.name}</h2>
+              <h2 className="font-display font-extrabold uppercase text-[30px] leading-[0.95]">{exercise.name}</h2>
               {exercise.focus && <span className="text-[14px] text-fg-4">{exercise.focus}</span>}
             </div>
             <button
@@ -86,13 +87,13 @@ export const ExerciseSheet: React.FC<{
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="w-10 h-10 shrink-0 rounded-xl border border-ink-700 bg-ink-800 text-fg-3 flex items-center justify-center hover:text-fg transition"
+              className="w-11 h-11 shrink-0 rounded-card bg-ink-850 raised text-fg-3 flex items-center justify-center hover:text-fg transition"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="relative h-[210px] rounded-[22px] border border-ink-700 bg-[linear-gradient(180deg,#0f1322,#0a0d16)] overflow-hidden flex items-center justify-center">
+          <div className="relative h-[210px] rounded-card bg-ink-850 overflow-hidden flex items-center justify-center">
             <div className="absolute inset-0 dot-grid pointer-events-none" aria-hidden />
             <Figure
               spec={figureForExercise(exercise.exercise, dayKind)}
@@ -103,10 +104,10 @@ export const ExerciseSheet: React.FC<{
             />
           </div>
 
-          <section className="flex items-center gap-4 p-4 rounded-[18px] bg-ink-850 border border-ink-700" aria-label="Today's dose">
+          <section className="flex items-center gap-4 p-4 rounded-card bg-ink-850" aria-label="Today's dose">
             <div className="flex-1 min-w-0 flex flex-col gap-1">
               <Label>Today</Label>
-              <span className="font-display font-bold text-[30px] leading-none text-act">
+              <span className="num font-bold text-[34px] leading-none text-fg">
                 {sets ? (
                   <>
                     {sets}
@@ -129,11 +130,9 @@ export const ExerciseSheet: React.FC<{
                 {recent.map(([date, value], index) => (
                   <li
                     key={date}
-                    className={`list-none h-9 px-3 rounded-xl border flex items-center gap-2 text-[13px] ${
-                      index === 0 ? 'border-[#17566a] bg-[#08161d] text-act' : 'border-ink-700 bg-ink-850 text-fg-3'
-                    }`}
+                    className={`list-none h-9 px-3 rounded-tag flex items-center gap-2 text-[13px] ${index === 0 ? 'bg-ink-800 raised text-fg' : 'bg-ink-850 text-fg-3'}`}
                   >
-                    <span className="font-display font-bold">{formatStatValue(value, lift.unit)}</span>
+                    <span className="num font-bold text-[15px]">{formatStatValue(value, lift.unit)}</span>
                     <span className="text-[11px] text-fg-5">{date.slice(5).replace('-', '/')}</span>
                   </li>
                 ))}
@@ -158,7 +157,7 @@ export const ExerciseSheet: React.FC<{
               <ol className="flex flex-col gap-2">
                 {info.steps.map((step, index) => (
                   <li key={index} className="flex gap-3 text-[14px] leading-relaxed text-fg-2">
-                    <span className="w-6 h-6 shrink-0 rounded-full bg-ink-800 border border-ink-600 font-display font-bold text-[12px] text-act flex items-center justify-center">
+                    <span className="w-6 h-6 shrink-0 rounded-tag bg-ink-800 num font-bold text-[13px] text-fg flex items-center justify-center">
                       {index + 1}
                     </span>
                     <span className="min-w-0">{step.replace(/^\d+\.\s*/, '')}</span>
@@ -169,8 +168,8 @@ export const ExerciseSheet: React.FC<{
           )}
 
           {info?.tip && (
-            <div className="pl-3 border-l-2 border-aura/60 flex flex-col gap-1">
-              <Label className="text-aura-soft">Tip</Label>
+            <div className="p-3 rounded-card bg-armour-deep flex flex-col gap-1">
+              <Label className="text-armour">Tip</Label>
               <p className="text-[14px] text-fg-2 leading-relaxed">{info.tip}</p>
             </div>
           )}
@@ -186,9 +185,9 @@ export const ExerciseSheet: React.FC<{
             {info && (
               <Link
                 href={`/?tree=${info.tree}&skill=${info.skillId}`}
-                className="h-10 px-3.5 rounded-xl border border-ink-700 bg-ink-850 text-fg-2 flex items-center gap-2 text-[13px] font-semibold hover:border-act/40 hover:text-fg transition"
+                className="h-11 px-3.5 rounded-card border border-ink-600 text-fg-2 flex items-center gap-2 text-[13px] font-semibold hover:bg-ink-850 hover:text-fg transition"
               >
-                <GitBranch className="w-4 h-4 text-act" />
+                <GitBranch className="w-4 h-4 text-fg-3" />
                 {info.exact ? 'In the skill tree' : info.skillName}
               </Link>
             )}
@@ -196,28 +195,26 @@ export const ExerciseSheet: React.FC<{
               href={tutorialUrl(exercise.name)}
               target="_blank"
               rel="noopener noreferrer"
-              className="h-10 px-3.5 rounded-xl border border-ink-700 bg-ink-850 text-fg-2 flex items-center gap-2 text-[13px] font-semibold hover:border-act/40 hover:text-fg transition"
+              className="h-11 px-3.5 rounded-card border border-ink-600 text-fg-2 flex items-center gap-2 text-[13px] font-semibold hover:bg-ink-850 hover:text-fg transition"
             >
-              <ExternalLink className="w-4 h-4 text-act" />
+              <ExternalLink className="w-4 h-4 text-fg-3" />
               Watch a tutorial
             </a>
           </div>
         </div>
 
-        <div className="shrink-0 px-5 pt-3 pb-[max(16px,env(safe-area-inset-bottom))] lg:px-6 lg:pb-6 border-t border-ink-750 bg-ink-900">
+        <div className="shrink-0 px-5 pt-3 pb-[max(16px,env(safe-area-inset-bottom))] lg:px-6 lg:pb-6 border-t border-ink-700 bg-ink-900">
           <button
             type="button"
             onClick={onToggle}
             disabled={locked}
             aria-pressed={done}
-            className={`w-full h-14 rounded-2xl flex items-center justify-center gap-2.5 font-display font-bold text-lg tracking-[0.04em] active:scale-[.98] transition disabled:opacity-40 disabled:cursor-not-allowed ${
-              done
-                ? 'bg-earned/15 border border-earned/50 text-earned'
-                : 'bg-act text-act-deep shadow-[0_10px_28px_rgba(62,232,255,0.25)]'
+            className={`w-full h-14 rounded-card flex items-center justify-center gap-2.5 font-display font-extrabold uppercase text-[20px] tracking-[0.02em] active:scale-[.97] transition disabled:opacity-40 disabled:cursor-not-allowed ${
+              done ? 'bg-earned-deep text-earned' : 'bg-act text-act-deep'
             }`}
           >
-            <Check className="w-5 h-5" strokeWidth={3} />
-            {locked ? (done ? 'DONE · DAY CLOSED' : 'DAY CLOSED') : done ? 'DONE · TAP TO UNDO' : `COMPLETE · +${XP_RULES.mission} XP`}
+            <CheckIcon className="w-5 h-5" strokeWidth={3} />
+            {locked ? (done ? 'Done · day closed' : 'Day closed') : done ? 'Done · tap to undo' : `Complete · +${XP_RULES.mission} XP`}
           </button>
         </div>
       </aside>

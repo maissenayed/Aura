@@ -1,11 +1,17 @@
 'use client';
 
 import React from 'react';
-import { Route, Star, X } from 'lucide-react';
+import { Star, X } from 'lucide-react';
 import { SkillTreeId, SKILL_TREE_IDS } from '../../utils/skillProgressStore';
 import { SkillGraph, SkillSummary, TreeSkill } from '../../utils/skillTree';
+import { RouteIcon } from '../game/icons';
 import { GoToSearch } from './GoToSearch';
 import { SKILL_TREES, SkillTreeDef } from './skillTrees';
+
+/** The chalk mark the selected tab carries. */
+const Tally: React.FC = () => (
+  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-[18px] h-[3px] rounded-[2px] bg-act" aria-hidden />
+);
 
 /**
  * Above the climbs: which tree, which lane, a search that jumps to any skill,
@@ -25,9 +31,9 @@ export const TreeBar: React.FC<{
   onOpenProgress: () => void;
   onExitPath: () => void;
 }> = ({ tree, graph, mastered, summary, lane, pathTarget, pathLength, onTreeChange, onLaneChange, onGoTo, onOpenProgress, onExitPath }) => (
-  <div className="shrink-0 flex flex-col gap-3 px-4 pt-4 pb-3 lg:px-6 border-b border-ink-750 bg-ink-950">
+  <div className="shrink-0 flex flex-col gap-3 px-4 pt-4 pb-3 lg:px-6 border-b border-ink-700 bg-ink-950">
     <div className="flex flex-wrap items-center gap-2.5">
-      <div role="tablist" aria-label="Skill tree" className="flex gap-1 p-1 rounded-2xl bg-[#0c0f18] border border-ink-700">
+      <div role="tablist" aria-label="Skill tree" className="flex gap-1 p-1 rounded-card bg-ink-900">
         {SKILL_TREE_IDS.map((id) => {
           const on = id === tree.id;
           const def = SKILL_TREES[id];
@@ -38,28 +44,33 @@ export const TreeBar: React.FC<{
               role="tab"
               aria-selected={on}
               onClick={() => onTreeChange(id)}
-              className={`h-10 px-3 sm:px-4 rounded-xl flex items-center gap-1.5 text-[12.5px] font-bold transition cursor-pointer ${
-                on ? 'bg-act text-act-deep' : 'text-[#8a94ad] hover:text-fg'
+              className={`relative h-9 px-3 sm:px-4 rounded-card flex items-center gap-1.5 text-[13px] font-bold transition active:scale-[.97] cursor-pointer ${
+                on ? 'bg-ink-800 text-fg' : 'text-fg-4 hover:text-fg'
               }`}
             >
+              {on && <Tally />}
               {def.icon}
               <span>{def.label}</span>
             </button>
           );
         })}
       </div>
-      <span className="flex items-center gap-1.5 h-10 px-3 rounded-full bg-[#14100a] border border-[#3a2c12] text-earned font-display font-bold" aria-label={`${summary.mastered} of ${summary.total} mastered`}>
-        <Star className="w-4 h-4 fill-earned" />
-        {summary.mastered}
-        <span className="text-[#7d6a3e]">/ {summary.total}</span>
+      <span
+        className="flex items-center gap-1.5 h-11 px-3 rounded-tag bg-earned-deep text-earned-soft"
+        aria-label={`${summary.mastered} of ${summary.total} mastered`}
+      >
+        <Star className="w-4 h-4 text-earned fill-earned" />
+        <span className="num font-bold text-[17px]">{summary.mastered}</span>
+        <span className="num font-bold text-[17px] text-earned-dim">/ {summary.total}</span>
       </span>
       <button
         type="button"
         onClick={onOpenProgress}
-        className="flex items-center gap-2 h-10 px-3 rounded-full bg-[#08161d] border border-[#124050] text-act font-display font-bold cursor-pointer"
+        className="flex items-center gap-2 h-11 px-3 rounded-tag bg-ink-800 text-fg hover:bg-ink-750 active:scale-[.97] transition cursor-pointer"
       >
-        <span className="w-2 h-2 rounded-full bg-act shadow-[0_0_8px_#3ee8ff]" />
-        {summary.ready.length} ready
+        <span className="w-2 h-2 rounded-[2px] bg-act" aria-hidden />
+        <span className="num font-bold text-[17px]">{summary.ready.length}</span>{' '}
+        <span className="text-[13px] font-semibold text-fg-3">ready</span>
       </button>
       <div className="w-full sm:w-auto sm:flex-1 sm:min-w-[220px] sm:max-w-sm sm:ml-auto">
         <GoToSearch tree={tree} graph={graph} mastered={mastered} onGoTo={onGoTo} />
@@ -67,13 +78,21 @@ export const TreeBar: React.FC<{
     </div>
 
     {pathTarget ? (
-      <div className="flex items-center gap-3 h-12 px-3.5 rounded-2xl bg-[#08161d] border border-[#17566a]">
-        <Route className="w-[18px] h-[18px] text-act" />
-        <span className="flex-1 min-w-0 text-sm font-semibold truncate">
-          Path to <span className="font-display font-bold text-act">{pathTarget.name}</span>
-          <span className="text-fg-4"> · {pathLength} steps</span>
+      <div className="flex items-center gap-3 h-12 px-3.5 rounded-card bg-ink-900">
+        <RouteIcon className="w-[18px] h-[18px] text-act shrink-0" />
+        <span className="flex-1 min-w-0 text-sm font-semibold text-fg-2 truncate">
+          Path to <span className="font-display font-bold text-[16px] text-fg">{pathTarget.name}</span>
+          <span className="text-fg-4">
+            {' '}
+            · <span className="num font-bold">{pathLength}</span> steps
+          </span>
         </span>
-        <button type="button" onClick={onExitPath} aria-label="Leave the path" className="w-9 h-9 rounded-xl text-fg-3 hover:text-fg flex items-center justify-center cursor-pointer">
+        <button
+          type="button"
+          onClick={onExitPath}
+          aria-label="Leave the path"
+          className="w-9 h-9 rounded-card text-fg-3 hover:text-fg hover:bg-ink-800 flex items-center justify-center active:scale-[.97] transition cursor-pointer"
+        >
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -88,19 +107,20 @@ export const TreeBar: React.FC<{
               type="button"
               aria-pressed={on}
               onClick={() => onLaneChange(entry.lane)}
-              className={`relative h-12 px-2 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition cursor-pointer ${
-                on ? 'bg-[#121a26] border-act text-fg' : 'bg-ink-850 border-ink-700 text-[#8a94ad] hover:text-fg'
+              className={`relative h-12 px-2 rounded-card flex flex-col items-center justify-center gap-1.5 transition active:scale-[.97] cursor-pointer ${
+                on ? 'bg-ink-800 text-fg' : 'bg-ink-900 text-fg-4 hover:bg-ink-850 hover:text-fg'
               }`}
             >
+              {on && <Tally />}
               <span className="flex items-center gap-1 text-xs font-bold">
-                <span className={on ? theme?.text : ''}>{theme?.icon}</span>
+                {theme?.icon}
                 {theme?.label ?? entry.lane}
               </span>
-              <span className="w-full h-[3px] rounded-full bg-ink-700 overflow-hidden">
+              <span className="w-full h-[3px] rounded-[1px] bg-ink-700 overflow-hidden">
                 <span className="block h-full bg-earned" style={{ width: `${entry.total ? (entry.mastered / entry.total) * 100 : 0}%` }} />
               </span>
               {entry.ready > 0 && (
-                <span className="absolute -top-1.5 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-act text-act-deep text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-1 min-w-[18px] h-[18px] px-1 rounded-tag bg-act text-act-deep num font-bold text-[11px] leading-none flex items-center justify-center">
                   {entry.ready}
                 </span>
               )}

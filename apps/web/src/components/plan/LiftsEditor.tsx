@@ -6,6 +6,7 @@ import { TrackedLift } from '../../utils/campaignV3';
 import { currentOf, formatStatValue } from '../../utils/protocolEngine';
 import { metricOf } from '../../utils/records';
 import { useGame } from '../game/GameProvider';
+import { PlateIcon } from '../game/icons';
 import { themeFor } from '../protocol/primitives';
 import { DeleteButton, EditCard, Facts, Group, GroupedSelect, NumberField } from './fields';
 import { exerciseGroups } from './pickers';
@@ -59,7 +60,11 @@ export const LiftsEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
               key={lift.id}
               title={lift.name}
               meta={meta}
-              badge={<span className={`w-2.5 h-2.5 rounded-full shrink-0 bg-gradient-to-br ${theme.bar}`} aria-hidden />}
+              badge={
+                <span className="w-8 h-8 rounded-tag shrink-0 bg-ink-800 text-fg-3 flex items-center justify-center" aria-hidden>
+                  <PlateIcon className="w-4 h-4" />
+                </span>
+              }
               open={openId === lift.id}
               onToggle={() => setOpenId(openId === lift.id ? null : lift.id)}
             >

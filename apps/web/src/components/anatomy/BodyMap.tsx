@@ -9,7 +9,8 @@ export type GroupStatus = 'todo' | 'done';
 
 /**
  * The library colours a path by an intensity from 0 to 10; globals.css maps
- * the three used here onto the game palette (cyan, gold, violet).
+ * the three used here onto the game palette: chalk to train today, gold
+ * trained today, steel for the picked muscle.
  */
 const INTENSITY = { todo: 3, done: 6, selected: 10 } as const;
 

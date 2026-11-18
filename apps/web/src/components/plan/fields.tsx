@@ -22,9 +22,9 @@ export function moveBy<T>(list: T[], index: number, delta: number): T[] {
 /* ------------------------------------------------------------------ */
 
 const INPUT =
-  'w-full h-10 px-3 rounded-xl bg-dark-950 border border-slate-700 text-sm text-white placeholder:text-slate-600 outline-none focus:border-neon-cyan/70 focus:ring-2 focus:ring-neon-cyan/20 transition';
+  'w-full h-11 px-3 rounded-card bg-ink-900 border border-ink-700 text-[15px] text-fg placeholder:text-fg-5 outline-none focus:border-act transition';
 
-const LABEL = 'block mb-1 text-[10px] font-black uppercase tracking-widest text-slate-500';
+const LABEL = 'block mb-1.5 eyebrow text-fg-4';
 
 interface FieldShell {
   label: string;
@@ -34,7 +34,7 @@ interface FieldShell {
 
 const Hint: React.FC<{ id: string; text?: string }> = ({ id, text }) =>
   text ? (
-    <span id={id} className="block mt-1 text-[10px] text-slate-500 leading-snug">
+    <span id={id} className="block mt-1 text-[12px] text-fg-4 leading-snug">
       {text}
     </span>
   ) : null;
@@ -107,10 +107,10 @@ export const NumberField: React.FC<
             const parsed = Number(raw);
             if (Number.isFinite(parsed)) onChange(parsed);
           }}
-          className={`${INPUT} font-mono ${suffix ? 'pr-12' : ''}`}
+          className={`${INPUT} num font-bold text-[17px] ${suffix ? 'pr-12' : ''}`}
         />
         {suffix && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-500 pointer-events-none">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-fg-4 pointer-events-none">
             {suffix}
           </span>
         )}
@@ -179,7 +179,7 @@ export const GroupedSelect: React.FC<
         value={value}
         aria-describedby={hint ? `${id}-hint` : undefined}
         onChange={(event) => event.target.value && onChange(event.target.value)}
-        className={`${INPUT} pr-8 cursor-pointer ${value === '' ? 'text-slate-400' : ''}`}
+        className={`${INPUT} pr-8 cursor-pointer ${value === '' ? 'text-fg-4' : ''}`}
       >
         {placeholder && (
           <option value="" disabled>
@@ -191,7 +191,7 @@ export const GroupedSelect: React.FC<
           .map((group) => (
             <optgroup key={group.label} label={group.label}>
               {group.options.map((option) => (
-                <option key={option.id} value={option.id} className="text-white">
+                <option key={option.id} value={option.id} className="text-fg">
                   {option.label}
                 </option>
               ))}
@@ -207,9 +207,9 @@ export const GroupedSelect: React.FC<
 export const Facts: React.FC<{ items: { label: string; value: React.ReactNode }[] }> = ({ items }) => (
   <dl className="flex flex-wrap gap-1.5">
     {items.map((item) => (
-      <div key={item.label} className="px-2.5 py-1.5 rounded-lg border border-slate-800 bg-dark-950/70">
-        <dt className="text-[9px] font-black uppercase tracking-widest text-slate-500">{item.label}</dt>
-        <dd className="text-[11px] font-semibold text-slate-200">{item.value}</dd>
+      <div key={item.label} className="px-2.5 py-1.5 rounded-tag bg-ink-850">
+        <dt className="eyebrow text-fg-5">{item.label}</dt>
+        <dd className="text-[12px] font-semibold text-fg-2">{item.value}</dd>
       </div>
     ))}
   </dl>
@@ -226,11 +226,11 @@ export const Toggle: React.FC<{ label: string; hint?: string; checked: boolean; 
       type="checkbox"
       checked={checked}
       onChange={(event) => onChange(event.target.checked)}
-      className="mt-0.5 w-4 h-4 accent-cyan-400 cursor-pointer shrink-0"
+      className="mt-0.5 w-4 h-4 accent-act cursor-pointer shrink-0"
     />
     <span>
-      <span className="block text-xs font-bold text-slate-200">{label}</span>
-      {hint && <span className="block text-[10px] text-slate-500 leading-snug">{hint}</span>}
+      <span className="block text-[13px] font-semibold text-fg-2">{label}</span>
+      {hint && <span className="block text-[12px] text-fg-4 leading-snug">{hint}</span>}
     </span>
   </label>
 );
@@ -247,7 +247,7 @@ export const ChipPicker: React.FC<{
   <fieldset>
     <legend className={LABEL}>{label}</legend>
     {options.length === 0 ? (
-      <p className="text-[11px] text-slate-500">{empty ?? 'Nothing to choose from yet.'}</p>
+      <p className="text-[12px] text-fg-4">{empty ?? 'Nothing to choose from yet.'}</p>
     ) : (
       <div className="flex flex-wrap gap-1.5">
         {options.map((option) => {
@@ -258,10 +258,8 @@ export const ChipPicker: React.FC<{
               type="button"
               aria-pressed={on}
               onClick={() => onChange(on ? selected.filter((id) => id !== option.id) : [...selected, option.id])}
-              className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold transition cursor-pointer ${
-                on
-                  ? 'bg-cyan-950/50 text-neon-cyan border-cyan-500/50'
-                  : 'bg-dark-950 text-slate-400 border-slate-700 hover:text-white hover:border-slate-500'
+              className={`min-h-9 px-2.5 py-1.5 rounded-tag border text-[12.5px] font-semibold transition cursor-pointer active:scale-[.97] ${
+                on ? 'bg-ink-800 raised text-fg border-act' : 'bg-ink-900 text-fg-4 border-ink-700 hover:text-fg hover:border-ink-600'
               }`}
             >
               {option.label}
@@ -270,7 +268,7 @@ export const ChipPicker: React.FC<{
         })}
       </div>
     )}
-    {hint && <span className="block mt-1 text-[10px] text-slate-500 leading-snug">{hint}</span>}
+    {hint && <span className="block mt-1 text-[12px] text-fg-4 leading-snug">{hint}</span>}
   </fieldset>
 );
 
@@ -279,7 +277,7 @@ export const ChipPicker: React.FC<{
 /* ------------------------------------------------------------------ */
 
 const ICON_BUTTON =
-  'flex items-center justify-center w-9 h-9 rounded-xl border border-slate-700 bg-dark-950 text-slate-400 hover:text-white hover:border-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer';
+  'flex items-center justify-center w-10 h-10 rounded-card border border-ink-700 bg-ink-900 text-fg-4 hover:text-fg hover:bg-ink-850 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer';
 
 export const MoveButtons: React.FC<{ label: string; index: number; count: number; onMove: (delta: number) => void }> = ({
   label,
@@ -320,8 +318,8 @@ export const DeleteButton: React.FC<{ label: string; uses?: string[]; onDelete: 
         aria-label={`Delete ${label}`}
         className={
           compact
-            ? ICON_BUTTON + ' hover:!text-rose-300 hover:!border-rose-800'
-            : 'flex items-center gap-1.5 h-9 px-3 rounded-xl border border-slate-700 bg-dark-950 text-xs font-bold text-slate-400 hover:text-rose-300 hover:border-rose-800 transition cursor-pointer'
+            ? ICON_BUTTON + ' hover:!text-boss'
+            : 'flex items-center gap-1.5 h-10 px-3 rounded-card text-[13px] font-semibold text-fg-4 hover:text-boss transition cursor-pointer'
         }
       >
         <Trash2 className="w-3.5 h-3.5" />
@@ -331,8 +329,8 @@ export const DeleteButton: React.FC<{ label: string; uses?: string[]; onDelete: 
   }
 
   return (
-    <span className="flex flex-wrap items-center gap-2 p-2 rounded-xl border border-rose-800/60 bg-rose-950/30">
-      <span className="text-[11px] text-rose-200">
+    <span className="flex flex-wrap items-center gap-2 p-2 rounded-card bg-ink-850">
+      <span className="text-[12.5px] text-boss">
         Delete {label}?{uses.length > 0 && ` It is also removed from ${uses.join(', ')}.`}
       </span>
       <button
@@ -341,14 +339,14 @@ export const DeleteButton: React.FC<{ label: string; uses?: string[]; onDelete: 
           setConfirming(false);
           onDelete();
         }}
-        className="h-8 px-3 rounded-lg text-[11px] font-black uppercase tracking-wider bg-rose-900/60 text-rose-100 border border-rose-700 hover:bg-rose-800/70 transition cursor-pointer"
+        className="h-9 px-3 rounded-card text-[13px] font-semibold text-boss hover:bg-boss-deep transition cursor-pointer"
       >
         Delete
       </button>
       <button
         type="button"
         onClick={() => setConfirming(false)}
-        className="h-8 px-3 rounded-lg text-[11px] font-black uppercase tracking-wider bg-dark-950 text-slate-300 border border-slate-700 hover:border-slate-500 transition cursor-pointer"
+        className="h-9 px-3 rounded-card border border-ink-600 text-[13px] font-semibold text-fg hover:bg-ink-850 transition cursor-pointer"
       >
         Keep
       </button>
@@ -361,7 +359,7 @@ export const AddButton: React.FC<{ label: string; onClick: () => void; disabled?
     type="button"
     onClick={onClick}
     disabled={disabled}
-    className="flex items-center justify-center gap-1.5 w-full h-10 rounded-xl border border-dashed border-slate-700 text-xs font-bold text-slate-400 hover:text-neon-cyan hover:border-cyan-500/50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+    className="flex items-center justify-center gap-1.5 w-full h-11 rounded-card border border-dashed border-ink-600 text-[13px] font-semibold text-fg-3 hover:text-fg hover:border-ink-500 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
   >
     <Plus className="w-4 h-4" />
     {label}
@@ -381,7 +379,7 @@ export const EditCard: React.FC<{
   onToggle: () => void;
   children: React.ReactNode;
 }> = ({ title, meta, badge, open, onToggle, children }) => (
-  <li className={`rounded-2xl border transition-colors ${open ? 'border-slate-600 bg-dark-900/80' : 'border-slate-800 bg-dark-950/60'}`}>
+  <li className={`rounded-card transition-colors ${open ? 'bg-ink-850 raised' : 'bg-ink-900'}`}>
     <button
       type="button"
       onClick={onToggle}
@@ -390,12 +388,12 @@ export const EditCard: React.FC<{
     >
       {badge}
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-bold text-white truncate">{title || 'Untitled'}</span>
-        {meta && <span className="block text-[11px] text-slate-500 truncate">{meta}</span>}
+        <span className="block text-[14px] font-semibold text-fg truncate">{title || 'Untitled'}</span>
+        {meta && <span className="block text-[12px] text-fg-4 truncate">{meta}</span>}
       </span>
-      <ChevronDown className={`w-4 h-4 text-slate-500 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      <ChevronDown className={`w-4 h-4 text-fg-5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
     </button>
-    {open && <div className="px-3 pb-3 space-y-3 border-t border-slate-800 pt-3">{children}</div>}
+    {open && <div className="px-3 pb-3 space-y-3 border-t border-ink-700 pt-3">{children}</div>}
   </li>
 );
 
@@ -409,8 +407,8 @@ export const Group: React.FC<{ title: string; hint?: string; children: React.Rea
   <section className="space-y-3">
     <div className="flex items-end justify-between gap-3">
       <div>
-        <h3 className="text-xs font-black uppercase tracking-widest text-slate-300">{title}</h3>
-        {hint && <p className="mt-0.5 text-[11px] text-slate-500 max-w-2xl">{hint}</p>}
+        <h3 className="eyebrow text-fg-3">{title}</h3>
+        {hint && <p className="mt-0.5 text-[12px] text-fg-4 max-w-2xl">{hint}</p>}
       </div>
       {right}
     </div>
