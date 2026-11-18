@@ -155,6 +155,23 @@ export function lookalikeOf(exerciseId: string): { tree: 'calisthenics' | 'bould
   return null;
 }
 
+const held = new WeakMap<FigureSpec, FigureSpec>();
+
+/**
+ * The still drawing of a move: where its motion ends (the hold, the top of the
+ * pull) rather than where it starts. Variants of one skill share a starting
+ * lean, so Tuck and Full Planche only look different once they are held.
+ */
+export function heldPose(spec: FigureSpec): FigureSpec {
+  if (!spec.motion) return spec;
+  let pose = held.get(spec);
+  if (!pose) {
+    pose = { ...spec, strokes: spec.motion.strokes, discs: spec.motion.discs ?? spec.discs, motion: undefined };
+    held.set(spec, pose);
+  }
+  return pose;
+}
+
 /** A drawing for a catalogue exercise id (the `exercise` field of a plan exercise). */
 export function figureForExercise(exerciseId: string, branch?: string): FigureSpec {
   return lookup(exerciseId) ?? calisthenicsFigure(BRANCH_FALLBACK[branch ?? ''] ?? FALLBACK)!;
