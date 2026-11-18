@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Eye, Flag, Swords, Users } from 'lucide-react';
+import { ChevronDown, Eye, Flag, HelpCircle, Swords, Users } from 'lucide-react';
+import { CrewGuide, setGuideOpen, useGuideOpen } from '../../../components/game/CrewGuide';
 import { ScreenHeader } from '../../../components/game/AppShell';
 import { useGame } from '../../../components/game/GameProvider';
 import { Chip } from '../../../components/game/kit';
@@ -66,8 +67,16 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'board', label: 'Board' },
   { id: 'feed', label: 'Feed' },
   { id: 'duels', label: 'Duels' },
-  { id: 'crew', label: 'Crew' },
+  { id: 'crew', label: 'Spotters' },
 ];
+
+/** One line under the tabs: what this tab is for. */
+const TAB_INTRO: Record<Tab, string> = {
+  board: 'Who trained most this week. Tap someone to see their card.',
+  feed: 'What your crew did lately. Chalk is a like; I saw it vouches you saw it happen.',
+  duels: 'Seven days, one on one, scored on how much of your own plan you did.',
+  crew: 'Training partners and the regulars of each exercise.',
+};
 
 /** Growth on the athlete's own four-week average. A drop shows as a dash: nobody's bad week goes on the board. */
 const improvementText = (improvement: number | null) =>
@@ -78,9 +87,25 @@ const shortDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateStrin
 /** The crew: train with them, compete with last week. Every number here is worked out on the server. */
 export default function CrewPage() {
   const [tab, setTab] = useState<Tab>('board');
+  const guideOpen = useGuideOpen();
   return (
     <main className="w-full max-w-[880px] mx-auto px-4 pt-5 lg:px-8 lg:pt-8 pb-8 flex flex-col gap-5">
-      <ScreenHeader eyebrow="Train with your crew, compete with last week" title="Crew" />
+      <ScreenHeader
+        eyebrow="Train with your crew, compete with last week"
+        title="Crew"
+        right={
+          !guideOpen && (
+            <button
+              type="button"
+              onClick={() => setGuideOpen(true)}
+              className="h-10 px-3 rounded-card border border-ink-600 text-fg-2 text-[13px] font-semibold flex items-center gap-1.5 cursor-pointer hover:bg-ink-850"
+            >
+              <HelpCircle className="w-4 h-4" /> How it works
+            </button>
+          )
+        }
+      />
+      <CrewGuide />
       <div role="tablist" aria-label="Crew" className="grid grid-cols-4 gap-1 p-1 rounded-card bg-ink-900">
         {TABS.map((entry) => (
           <button
@@ -95,6 +120,7 @@ export default function CrewPage() {
           </button>
         ))}
       </div>
+      <p className="-mt-2 text-[13px] text-fg-3">{TAB_INTRO[tab]}</p>
       {tab === 'board' && <BoardTab />}
       {tab === 'feed' && <FeedTab />}
       {tab === 'duels' && <DuelsTab />}
@@ -171,7 +197,7 @@ function BoardTab() {
 
       <section aria-label={view === 'week' ? 'This week' : 'Most improved'} className="flex flex-col gap-1.5">
         <p className="eyebrow text-fg-4">
-          Week of {shortDate(data.week)} · resets Monday · {view === 'week' ? 'training XP: sessions, logs, ticks and skill tests' : 'this week against your own four-week average'}
+          Week of {shortDate(data.week)} · resets Monday · {view === 'week' ? 'training XP' : 'against your own last 4 weeks'}
         </p>
         {rows.length === 0 && <p className="p-4 rounded-card bg-ink-900 text-sm text-fg-3">Nobody has trained enough weeks to compare yet.</p>}
         {rows.map((row, index) => {
@@ -188,10 +214,17 @@ function BoardTab() {
                 <span className="flex-1 min-w-0">
                   <PlayerCard compact card={{ ...row.card, name: row.you && row.name !== 'You' ? `${row.name} (you)` : row.name }} gearNames={names} />
                 </span>
-                {row.prs > 0 && <Chip tone="earned">{row.prs} PR{row.prs === 1 ? '' : 's'}</Chip>}
+                {row.prs > 0 && (
+                  <span className="hidden sm:inline-flex">
+                    <Chip tone="earned">
+                      {row.prs} PR{row.prs === 1 ? '' : 's'}
+                    </Chip>
+                  </span>
+                )}
                 <span className="num font-bold text-[18px] text-fg w-16 text-right">
                   {view === 'week' ? row.xp.toLocaleString() : improvementText(row.improvement)}
                 </span>
+                <ChevronDown className={`w-4 h-4 shrink-0 text-fg-5 transition ${open === row.id ? 'rotate-180' : ''}`} aria-hidden />
               </button>
               {open === row.id && <RowDetail row={row} names={names} onFlagged={reload} />}
             </div>
@@ -251,7 +284,7 @@ const RowDetail: React.FC<{ row: Row; names: Record<string, string>; onFlagged: 
     <div className="px-3 pb-3 flex flex-col gap-2">
       <PlayerCard card={{ ...row.card, name: row.name }} gearNames={names} />
       <p className="text-[12.5px] text-fg-3">
-        {row.sessions} {row.sessions === 1 ? 'session' : 'sessions'} finished this week · {row.xp.toLocaleString()} XP
+        {row.sessions} {row.sessions === 1 ? 'session' : 'sessions'} finished this week · {row.prs} {row.prs === 1 ? 'PR' : 'PRs'} · {row.xp.toLocaleString()} XP
       </p>
       {!row.you &&
         (sent ? (
@@ -314,6 +347,11 @@ const RaidCard: React.FC<{ raid: Board['raid'] }> = ({ raid }) => {
           ? `Down. Everyone who landed a hit gets the raid badge: ${raid.fighters.map((entry) => entry.name).join(', ')}.`
           : `${left} ${left === 1 ? 'hit' : 'hits'} to go. Each finished session is a hit, each PR another. A missed week costs nobody anything.`}
       </p>
+      {!raid.down && (
+        <Link href="/quest" className="self-start h-10 px-3 rounded-card bg-boss text-ink-950 text-[13px] font-bold flex items-center">
+          Land a hit: train on Quest
+        </Link>
+      )}
     </section>
   );
 };
@@ -345,7 +383,11 @@ function FeedTab() {
 
   return (
     <ul className="flex flex-col gap-2" aria-label="Crew feed">
-      {items.length === 0 && <li className="p-4 rounded-card bg-ink-900 text-sm text-fg-3">Nothing in the last three weeks yet.</li>}
+      {items.length === 0 && (
+        <li className="p-4 rounded-card bg-ink-900 text-sm text-fg-3">
+          Nothing in the last three weeks yet. PRs, skills, bosses and level-ups show up here by themselves when your crew trains.
+        </li>
+      )}
       {items.map((item) => (
         <li key={item.id} className="p-3 rounded-card bg-ink-900 flex flex-col gap-2">
           <div className="flex items-baseline justify-between gap-2">
@@ -358,6 +400,7 @@ function FeedTab() {
             <button
               type="button"
               aria-pressed={item.chalked}
+              title="Chalk: a like. Tap again to take it back."
               onClick={async () => {
                 const result = await api<{ chalk: number; chalked: boolean }>('POST', '/crew/chalk', { id: item.id });
                 if (result.data) update(item.id, result.data);
@@ -370,6 +413,7 @@ function FeedTab() {
               <button
                 type="button"
                 disabled={item.sawIt}
+                title="Vouch that you saw it happen. It adds a seal, not XP."
                 onClick={async () => {
                   const result = await api<{ witnessed: number; sawIt: boolean }>('POST', '/crew/witness', { id: item.id });
                   if (result.data) update(item.id, result.data);
