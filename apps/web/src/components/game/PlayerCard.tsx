@@ -53,7 +53,10 @@ export const PlayerCard: React.FC<{ card: PlayerCardData; gearNames?: Record<str
         </span>
         {!compact && gear.length > 0 && <span className="text-[11.5px] text-fg-4 truncate">{gear.join(' · ')}</span>}
       </span>
-      <MiniWeb shape={card.shape} size={compact ? 44 : 64} />
+      {/* On a phone a compact row has no room for the shape; the opened card shows it. */}
+      <span className={compact ? 'hidden sm:block' : ''}>
+        <MiniWeb shape={card.shape} size={compact ? 44 : 64} />
+      </span>
     </div>
   );
 };
