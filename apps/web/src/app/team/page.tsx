@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Check, Copy, KeyRound, Link2, Mail, RefreshCw, Share2, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { Check, Copy, Flag, KeyRound, Link2, Mail, RefreshCw, Share2, Trash2, UserPlus, Users, X } from 'lucide-react';
 import { AccountMenu } from '../../components/account/AccountMenu';
 import {
   DANGER_BUTTON,
@@ -182,7 +182,62 @@ const TeamManager: React.FC<{ selfId: string }> = ({ selfId }) => {
           </ul>
         )}
       </Section>
+
+      <FlagReview />
     </div>
+  );
+};
+
+interface CrewFlag {
+  id: string;
+  byName: string;
+  targetName: string;
+  week: string;
+  reason: string;
+  at: string;
+}
+
+/** Flags the crew raised: a flagged week stays off the board until the owner clears it or upholds it. */
+const FlagReview: React.FC = () => {
+  const [flags, setFlags] = useState<CrewFlag[] | null>(null);
+  const load = useCallback(async () => {
+    const result = await api<CrewFlag[]>('GET', '/crew/flags');
+    setFlags(result.data ?? []);
+  }, []);
+  useEffect(() => {
+    void load();
+  }, [load]);
+  const resolve = async (id: string, action: 'clear' | 'uphold') => {
+    await api('POST', `/crew/flags/${id}/resolve`, { action });
+    void load();
+  };
+  return (
+    <Section icon={<Flag className="w-4 h-4" />} title="Crew flags" subtitle="Clear a flag to put that week back on the board; uphold it to count the week as zero.">
+      {flags === null ? (
+        <p className="text-xs text-fg-5">Loading…</p>
+      ) : flags.length === 0 ? (
+        <p className="text-xs text-fg-4">No open flags.</p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {flags.map((flag) => (
+            <li key={flag.id} className="flex flex-col gap-2 p-3 rounded-card bg-ink-850">
+              <span className="text-sm text-fg">
+                <strong>{flag.byName}</strong> flagged <strong>{flag.targetName}</strong>, week of {formatDate(flag.week)}
+              </span>
+              <span className="text-[13px] text-fg-3">{flag.reason}</span>
+              <span className="flex gap-2">
+                <button type="button" onClick={() => void resolve(flag.id, 'clear')} className={SMALL}>
+                  Clear
+                </button>
+                <button type="button" onClick={() => void resolve(flag.id, 'uphold')} className={SMALL_DANGER}>
+                  Uphold
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
   );
 };
 

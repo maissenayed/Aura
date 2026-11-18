@@ -6,11 +6,13 @@ import { TrackerController } from './controllers/tracker.controller.js';
 import { AdminController } from './controllers/admin.controller.js';
 import { CampaignController } from './controllers/campaign.controller.js';
 import { AccountsController } from './controllers/accounts.controller.js';
+import { CrewController } from './controllers/crew.controller.js';
 import { ExercisesService } from './services/exercises.service.js';
 import { AnatomyService } from './services/anatomy.service.js';
 import { RpgService } from './services/rpg.service.js';
 import { TrackerService } from './services/tracker.service.js';
 import { CampaignService } from './services/campaign.service.js';
+import { CrewService } from './services/crew.service.js';
 import { InvitationService } from './services/invitation.service.js';
 import { LegacyPasscodeService } from './services/legacy-passcode.service.js';
 import { AdminGuard, SignedInGuard } from './auth/account.js';
@@ -26,6 +28,7 @@ import { KEY_VALUE_STORE, createKeyValueStore } from './repositories/key-value.s
     AdminController,
     CampaignController,
     AccountsController,
+    CrewController,
   ],
   providers: [
     ExercisesService,
@@ -33,6 +36,7 @@ import { KEY_VALUE_STORE, createKeyValueStore } from './repositories/key-value.s
     RpgService,
     TrackerService,
     CampaignService,
+    CrewService,
     InvitationService,
     LegacyPasscodeService,
     SignedInGuard,

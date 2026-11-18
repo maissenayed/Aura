@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, Cloud, CloudOff, CloudUpload, ExternalLink } from 'lucide-react';
+import { Activity, Cloud, CloudOff, CloudUpload, ExternalLink, Users } from 'lucide-react';
 import { AccountMenu } from '../account/AccountMenu';
 import { useGame } from './GameProvider';
 import { HexLevel, Meter } from './kit';
@@ -43,6 +43,7 @@ const PRIMARY: NavItem[] = [
 ];
 
 const SECONDARY: NavItem[] = [
+  { href: '/crew', label: 'Crew', icon: Users },
   { href: '/map', label: 'Map', icon: MapIcon },
   { href: '/forge', label: 'Forge', icon: ForgeIcon },
   { href: '/anatomy', label: 'Anatomy', icon: Activity },
