@@ -24,8 +24,9 @@ export const LiftLogger: React.FC<{ exercise: PlanExercise }> = ({ exercise }) =
         prefix={stat.unit === 'added-kg' ? '+' : ''}
         highlight={pr}
         placeholder={stat.hasBaseline ? undefined : 'log it'}
-        ariaLabel={`${stat.name}, best ${formatStatValue(currentOf(save, stat), stat.unit)}`}
+        ariaLabel={`${stat.name}, last ${formatStatValue(currentOf(save, stat), stat.unit)}`}
         onCommit={(value) => logStat(stat.id, value)}
+        commitSame
       />
     </span>
   );

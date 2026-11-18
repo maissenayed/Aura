@@ -254,7 +254,8 @@ const BODYBUILDING: CampaignTemplate = {
           id: 'act_3',
           name: 'The Big Three',
           tagline: 'Squat, deadlift and press like a lifter.',
-          goals: [...bossGoals(['bb_squat', 'bb_deadlift', 'bb_overhead']), { id: 'goal_tower_bench', kind: 'tower', tower: 'bb_tower_bench' }],
+          // The 1.5× bodyweight bench tower is a second-year climb: it stays on the Towers tab, off the first year's map.
+          goals: bossGoals(['bb_squat', 'bb_deadlift', 'bb_overhead']),
         },
       ],
     }),

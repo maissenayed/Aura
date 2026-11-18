@@ -170,7 +170,7 @@ const CURATED: Omit<CatalogExercise, 'discipline'>[] = [
   /* Push */
   { id: 'weighted_dips', name: 'Weighted Dips', category: 'push', focus: 'Lower Chest & Triceps', dose: 'reps', lift: 'dips', trains: ['push', 'straight', 'power'], sets: 4, reps: '5–8' },
   { id: 'incline_bench', name: 'Barbell Incline Bench', category: 'push', focus: 'Upper Chest', dose: 'reps', lift: 'inclineBench', trains: ['push', 'straight'], sets: 4, reps: '8–12' },
-  { id: 'db_press', name: 'Seated DB Overhead Press', category: 'push', focus: 'Front Delts', dose: 'reps', lift: 'dbPress', trains: ['push', 'straight', 'balance'], sets: 4, reps: '6–10' },
+  { id: 'db_press', name: 'Seated DB Overhead Press', category: 'push', focus: 'Front Delts', dose: 'reps', lift: 'dbPress', trains: ['push'], sets: 4, reps: '6–10' },
   { id: 'bench_press', name: 'Barbell Bench Press', category: 'push', focus: 'Chest', dose: 'reps', lift: 'benchPress', trains: ['push'], sets: 4, reps: '5–8' },
   { id: 'overhead_press', name: 'Standing Overhead Press', category: 'push', focus: 'Shoulders', dose: 'reps', lift: 'overheadPress', trains: ['push', 'balance'], sets: 4, reps: '5–8' },
   { id: 'pushups_amrap', name: 'Bodyweight Push-ups (AMRAP)', category: 'push', focus: 'Lactic Acid Clearance', dose: 'reps', lift: 'pushUpReps', trains: ['endurance'], sets: 1, reps: 'max' },
@@ -189,7 +189,7 @@ const CURATED: Omit<CatalogExercise, 'discipline'>[] = [
   { id: 'pullups_amrap', name: 'BW Pull-ups (AMRAP Burnout)', category: 'pull', focus: 'Lactic Acid Clearance', dose: 'reps', lift: 'pullUpReps', trains: ['endurance', 'power'], sets: 1, reps: 'max' },
   { id: 'weighted_chins', name: 'Weighted Chin-ups', category: 'pull', focus: 'Vertical Power', dose: 'reps', lift: 'chinUps', trains: ['pull', 'power'], sets: 4, reps: '5–8' },
   { id: 'weighted_pullups', name: 'Weighted Pull-ups', category: 'pull', focus: 'Vertical Power', dose: 'reps', lift: 'weightedPullUps', trains: ['pull', 'power'], sets: 4, reps: '5–8' },
-  { id: 'cable_row', name: 'Seated Cable Rows', category: 'pull', focus: 'Horizontal Power', dose: 'reps', lift: 'cableRow', trains: ['pull', 'straight'], sets: 4, reps: '8–12' },
+  { id: 'cable_row', name: 'Seated Cable Rows', category: 'pull', focus: 'Horizontal Power', dose: 'reps', lift: 'cableRow', trains: ['pull'], sets: 4, reps: '8–12' },
   { id: 'barbell_row', name: 'Barbell Rows', category: 'pull', focus: 'Upper Back', dose: 'reps', lift: 'barbellRow', trains: ['pull', 'straight'], sets: 4, reps: '6–10' },
   { id: 'lat_pulldown', name: 'Lat Pulldown', category: 'pull', focus: 'Lats', dose: 'reps', lift: 'latPulldown', trains: ['pull'], sets: 3, reps: '8–12' },
   { id: 'muscle_ups', name: 'Strict Muscle-ups', category: 'pull', focus: 'Transition Power', dose: 'reps', lift: 'muscleUpReps', trains: ['pull', 'power'], sets: 5, reps: '2' },

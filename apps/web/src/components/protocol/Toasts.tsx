@@ -17,6 +17,7 @@ const ICON = 'w-4 h-4';
 /** One look per kind of event, shared by the toasts and the battle log. */
 export const EVENT_VISUAL: Record<EventKind, EventVisual> = {
   pr: { icon: <TrendingUp className={ICON} />, label: 'Personal record', text: 'text-neon-cyan', border: 'border-cyan-500/50', bg: 'bg-cyan-950/60' },
+  log: { icon: <CalendarCheck className={ICON} />, label: 'Session logged', text: 'text-slate-300', border: 'border-slate-600/60', bg: 'bg-slate-900/80' },
   tier: { icon: <Star className={ICON} />, label: 'Skill tier', text: 'text-neon-emerald', border: 'border-emerald-500/50', bg: 'bg-emerald-950/60' },
   boss: { icon: <Crown className={ICON} />, label: 'Boss defeated', text: 'text-neon-gold', border: 'border-amber-400/60', bg: 'bg-amber-950/70' },
   level: { icon: <Sparkles className={ICON} />, label: 'Level up', text: 'text-neon-purple', border: 'border-purple-500/50', bg: 'bg-purple-950/60' },

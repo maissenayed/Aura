@@ -187,6 +187,8 @@ interface StepperProps {
   placeholder?: string;
   ariaLabel: string;
   onCommit: (value: number) => void;
+  /** Commit the number even when it is unchanged: typed again, or Enter on the shown value. For logging sessions. */
+  commitSame?: boolean;
 }
 
 /**
@@ -204,6 +206,7 @@ export const Stepper: React.FC<StepperProps> = ({
   placeholder,
   ariaLabel,
   onCommit,
+  commitSame = false,
 }) => {
   const [draft, setDraft] = useState<string | null>(null);
   const clamp = (n: number) => Math.min(max, Math.max(min, Math.round(n * 10) / 10));
@@ -212,7 +215,7 @@ export const Stepper: React.FC<StepperProps> = ({
     if (draft === null) return;
     const parsed = Number.parseFloat(draft);
     setDraft(null);
-    if (Number.isFinite(parsed) && clamp(parsed) !== value) onCommit(clamp(parsed));
+    if (Number.isFinite(parsed) && (clamp(parsed) !== value || commitSame)) onCommit(clamp(parsed));
   };
 
   return (
@@ -239,7 +242,10 @@ export const Stepper: React.FC<StepperProps> = ({
           onChange={(event) => setDraft(event.target.value)}
           onBlur={commitDraft}
           onKeyDown={(event) => {
-            if (event.key === 'Enter') event.currentTarget.blur();
+            if (event.key !== 'Enter') return;
+            // Enter on the number already shown logs it again: the same weight as last time.
+            if (draft === null && commitSame && value > 0) onCommit(value);
+            event.currentTarget.blur();
           }}
           className="w-[52px] bg-transparent text-center outline-none placeholder:text-fg-5 placeholder:font-sans placeholder:text-[11px] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />

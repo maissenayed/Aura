@@ -34,7 +34,8 @@ import { AttributeStatus, evaluateAttributes } from './attributes';
 /* Save                                                                */
 /* ------------------------------------------------------------------ */
 
-export type EventKind = 'pr' | 'tier' | 'boss' | 'level' | 'mass' | 'iron' | 'day' | 'week' | 'skill' | 'attribute' | 'badge';
+/** `log`: a session logged at the same number as last time (a toast only, never in the battle log). */
+export type EventKind = 'pr' | 'log' | 'tier' | 'boss' | 'level' | 'mass' | 'iron' | 'day' | 'week' | 'skill' | 'attribute' | 'badge';
 
 export interface GameEvent {
   kind: EventKind;
@@ -141,6 +142,17 @@ export function currentOf(save: ProtocolSave, lift: Lift): number {
   return save.records?.[lift.id] ?? save.stats[lift.id] ?? lift.baseline;
 }
 
+/**
+ * The best a lift has been: its last log or any day in its history. Bosses,
+ * goals and gates read this, so a bad week or an injury never takes back what
+ * was already reached. A log corrected the same day replaces that day's point,
+ * so a typo does not count.
+ */
+export function bestOf(save: ProtocolSave, lift: Lift): number {
+  const points = save.history?.[lift.id] ?? [];
+  return points.reduce((best, [, value]) => Math.max(best, value), currentOf(save, lift));
+}
+
 /** The number a "lift N × bodyweight" boss asks for: the load itself, or the load on top of bodyweight for added-kg lifts. */
 export function multipleTarget(lift: Lift | undefined, multiple: number, bodyWeightKg: number): number {
   const total = multiple * bodyWeightKg;
@@ -243,7 +255,10 @@ export interface BossStatus {
   requirements: RequirementStatus[];
   /** 0–1. Every PR on a linked lift chips at this. */
   damage: number;
+  /** Slain: beaten now, or beaten before (its badge is kept). A slain boss stays slain. */
   defeated: boolean;
+  /** The numbers beat it right now. */
+  beaten: boolean;
   /** A prerequisite boss is still standing. */
   sealed: boolean;
   sealedBy?: string;
@@ -258,7 +273,7 @@ function evaluateRequirement(
   if (req.kind === 'lift') {
     const lift = liftOf(plan, req.lift);
     if (!lift) return { requirement: req, label: req.label ?? 'Missing lift', target: 1, current: 0, met: false, ratio: 0, scales: false };
-    const current = currentOf(save, lift);
+    const current = bestOf(save, lift);
     const target = scaledTarget(req.target, req.atGoal, save.bodyWeightKg, plan);
     return {
       requirement: req,
@@ -275,7 +290,7 @@ function evaluateRequirement(
   if (req.kind === 'multiple') {
     const lift = liftOf(plan, req.lift);
     if (!lift) return { requirement: req, label: req.label ?? 'Missing lift', target: 1, current: 0, met: false, ratio: 0, scales: false };
-    const current = currentOf(save, lift);
+    const current = bestOf(save, lift);
     const target = multipleTarget(lift, req.multiple, save.bodyWeightKg);
     return {
       requirement: req,
@@ -350,17 +365,18 @@ function evaluateRequirement(
 /**
  * Bosses can chain (the planche needs the handstand push-up down first), so
  * the defeated set is grown pass by pass until it stops changing. A boss with
- * no requirements can never be defeated.
+ * no requirements can never be defeated. A boss with a badge was slain before
+ * and stays slain, whatever its numbers do now (a heavier bodyweight, a lift
+ * history that has rolled over).
  */
 export function evaluateBosses(save: ProtocolSave, plan: CampaignPlan): BossStatus[] {
-  let defeated = new Set<string>();
+  const slain = new Set(plan.bosses.filter((boss) => save.badges?.[`boss:${boss.id}`]).map((boss) => boss.id));
+  const beatenNow = (boss: Boss, defeated: Set<string>) =>
+    boss.requirements.length > 0 && boss.requirements.every((r) => evaluateRequirement(r, save, plan, defeated).met);
+  let defeated = new Set<string>(slain);
   for (let pass = 0; pass <= plan.bosses.length; pass += 1) {
-    const next = new Set<string>();
-    for (const boss of plan.bosses) {
-      if (boss.requirements.length > 0 && boss.requirements.every((r) => evaluateRequirement(r, save, plan, defeated).met)) {
-        next.add(boss.id);
-      }
-    }
+    const next = new Set<string>(slain);
+    for (const boss of plan.bosses) if (beatenNow(boss, defeated)) next.add(boss.id);
     const changed = next.size !== defeated.size;
     defeated = next;
     if (!changed) break;
@@ -369,13 +385,15 @@ export function evaluateBosses(save: ProtocolSave, plan: CampaignPlan): BossStat
   return plan.bosses.map((boss, index) => {
     const requirements = boss.requirements.map((r) => evaluateRequirement(r, save, plan, defeated));
     const seal = requirements.find((r) => r.requirement.kind === 'boss' && !r.met);
+    const beaten = requirements.length > 0 && requirements.every((r) => r.met);
     return {
       boss,
       order: index + 1,
       requirements,
-      damage: requirements.length ? requirements.reduce((sum, r) => sum + r.ratio, 0) / requirements.length : 0,
+      damage: defeated.has(boss.id) ? 1 : requirements.length ? requirements.reduce((sum, r) => sum + r.ratio, 0) / requirements.length : 0,
       defeated: defeated.has(boss.id),
-      sealed: Boolean(seal),
+      beaten,
+      sealed: !defeated.has(boss.id) && Boolean(seal),
       sealedBy: seal?.label,
     };
   });
@@ -423,7 +441,7 @@ function evaluateLadder(ladder: SkillTree, save: ProtocolSave, plan: CampaignPla
       const lift = liftOf(plan, gate.lift);
       if (!lift) continue;
       const target = scaledTarget(gate.target, gate.atGoal, save.bodyWeightKg, plan);
-      const current = currentOf(save, lift);
+      const current = bestOf(save, lift);
       gates.push({ stat: lift, target, current, met: current >= target, scales: gate.atGoal !== undefined });
     }
 
@@ -569,7 +587,7 @@ function evaluateCheckpoints(save: ProtocolSave, plan: CampaignPlan): IronCheckp
       if (goal.kind !== 'lift') return [];
       const lift = liftOf(plan, goal.lift);
       if (!lift) return [];
-      const current = currentOf(save, lift);
+      const current = bestOf(save, lift);
       return [
         {
           id: goal.id,
@@ -779,7 +797,7 @@ function evaluateLevel(
 ): LevelStatus {
   const strength = plan.lifts.reduce((sum, lift) => {
     if (lift.endgame === null) return sum;
-    return sum + travel(lift, currentOf(save, lift), lift.endgame) * XP_RULES.statMax;
+    return sum + travel(lift, bestOf(save, lift), lift.endgame) * XP_RULES.statMax;
   }, 0);
 
   const earnedTiers = ladders.reduce(
@@ -1044,7 +1062,7 @@ function evaluateGates(
   const best = new Map<string, { lift: Lift; target: number; unlocks: string }>();
 
   const consider = (lift: Lift, target: number, unlocks: string) => {
-    if (currentOf(save, lift) >= target) return;
+    if (bestOf(save, lift) >= target) return;
     const existing = best.get(lift.id);
     if (!existing || target < existing.target) best.set(lift.id, { lift, target, unlocks });
   };
@@ -1066,7 +1084,7 @@ function evaluateGates(
 
   return [...best.values()]
     .map(({ lift, target, unlocks }) => {
-      const current = currentOf(save, lift);
+      const current = bestOf(save, lift);
       return {
         stat: lift,
         target,
@@ -1136,7 +1154,7 @@ export interface BadgeAward {
 function badgeChecks(save: ProtocolSave, derived: Derived, plan: CampaignPlan): { award: BadgeAward; held: boolean }[] {
   const checks: { award: BadgeAward; held: boolean }[] = [];
   for (const status of derived.bosses) {
-    checks.push({ award: { id: `boss:${status.boss.id}`, kind: 'boss', title: status.boss.name, detail: 'Boss defeated' }, held: status.defeated });
+    checks.push({ award: { id: `boss:${status.boss.id}`, kind: 'boss', title: status.boss.name, detail: 'Boss defeated' }, held: status.beaten });
   }
   for (const ladder of derived.ladders) {
     if (!ladder.ladder.tower || ladder.tiers.length === 0) continue;
@@ -1149,7 +1167,7 @@ function badgeChecks(save: ProtocolSave, derived: Derived, plan: CampaignPlan): 
     if (lift.endgame === null) continue;
     checks.push({
       award: { id: `record:${lift.id}`, kind: 'record', title: lift.name, detail: `End-game number · ${formatStatValue(lift.endgame, lift.unit)}` },
-      held: currentOf(save, lift) >= lift.endgame,
+      held: bestOf(save, lift) >= lift.endgame,
     });
   }
   return checks;
@@ -1162,14 +1180,21 @@ export function badgesDue(save: ProtocolSave, derived: Derived, plan: CampaignPl
     .map((check) => check.award);
 }
 
+/** How long a badge can still be taken back by a recount: a typo is noticed within days. */
+export const RECOUNT_DAYS = 7;
+
 /**
- * Badges the save holds that its numbers no longer back, e.g. a boss beaten by a
- * log that was then corrected. Badges for bosses, towers or lifts the plan has
- * since dropped are never in here: those stay for good.
+ * Badges from the last week that the save's numbers no longer back, e.g. a
+ * boss beaten by a log that was then corrected. Older badges are settled, and
+ * badges for bosses, towers or lifts the plan has since dropped are never in
+ * here: those stay for good.
  */
-export function badgesUnbacked(save: ProtocolSave, derived: Derived, plan: CampaignPlan): string[] {
+export function badgesUnbacked(save: ProtocolSave, derived: Derived, plan: CampaignPlan, today: string): string[] {
+  const from = new Date(`${today}T12:00:00`);
+  from.setDate(from.getDate() - RECOUNT_DAYS);
+  const since = toIsoDate(from);
   return badgeChecks(save, derived, plan)
-    .filter((check) => !check.held && save.badges[check.award.id])
+    .filter((check) => !check.held && save.badges[check.award.id] && save.badges[check.award.id] >= since)
     .map((check) => check.award.id);
 }
 

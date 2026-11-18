@@ -160,7 +160,7 @@ export default function QuestPage() {
                   exercise={exercise}
                   dayKind={day.kind}
                   done={Boolean(save.quests[questKey(viewWeek, exercise.id)])}
-                  onToggle={() => game.toggleQuest(questKey(viewWeek, exercise.id))}
+                  onToggle={() => game.toggleQuest(questKey(viewWeek, exercise.id), awayFromToday ? undefined : exercise.lift)}
                   onOpen={() => setOpenId(exercise.id)}
                 />
               ))}
@@ -183,7 +183,7 @@ export default function QuestPage() {
           exercise={opened}
           dayKind={day.kind}
           done={Boolean(save.quests[questKey(viewWeek, opened.id)])}
-          onToggle={() => game.toggleQuest(questKey(viewWeek, opened.id))}
+          onToggle={() => game.toggleQuest(questKey(viewWeek, opened.id), awayFromToday ? undefined : opened.lift)}
           onClose={closeSheet}
         />
       )}

@@ -10,6 +10,7 @@ import {
   ProtocolSave,
   badgesDue,
   badgesUnbacked,
+  bestOf,
   currentOf,
   dayIdOf,
   derive,
@@ -30,6 +31,7 @@ import {
 import { HISTORY_LIMIT, HistoryPoint } from '../../utils/campaignV3';
 import { V2_LIFT_OF_RECORD } from '../../utils/records';
 import { adoptDeviceProgress } from '../../utils/skillProgressStore';
+import { skillsProvenByLogs } from '../../utils/skillStandards';
 import { Toast, ToastStack } from '../protocol/Toasts';
 import { MomentOverlay } from './MomentOverlay';
 
@@ -66,7 +68,8 @@ export interface GameValue extends CampaignSnapshot {
   setSelectedDay: (dayId: string | null) => void;
   jumpToToday: () => void;
   logStat: (id: string, value: number) => void;
-  toggleQuest: (key: string) => void;
+  /** Ticks or unticks a mission. With `sessionLift`, ticking today's mission also records today's session at that lift's number. */
+  toggleQuest: (key: string, sessionLift?: string) => void;
   weighIn: (kg: number) => void;
   resetCampaign: () => void;
   /** Takes back every badge the save's numbers no longer back. */
@@ -179,7 +182,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (snapshot.gate !== 'ready' || (!badgesPrimed.current && snapshot.sync !== 'synced')) return;
     const date = todayIso ?? toIsoDate(new Date());
     const due = badgesDue(save, derived, plan);
-    const takenBack = badgesUnbacked(save, derived, plan).filter((id) => save.badges[id] === date);
+    const takenBack = badgesUnbacked(save, derived, plan, date).filter((id) => save.badges[id] === date);
     const quiet = !badgesPrimed.current;
     badgesPrimed.current = true;
     if (!due.length && !takenBack.length) return;
@@ -194,21 +197,51 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const recountBadges = useCallback(() => {
     const current = peekSave();
-    const unbacked = badgesUnbacked(current, derive(current, { currentWeek, viewWeek }, plan), plan);
+    const unbacked = badgesUnbacked(current, derive(current, { currentWeek, viewWeek }, plan), plan, todayIso ?? toIsoDate(new Date()));
     if (!unbacked.length) return;
     const badges = { ...current.badges };
     for (const id of unbacked) delete badges[id];
     commitSave({ ...current, badges });
-  }, [currentWeek, plan, viewWeek]);
+  }, [currentWeek, plan, todayIso, viewWeek]);
+
+  // A gym skill whose standard a logged lift meets ("1x BW × 8" with a bodyweight load) is
+  // mastered without a trip to the tree. Like badges, what the logs already proved before
+  // this loaded is mastered quietly; afterwards it goes through `play`, so a tower floor or
+  // a skill boss it completes gets its moment.
+  const skillsPrimed = useRef(false);
+  useEffect(() => {
+    if (snapshot.gate !== 'ready' || (!skillsPrimed.current && snapshot.sync !== 'synced')) return;
+    const proven = skillsProvenByLogs(save);
+    const quiet = !skillsPrimed.current;
+    skillsPrimed.current = true;
+    if (!proven.length) return;
+    const date = todayIso ?? toIsoDate(new Date());
+    const master = (current: ProtocolSave): ProtocolSave => ({
+      ...current,
+      skills: { ...current.skills, ...Object.fromEntries(proven.map((standard) => [`calisthenics:${standard.skill}`, date])) },
+    });
+    if (quiet) return commitSave(master(peekSave()));
+    play(
+      master,
+      proven.map((standard) => ({
+        kind: 'skill',
+        key: `skill_${standard.skill}`,
+        title: `Skill mastered — ${standard.name}`,
+        detail: `Your log meets ${standard.multiple}× bodyweight`,
+      })),
+    );
+  }, [play, save, snapshot.gate, snapshot.sync, todayIso]);
 
   const logStat = useCallback(
     (id: string, value: number) => {
       const stat = liftOf(plan, id);
       if (!stat) return;
       const previous = currentOf(peekSave(), stat);
+      const best = bestOf(peekSave(), stat);
       const firstLog = !stat.hasBaseline && previous === 0;
+      // A record is a new best, not just more than last time: climbing back after a bad week is not a PR.
       const extra: GameEvent[] =
-        value > previous
+        value > best
           ? [
               {
                 kind: 'pr',
@@ -232,13 +265,32 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           ...(v2 ? { stats: { ...current.stats, [v2]: value } } : {}),
         };
       }, extra);
+      // The same number as last time still counts as a session; say so, since nothing else changes.
+      if (value === previous && value > 0) {
+        announce([{ kind: 'log', key: `log_${id}`, title: `Logged — ${stat.short}`, detail: `${formatStatValue(value, stat.unit)} · same as last time` }]);
+      }
     },
-    [plan, play, todayIso],
+    [announce, plan, play, todayIso],
   );
 
   const toggleQuest = useCallback(
-    (key: string) => play((current) => ({ ...current, quests: { ...current.quests, [key]: !current.quests[key] } })),
-    [play],
+    (key: string, sessionLift?: string) =>
+      play((current) => {
+        const ticking = !current.quests[key];
+        const next = { ...current, quests: { ...current.quests, [key]: ticking } };
+        // Ticking today's mission without logging means it was done at the usual number:
+        // the session goes in the history, so a plateau does not look like missed training.
+        const lift = ticking && sessionLift ? liftOf(plan, sessionLift) : undefined;
+        if (!lift) return next;
+        const value = currentOf(current, lift);
+        const date = todayIso ?? toIsoDate(new Date());
+        const points = current.history[lift.id] ?? [];
+        if (!(value > 0) || points.some(([day]) => day === date)) return next;
+        const added: HistoryPoint[] = [...points, [date, value]];
+        added.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+        return { ...next, history: { ...next.history, [lift.id]: added.slice(-HISTORY_LIMIT) } };
+      }),
+    [plan, play, todayIso],
   );
 
   const weighIn = useCallback((kg: number) => play((current) => ({ ...current, bodyWeightKg: kg })), [play]);
