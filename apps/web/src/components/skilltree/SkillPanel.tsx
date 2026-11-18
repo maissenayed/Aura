@@ -408,7 +408,8 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
               Undo
             </button>
           </div>
-          <Standard text={exercise.unlockRequirements} evidence={evidence} />
+          {/* Already mastered: the best log is worth showing, the "log it to master it" hint is not. */}
+          <Standard text={exercise.unlockRequirements} evidence={evidence && evidence.best > 0 ? evidence : null} />
           {vouched && (
             <p className="text-[13px] text-earned-dim">
               Marked as a step before a harder skill. It counts for less XP until a log meets its standard.
