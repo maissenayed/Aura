@@ -45,8 +45,8 @@ const RETRY_MAX_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 12_000;
 const LOG_LIMIT = 40;
 
-/** What stands between the athlete and the board. */
-export type Gate = 'loading' | 'signin' | 'setup' | 'ready';
+/** What stands between the athlete and the board. `onboard`: a new account, choosing the campaign it starts with. */
+export type Gate = 'loading' | 'signin' | 'setup' | 'onboard' | 'ready';
 export type SyncStatus = 'connecting' | 'saving' | 'synced' | 'offline';
 
 export interface CampaignSnapshot {
@@ -73,6 +73,10 @@ let v2PlanForSave: PlanSpecV2 | undefined;
 let planRead = false;
 /** A v2 plan converted on this pull: sent up once the converted save is. */
 let convertedPlanPending = false;
+/** This device had nothing for the account when it loaded: no save and no plan. */
+let freshDevice = false;
+/** The last plan read from the server was there (not an account that never saved one). */
+let planFound = false;
 
 interface RemoteDoc {
   rev: number;
@@ -515,10 +519,18 @@ function load(id: string, adoptLegacy: boolean): void {
   if (userId === id && snapshot?.gate === 'ready') return;
   userId = id;
   storageSet(LAST_USER, id);
+  const planCached = storageGet(PLAN_PREFIX + id) !== null;
   const plan = planState(readPlanCache(id));
   snapshot = { ...getSnapshot(), ...plan };
   const cached = readCache(id, adoptLegacy);
-  update({ save: cached.save, ...plan, gate: 'ready', sync: 'connecting' });
+  freshDevice = !cached.existed && !planCached;
+  // Nothing on this device yet: wait for the server rather than flash someone else's plan.
+  update({ save: cached.save, ...plan, gate: freshDevice ? 'loading' : 'ready', sync: 'connecting' });
+}
+
+/** A board that was waiting for the server shows what this device has once the server cannot say more. */
+function settleGate(): void {
+  if (userId && getSnapshot().gate === 'loading') update({ gate: 'ready' });
 }
 
 /** Forgets the loaded account (signed out, or the session ended). */
@@ -574,7 +586,10 @@ async function connect(): Promise<void> {
 async function pull(): Promise<void> {
   if (!userId) return;
   const result = await request('GET', '/campaign');
-  if (!result || result.status >= 500) return goOffline();
+  if (!result || result.status >= 500) {
+    settleGate();
+    return goOffline();
+  }
   if (result.status === 401) return void refreshAccount();
 
   const doc = result.body?.data as RemoteDoc | null | undefined;
@@ -587,6 +602,13 @@ async function pull(): Promise<void> {
 
   retryDelay = RETRY_MIN_MS;
   await pullPlan();
+  // A new account: no save and no plan anywhere. It picks a template before anything is saved.
+  if (freshDevice && !doc && planRead && !planFound && !planDirty) {
+    update({ gate: 'onboard', sync: 'synced' });
+    return;
+  }
+  freshDevice = false;
+  settleGate();
   upgradeSave();
   if (isDirty()) await push();
   else update({ sync: 'synced' });
@@ -607,6 +629,7 @@ async function pullPlan(): Promise<void> {
   planRead = true;
 
   const doc = result.body?.data as RemoteDoc | null | undefined;
+  planFound = Boolean(doc);
   if (planDirty) {
     // A plan saved here while offline: it was saved on purpose, so it replaces the server's.
     planRev = doc?.rev ?? 0;
@@ -818,6 +841,27 @@ export async function savePlan(next: PlanSpec, options: { overwrite?: boolean } 
   persistPlan();
   if (!connected || !userId) return 'offline';
   return pushPlan(Boolean(options.overwrite));
+}
+
+/**
+ * A new account starts its campaign: the plan it picked (a template, or a
+ * blank one to build in the Forge) and a fresh save at week 1, saved on this
+ * device and then on the server.
+ */
+export async function startCampaign(next: PlanSpec, bodyWeightKg: number): Promise<void> {
+  if (!userId) return;
+  freshDevice = false;
+  planDirty = true;
+  planConflict = null;
+  const plan = planState(toSpec(next));
+  snapshot = { ...getSnapshot(), ...plan };
+  const save: ProtocolSave = { ...createInitialSave(plan.plan), startedAt: mondayOf(toIsoDate(new Date())), bodyWeightKg };
+  update({ ...plan, save, gate: 'ready', sync: connected ? 'saving' : getSnapshot().sync });
+  persist();
+  persistPlan();
+  if (!connected) return;
+  await pushPlan(false);
+  await push();
 }
 
 /** After a conflict: the plan the other device saved. */
