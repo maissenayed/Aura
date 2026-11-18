@@ -189,7 +189,8 @@ function SkillTreeScreen({ tree, initialSkillId, onTreeChange }: SkillTreeScreen
     );
     const before = summary.rank;
     const after = summarize(graph, next, rules);
-    setMasteredIds(tree.id, [...next]);
+    // The steps before it come along vouched for: they count for less in the campaign until a log proves them.
+    setMasteredIds(tree.id, [...next], added.slice(1));
 
     const details = [`+${added.reduce((sum, other) => sum + (graph.byId.get(other)?.xpReward ?? 0), 0)} XP`];
     if (added.length > 1) details.push(`with the ${added.length - 1} before it`);
@@ -202,14 +203,16 @@ function SkillTreeScreen({ tree, initialSkillId, onTreeChange }: SkillTreeScreen
     }
 
     const events: GameEvent[] = [{ kind: 'skill', title: `Mastered — ${exercise.name}`, detail: details.join(' · ') }];
-    if (after.rank !== before) events.push({ kind: 'level', title: after.rank, detail: `${after.mastered} ${noun.many} mastered` });
+    // The tree's own rank is a toast: the campaign's Level Up is for campaign levels only.
+    if (after.rank !== before) events.push({ kind: 'skill', title: `Tree rank — ${after.rank}`, detail: `${after.mastered} ${noun.many} mastered` });
     announce(events);
   };
 
   const firstLevel = rules.bands[0]?.min ?? 0;
   const skipBasics = () => {
     const basics = graph.exercises.filter((exercise) => exercise.level <= tree.basicsMax && !mastered.has(exercise.id));
-    setMasteredIds(tree.id, [...masteredIds, ...basics.map((exercise) => exercise.id)]);
+    const ids = basics.map((exercise) => exercise.id);
+    setMasteredIds(tree.id, [...masteredIds, ...ids], ids);
     announce([
       {
         kind: 'skill',

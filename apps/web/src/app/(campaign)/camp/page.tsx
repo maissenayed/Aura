@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Repeat } from 'lucide-react';
+import { AccountMenu } from '../../../components/account/AccountMenu';
 import { useGame } from '../../../components/game/GameProvider';
 import { figureForBoss, figureForExercise } from '../../../components/game/figures';
 import { bossForDay, bossHp, splitTarget } from '../../../components/game/helpers';
@@ -42,6 +43,8 @@ export default function CampPage() {
           <FlameIcon className="w-[18px] h-[18px]" lit={streak > 0} />
           <span className="num font-bold text-lg">{streak}</span>
         </span>
+        {/* Sign out and Team live in the desktop sidebar; on a phone they open from here. */}
+        <AccountMenu large />
       </div>
       <h1 className="hidden lg:block font-display font-extrabold uppercase text-[40px] leading-none">Camp</h1>
 

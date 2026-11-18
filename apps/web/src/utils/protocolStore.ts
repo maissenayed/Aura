@@ -173,6 +173,13 @@ function normalizeSave(raw: unknown): ProtocolSave {
   if (isRecord(raw.badges)) {
     for (const [id, date] of Object.entries(raw.badges)) if (typeof date === 'string') badges[id] = date;
   }
+  const perfectWeeks = Array.isArray(raw.perfectWeeks)
+    ? [...new Set(raw.perfectWeeks.filter((week): week is number => Number.isInteger(week) && week >= 1))].sort((a, b) => a - b)
+    : [];
+  const vouched: Record<string, string> = {};
+  if (isRecord(raw.vouched)) {
+    for (const [key, date] of Object.entries(raw.vouched)) if (typeof date === 'string') vouched[currentSkillKey(key)] = date;
+  }
 
   return {
     // Fields a newer version of the app added ride along untouched, so this one never strips them.
@@ -182,6 +189,8 @@ function normalizeSave(raw: unknown): ProtocolSave {
     records: numbers(raw.records),
     history,
     badges,
+    perfectWeeks,
+    vouched,
     startedAt: typeof raw.startedAt === 'string' ? raw.startedAt : fresh.startedAt,
     bodyWeightKg:
       typeof raw.bodyWeightKg === 'number' && Number.isFinite(raw.bodyWeightKg) ? raw.bodyWeightKg : fresh.bodyWeightKg,
@@ -216,6 +225,8 @@ const KNOWN_SAVE_FIELDS = new Set([
   'records',
   'history',
   'badges',
+  'perfectWeeks',
+  'vouched',
 ]);
 
 /** Everything in a stored save that this version does not read. */
@@ -324,6 +335,9 @@ function mergeSaves(from: ProtocolSave, mine: ProtocolSave, theirs: ProtocolSave
     records: mergeMap(from.records, mine.records, theirs.records),
     history: mergeHistory(from.history, mine.history, theirs.history),
     badges: mergeBadges(from.badges, mine.badges, theirs.badges),
+    // A week banked as perfect on either side stays banked.
+    perfectWeeks: [...new Set([...(mine.perfectWeeks ?? []), ...(theirs.perfectWeeks ?? [])])].sort((a, b) => a - b),
+    vouched: mergeMap(from.vouched ?? {}, mine.vouched ?? {}, theirs.vouched ?? {}),
   };
 }
 
@@ -782,9 +796,11 @@ export function syncedSkills(tree: string): readonly string[] | null {
 
 /**
  * Sets one tree's mastered skills in the account's save, keeping the date each
- * skill was first mastered. False when no account is loaded.
+ * skill was first mastered. `vouched` are new ones marked only as the steps
+ * before a harder skill; a skill no longer mastered stops being vouched for.
+ * False when no account is loaded.
  */
-export function setSyncedSkills(tree: string, ids: readonly string[]): boolean {
+export function setSyncedSkills(tree: string, ids: readonly string[], vouched: readonly string[] = []): boolean {
   if (!accountLoaded()) return false;
   const save = getSnapshot().save;
   const today = toIsoDate(new Date());
@@ -795,7 +811,13 @@ export function setSyncedSkills(tree: string, ids: readonly string[]): boolean {
     const key = skillKey(tree, id);
     next[key] = save.skills?.[key] ?? today;
   }
-  commitSave({ ...save, skills: next });
+  const nextVouched: Record<string, string> = {};
+  for (const [key, date] of Object.entries(save.vouched ?? {})) if (next[key]) nextVouched[key] = date;
+  for (const id of vouched) {
+    const key = skillKey(tree, id);
+    if (next[key] && !save.skills?.[key]) nextVouched[key] = today;
+  }
+  commitSave({ ...save, skills: next, vouched: nextVouched });
   return true;
 }
 

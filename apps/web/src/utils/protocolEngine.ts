@@ -93,6 +93,16 @@ export interface ProtocolSave {
   history: Record<string, HistoryPoint[]>;
   /** Badges earned (`boss:<id>`, `tower:<id>`, `record:<exercise>`), with the date first earned. Never removed. */
   badges: Record<string, string>;
+  /**
+   * Weeks that were perfect when they were played. A week stays perfect once it
+   * was, so a later plan edit that adds a mission never takes its XP back.
+   */
+  perfectWeeks: number[];
+  /**
+   * Skills marked mastered as "the steps before" a harder one, with no log to
+   * back them, keyed like `skills`. They count for less XP until a log proves them.
+   */
+  vouched: Record<string, string>;
 }
 
 export function createInitialSave(plan: CampaignPlan = BLUEPRINT_PLAN): ProtocolSave {
@@ -109,8 +119,13 @@ export function createInitialSave(plan: CampaignPlan = BLUEPRINT_PLAN): Protocol
     records: {},
     history: {},
     badges: {},
+    perfectWeeks: [],
+    vouched: {},
   };
 }
+
+/** Where weigh-ins are kept in the history, beside the lifts: one point per day. */
+export const BODYWEIGHT_RECORD = 'bodyweight_kg';
 
 /* ------------------------------------------------------------------ */
 /* Calendar                                                            */
@@ -568,6 +583,8 @@ export interface MassStatus {
   gaining: boolean;
   /** 0–1 towards the goal weight. */
   finalProgress: number;
+  /** 0–1 towards the goal at the best weigh-in so far: what bodyweight XP is paid on, so a lighter week never takes it back. */
+  bestProgress: number;
   finalBossDown: boolean;
   /** The next weight goal on the map that is not reached yet. */
   next: WeightGoalStatus | null;
@@ -597,6 +614,10 @@ function evaluateMass(save: ProtocolSave, week: number, plan: CampaignPlan): Mas
     gained: round1(current - start),
     gaining,
     finalProgress: towards(current, start, goal),
+    bestProgress: (save.history?.[BODYWEIGHT_RECORD] ?? []).reduce(
+      (best, [, kg]) => Math.max(best, towards(kg, start, goal)),
+      towards(current, start, goal),
+    ),
     finalBossDown: reached(current, start, goal),
     next,
     nextProgress: next ? towards(current, start, next.kg) : 1,
@@ -734,9 +755,10 @@ export function evaluateWeek(save: ProtocolSave, week: number, plan: CampaignPla
   };
 }
 
-function countPerfectWeeks(save: ProtocolSave, plan: CampaignPlan): number {
+/** The weeks whose every mission is ticked, measured against this plan. */
+export function perfectWeeksOf(save: ProtocolSave, plan: CampaignPlan): number[] {
   const ids = allMissionIds(plan);
-  if (ids.length === 0) return 0;
+  if (ids.length === 0) return [];
 
   let lastWeek = 0;
   for (const key of Object.keys(save.quests)) {
@@ -744,11 +766,16 @@ function countPerfectWeeks(save: ProtocolSave, plan: CampaignPlan): number {
     if (match && save.quests[key]) lastWeek = Math.max(lastWeek, Number(match[1]));
   }
 
-  let perfect = 0;
+  const perfect: number[] = [];
   for (let week = 1; week <= lastWeek; week += 1) {
-    if (ids.every((id) => save.quests[questKey(week, id)])) perfect += 1;
+    if (ids.every((id) => save.quests[questKey(week, id)])) perfect.push(week);
   }
   return perfect;
+}
+
+/** Perfect weeks: the ones the plan shows now and the ones banked when they were played. */
+function countPerfectWeeks(save: ProtocolSave, plan: CampaignPlan): number {
+  return new Set([...(save.perfectWeeks ?? []), ...perfectWeeksOf(save, plan)]).size;
 }
 
 /**
@@ -806,6 +833,8 @@ export const XP_RULES = {
   tower: 400,
   /** Each skill mastered on the way up a tower or a skill boss. */
   floor: 50,
+  /** A floor marked only as one of "the steps before" a harder skill, until a log proves it. */
+  vouchedFloor: 10,
   boss: 1500,
   ironCheckpoint: 300,
   massMax: 1500,
@@ -832,9 +861,9 @@ export interface LevelStatus {
 
 /** Rank titles per sport, from the lowest; each starts at the level beside it. */
 const RANKS: Record<Sport, [number, string][]> = {
-  calisthenics: [[1, 'Novice Athlete'], [6, 'Iron Initiate'], [12, 'Tension Adept'], [19, 'Lever Knight'], [27, 'Planche Squire'], [36, 'Static Hold Master'], [45, 'Calisthenics Titan']],
-  gym: [[1, 'Novice Lifter'], [6, 'Iron Initiate'], [12, 'Plate Adept'], [19, 'Barbell Knight'], [27, 'Steel Champion'], [36, 'Iron Master'], [45, 'Iron Titan']],
-  bouldering: [[1, 'Novice Climber'], [6, 'Chalk Initiate'], [12, 'Crimp Adept'], [19, 'Send Knight'], [27, 'Overhang Champion'], [36, 'Boulder Master'], [45, 'Stone Titan']],
+  calisthenics: [[1, 'Novice Athlete'], [6, 'Iron Initiate'], [12, 'Tension Adept'], [20, 'Lever Knight'], [30, 'Planche Squire'], [42, 'Static Hold Master'], [56, 'Calisthenics Titan'], [72, 'Bar Legend'], [90, 'Aura Ascendant']],
+  gym: [[1, 'Novice Lifter'], [6, 'Iron Initiate'], [12, 'Plate Adept'], [20, 'Barbell Knight'], [30, 'Steel Champion'], [42, 'Iron Master'], [56, 'Iron Titan'], [72, 'Platform Legend'], [90, 'Aura Ascendant']],
+  bouldering: [[1, 'Novice Climber'], [6, 'Chalk Initiate'], [12, 'Crimp Adept'], [20, 'Send Knight'], [30, 'Overhang Champion'], [42, 'Boulder Master'], [56, 'Stone Titan'], [72, 'Crag Legend'], [90, 'Aura Ascendant']],
 };
 
 export function rankForLevel(level: number, sport: Sport = 'calisthenics'): string {
@@ -907,11 +936,14 @@ function evaluateLevel(
   const breakdown = [
     { label: 'Iron strength', xp: Math.round(strength) },
     ...(earnedTiers ? [{ label: 'Skill tiers', xp: earnedTiers * XP_RULES.tier }] : []),
-    { label: 'Skills climbed', xp: climbed.size * XP_RULES.floor },
+    {
+      label: 'Skills climbed',
+      xp: [...climbed].reduce((sum, key) => sum + (save.vouched?.[key] ? XP_RULES.vouchedFloor : XP_RULES.floor), 0),
+    },
     { label: 'Towers', xp: towersClimbed * XP_RULES.tower },
     { label: 'Bosses', xp: bosses.filter((b) => b.defeated).length * XP_RULES.boss },
     { label: 'Lift checkpoints', xp: checkpoints.filter((c) => c.met).length * XP_RULES.ironCheckpoint },
-    { label: 'Bodyweight', xp: Math.round(mass.finalProgress * XP_RULES.massMax) },
+    { label: 'Bodyweight', xp: Math.round(mass.bestProgress * XP_RULES.massMax) },
     { label: 'Missions', xp: missions * XP_RULES.mission + warmUps * XP_RULES.warmUp + armor * XP_RULES.armor },
     { label: 'Perfect weeks', xp: perfectWeeks * XP_RULES.perfectWeek },
   ];

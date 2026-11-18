@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { PlanSpec, liftOf } from '../../utils/campaignPlan';
 import {
+  BODYWEIGHT_RECORD,
   Derived,
   EventKind,
   GameEvent,
@@ -17,6 +18,7 @@ import {
   diffEvents,
   milestoneEvents,
   formatStatValue,
+  perfectWeeksOf,
   streakOf,
   toIsoDate,
   trimLog,
@@ -33,7 +35,7 @@ import {
 import { HISTORY_LIMIT, HistoryPoint } from '../../utils/campaignV3';
 import { V2_LIFT_OF_RECORD } from '../../utils/records';
 import { adoptDeviceProgress } from '../../utils/skillProgressStore';
-import { skillsProvenByLogs } from '../../utils/skillStandards';
+import { proofOf, skillsProvenByLogs } from '../../utils/skillStandards';
 import { Toast, ToastStack } from '../protocol/Toasts';
 import { MomentOverlay } from './MomentOverlay';
 
@@ -102,6 +104,14 @@ export function useGame(): GameValue {
   const value = useContext(GameContext);
   if (!value) throw new Error('useGame must be used inside <GameProvider>');
   return value;
+}
+
+/**
+ * A level already in the battle log was celebrated when it was first reached; getting back
+ * to it after a dip (a corrected log, an undone skill) is not a new one.
+ */
+function notReplayed(events: GameEvent[], log: LogEntry[]): GameEvent[] {
+  return events.filter((event) => event.kind !== 'level' || !log.some((entry) => entry.kind === 'level' && entry.title === event.title));
 }
 
 /** Adds events to the battle log, newest first. Keyed events replace their same-day twin. */
@@ -183,7 +193,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const after = mutate(before);
       const clock = { currentWeek, viewWeek };
       const afterDerived = derive(after, clock, plan);
-      const events = [...extra, ...diffEvents(derive(before, clock, plan), afterDerived)];
+      const events = notReplayed([...extra, ...diffEvents(derive(before, clock, plan), afterDerived)], before.log);
       if (celebrated.current) celebrated.current = celebratedIn(afterDerived);
       commitSave(
         events.length ? { ...after, log: mergeLog(after.log, events, todayIso ?? toIsoDate(new Date())) } : after,
@@ -215,10 +225,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     events.push(...milestoneEvents({ acts: seen.acts }, derived));
     if (derived.level.level > seen.level) events.push({ kind: 'level', title: `Level ${derived.level.level}`, detail: derived.level.rank });
     celebrated.current = celebratedIn(derived);
-    if (!events.length) return;
     const current = peekSave();
-    commitSave({ ...current, log: mergeLog(current.log, events, todayIso ?? toIsoDate(new Date())) });
-    announce(events);
+    const fresh = notReplayed(events, current.log);
+    if (!fresh.length) return;
+    commitSave({ ...current, log: mergeLog(current.log, fresh, todayIso ?? toIsoDate(new Date())) });
+    announce(fresh);
   }, [announce, derived, snapshot.gate, snapshot.sync, todayIso]);
 
   // Badges are handed out whenever the save has earned one, wherever it was earned (the
@@ -239,6 +250,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const badges = { ...current.badges, ...Object.fromEntries(due.map((badge) => [badge.id, date])) };
     for (const id of takenBack) delete badges[id];
     commitSave({ ...current, badges });
+    if (quiet) celebrated.current = null;
     // A boss badge comes with the boss's own moment.
     const shown = due.filter((badge) => badge.kind !== 'boss');
     if (!quiet && shown.length) announce(shown.map((badge) => ({ kind: 'badge', key: `badge_${badge.id}`, title: `Badge — ${badge.title}`, detail: badge.detail })));
@@ -253,10 +265,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     commitSave({ ...current, badges });
   }, [currentWeek, plan, todayIso, viewWeek]);
 
-  // A gym skill whose standard a logged lift meets ("1x BW × 8" with a bodyweight load) is
-  // mastered without a trip to the tree. Like badges, what the logs already proved before
-  // this loaded is mastered quietly; afterwards it goes through `play`, so a tower floor or
-  // a skill boss it completes gets its moment.
+  // A skill whose standard a logged number meets ("1x BW × 8" with a bodyweight load, a
+  // "30 s hold", "5 per leg") is mastered without a trip to the tree, and one only vouched
+  // for as a step before a harder skill becomes proven. Like badges, what the logs already
+  // proved before this loaded is settled quietly (the celebration watcher takes its note
+  // again after it, so its XP plays no Level Up); afterwards it goes through `play`, so a
+  // tower floor or a skill boss it completes gets its moment.
   const skillsPrimed = useRef(false);
   useEffect(() => {
     if (snapshot.gate !== 'ready' || (!skillsPrimed.current && snapshot.sync !== 'synced')) return;
@@ -265,21 +279,40 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     skillsPrimed.current = true;
     if (!proven.length) return;
     const date = todayIso ?? toIsoDate(new Date());
+    const keys = proven.map((standard) => `calisthenics:${standard.skill}`);
     const master = (current: ProtocolSave): ProtocolSave => ({
       ...current,
-      skills: { ...current.skills, ...Object.fromEntries(proven.map((standard) => [`calisthenics:${standard.skill}`, date])) },
+      skills: { ...current.skills, ...Object.fromEntries(keys.map((key) => [key, current.skills[key] ?? date])) },
+      vouched: Object.fromEntries(Object.entries(current.vouched ?? {}).filter(([key]) => !keys.includes(key))),
     });
-    if (quiet) return commitSave(master(peekSave()));
+    if (quiet) {
+      commitSave(master(peekSave()));
+      celebrated.current = null;
+      return;
+    }
     play(
       master,
-      proven.map((standard) => ({
-        kind: 'skill',
-        key: `skill_${standard.skill}`,
-        title: `Skill mastered — ${standard.name}`,
-        detail: `Your log meets ${standard.multiple}× bodyweight`,
-      })),
+      proven
+        .filter((standard) => !save.skills[`calisthenics:${standard.skill}`])
+        .map((standard) => ({
+          kind: 'skill',
+          key: `skill_${standard.skill}`,
+          title: `Skill mastered — ${standard.name}`,
+          detail: proofOf(standard),
+        })),
     );
   }, [play, save, snapshot.gate, snapshot.sync, todayIso]);
+
+  // A perfect week is banked once it is perfect, against the plan it was played on, so a later
+  // edit that adds a mission never takes its XP back. Banking changes no XP, so it plays nothing.
+  useEffect(() => {
+    if (snapshot.gate !== 'ready') return;
+    const banked = new Set(save.perfectWeeks ?? []);
+    const fresh = perfectWeeksOf(save, plan).filter((week) => !banked.has(week));
+    if (!fresh.length) return;
+    const current = peekSave();
+    commitSave({ ...current, perfectWeeks: [...new Set([...(current.perfectWeeks ?? []), ...fresh])].sort((a, b) => a - b) });
+  }, [plan, save, snapshot.gate]);
 
   const logStat = useCallback(
     (id: string, value: number) => {
@@ -342,7 +375,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [plan, play, todayIso],
   );
 
-  const weighIn = useCallback((kg: number) => play((current) => ({ ...current, bodyWeightKg: kg })), [play]);
+  // Weigh-ins go in the history like a lift, one per day, so bodyweight XP can stand on the best one.
+  const weighIn = useCallback(
+    (kg: number) => {
+      const date = todayIso ?? toIsoDate(new Date());
+      play((current) => {
+        const points: HistoryPoint[] = [...(current.history[BODYWEIGHT_RECORD] ?? []).filter(([day]) => day !== date), [date, kg]];
+        points.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+        return { ...current, bodyWeightKg: kg, history: { ...current.history, [BODYWEIGHT_RECORD]: points.slice(-HISTORY_LIMIT) } };
+      });
+    },
+    [play, todayIso],
+  );
 
   const resetCampaign = useCallback(() => {
     resetSave();
