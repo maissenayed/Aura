@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { CampaignPlan, PlanSpec, usesOf } from '../../utils/campaignPlan';
 import { TrackedLift } from '../../utils/campaignV3';
 import { currentOf, formatStatValue } from '../../utils/protocolEngine';
 import { metricOf } from '../../utils/records';
 import { useGame } from '../game/GameProvider';
-import { PlateIcon } from '../game/icons';
+import { figureForLift, heldPose } from '../game/figures';
+import { Figure } from '../game/kit';
 import { themeFor } from '../protocol/primitives';
-import { DeleteButton, EditCard, Facts, Group, GroupedSelect, NumberField } from './fields';
-import { exerciseGroups } from './pickers';
+import { DeleteButton, EditCard, Facts, Group, NumberField } from './fields';
+import { CatalogueField } from './pickers';
 
 interface Props {
   spec: PlanSpec;
@@ -29,6 +30,7 @@ export const LiftsEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
   const { save } = useGame();
   const [openId, setOpenId] = useState<string | null>(null);
   const own = new Map(spec.lifts.map((entry) => [entry.exercise, entry]));
+  const tracked = useMemo(() => new Set(plan.lifts.map((lift) => lift.id)), [plan.lifts]);
 
   /** Writes this lift's own numbers; a lift back on its defaults drops out of the stored list. */
   const setOwn = (id: string, patch: Partial<TrackedLift>) => {
@@ -61,8 +63,8 @@ export const LiftsEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
               title={lift.name}
               meta={meta}
               badge={
-                <span className="w-8 h-8 rounded-tag shrink-0 bg-ink-800 text-fg-3 flex items-center justify-center" aria-hidden>
-                  <PlateIcon className="w-4 h-4" />
+                <span className="w-10 h-10 rounded-tag shrink-0 bg-ink-950 flex items-center justify-center" aria-hidden>
+                  <Figure spec={heldPose(figureForLift(lift))} className="w-9 h-9" />
                 </span>
               }
               open={openId === lift.id}
@@ -107,13 +109,15 @@ export const LiftsEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
           );
         })}
       </ul>
-      <GroupedSelect
+      <CatalogueField
         label="Track another exercise"
         hideLabel
-        value=""
-        placeholder="+ Track another exercise…"
-        groups={exerciseGroups({ except: new Set(plan.lifts.map((lift) => lift.id)) })}
-        onChange={(id) => {
+        placeholder="Track another exercise"
+        placeholderNote="Any exercise in the catalogue, followed without a mission"
+        tracked={tracked}
+        sheetEyebrow="Lifts"
+        sheetTitle="Track an exercise"
+        onPick={(id) => {
           onChange({ ...spec, lifts: [...spec.lifts, { exercise: id, metric: metricOf(id), baseline: null, endgame: null }] });
           setOpenId(id);
         }}

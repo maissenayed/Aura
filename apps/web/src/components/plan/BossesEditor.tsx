@@ -1,16 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Repeat, Scale } from 'lucide-react';
-import { Branch, CampaignPlan, PlanSpec, newId, normalizeSpec, recordName, usesOf } from '../../utils/campaignPlan';
-import { BossSpec } from '../../utils/campaignV3';
+import { BRANCHES, Branch, CampaignPlan, PlanSpec, newId, normalizeSpec, usesOf } from '../../utils/campaignPlan';
+import { BossSpec, Metric } from '../../utils/campaignV3';
 import { multipleTarget } from '../../utils/protocolEngine';
 import { metricOf } from '../../utils/records';
 import { floorsOf, skillOf } from '../../utils/treeIndex';
 import { useGame } from '../game/GameProvider';
 import { PlateIcon, RouteIcon } from '../game/icons';
-import { DeleteButton, EditCard, Group, GroupedSelect, MoveButtons, NumberField, TextField, moveBy, removeAt, setAt } from './fields';
-import { CategoryChips, SkillSelect, exerciseGroups } from './pickers';
+import { DeleteButton, EditCard, Group, MoveButtons, NumberField, TextField, moveBy, removeAt, setAt } from './fields';
+import { CatalogueField, CatalogueSheet, CategoryChips, SkillField, SkillSheet } from './pickers';
 
 interface Props {
   spec: PlanSpec;
@@ -19,6 +19,9 @@ interface Props {
 }
 
 type Kind = 'skill' | 'reps' | 'multiple' | 'scale';
+
+const REPS: Metric[] = ['reps', 'seconds'];
+const LOADED: Metric[] = ['kg', 'added-kg'];
 
 const KINDS: { id: Kind; label: string; hint: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'skill', label: 'Tree skill', hint: 'Beaten when you master it on the skill tree. Every skill below it is a weak point.', icon: RouteIcon },
@@ -29,10 +32,8 @@ const KINDS: { id: Kind; label: string; hint: string; icon: React.ComponentType<
 
 const kindOf = (boss: BossSpec): Kind => (boss.kind === 'bodyweight' ? boss.mode : boss.kind);
 
-/** Adds the current choice to a list of groups when the filter left it out, so a select never shows blank. */
-function withCurrent(groups: { label: string; options: { id: string; label: string }[] }[], id: string, label: string) {
-  return groups.some((group) => group.options.some((option) => option.id === id)) ? groups : [{ label: 'This boss', options: [{ id, label }] }, ...groups];
-}
+/** The tree lane a category's skill bosses come from. */
+const laneLabel = (category: Branch) => BRANCHES.find((branch) => branch.id === category)?.label ?? 'Push';
 
 /**
  * Bosses, by category. Each is one of three kinds: a skill from the tree, an
@@ -48,6 +49,11 @@ export const BossesEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
   const counts: Partial<Record<Branch, number>> = {};
   for (const boss of spec.bosses) counts[boss.category] = (counts[boss.category] ?? 0) + 1;
   const shown = spec.bosses.map((boss, index) => ({ boss, index })).filter((entry) => entry.boss.category === category);
+  /** Skills that are already a boss, tagged in the picker. */
+  const bossSkills = useMemo(
+    () => new Map(spec.bosses.flatMap((boss) => (boss.kind === 'skill' ? [[`${boss.tree}:${boss.skill}`, 'Boss'] as [string, string]] : []))),
+    [spec.bosses],
+  );
 
   const setBoss = (index: number, next: BossSpec) => onChange({ ...spec, bosses: setAt(spec.bosses, index, next) });
   /** Adds go through the normaliser, which names the boss after what it asks for. */
@@ -91,12 +97,18 @@ export const BossesEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
 
                 {boss.kind === 'skill' && (
                   <>
-                    <SkillSelect
-                      tree={boss.tree}
-                      lane={boss.tree === 'calisthenics' ? boss.category : undefined}
+                    <SkillField
                       label="Skill"
+                      tree={boss.tree}
+                      lane={boss.tree === 'calisthenics' ? laneLabel(boss.category) : undefined}
+                      lockTree
+                      lockLane={boss.tree === 'calisthenics'}
                       value={boss.skill}
-                      onChange={(skill) => setBoss(index, { ...boss, skill })}
+                      aside="hits"
+                      tags={bossSkills}
+                      sheetEyebrow={boss.name}
+                      sheetTitle="Pick the skill to beat"
+                      onPick={(_tree, skill) => setBoss(index, { ...boss, skill })}
                     />
                     <p className="text-[12px] text-fg-4">
                       {Math.max(0, floorsOf(boss.tree, boss.skill).length - 1)} skills lead to it. Each one you master is a hit; mastering{' '}
@@ -106,12 +118,15 @@ export const BossesEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
                 )}
 
                 {boss.kind === 'reps' && (
-                  <div className="grid gap-3 grid-cols-[2fr_1fr]">
-                    <GroupedSelect
+                  <div className="grid gap-3 sm:grid-cols-[2fr_1fr] sm:items-end">
+                    <CatalogueField
                       label="Exercise"
+                      category={boss.category}
+                      metrics={REPS}
                       value={boss.exercise}
-                      groups={withCurrent(exerciseGroups({ category: boss.category, metrics: ['reps', 'seconds'] }), boss.exercise, recordName(boss.exercise))}
-                      onChange={(exercise) => setBoss(index, { ...boss, exercise })}
+                      sheetEyebrow={boss.name}
+                      sheetTitle="Pick the exercise"
+                      onPick={(exercise) => setBoss(index, { ...boss, exercise })}
                     />
                     <NumberField
                       label="In one set"
@@ -125,12 +140,14 @@ export const BossesEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
 
                 {boss.kind === 'bodyweight' && boss.mode === 'multiple' && (
                   <>
-                    <div className="grid gap-3 grid-cols-[2fr_1fr]">
-                      <GroupedSelect
+                    <div className="grid gap-3 sm:grid-cols-[2fr_1fr] sm:items-end">
+                      <CatalogueField
                         label="Lift"
+                        metrics={LOADED}
                         value={boss.exercise}
-                        groups={withCurrent(exerciseGroups({ metrics: ['kg', 'added-kg'] }), boss.exercise, recordName(boss.exercise))}
-                        onChange={(exercise) => setBoss(index, { ...boss, exercise })}
+                        sheetEyebrow={boss.name}
+                        sheetTitle="Pick the lift"
+                        onPick={(exercise) => setBoss(index, { ...boss, exercise })}
                       />
                       <NumberField
                         label="Bodyweight"
@@ -208,7 +225,7 @@ export const BossesEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
               key={id}
               type="button"
               aria-pressed={adding === id}
-              onClick={() => (id === 'scale' ? create({ ...base(), kind: 'bodyweight', mode: 'scale', kg: spec.bodyweight.goal }) : setAdding(adding === id ? null : id))}
+              onClick={() => (id === 'scale' ? create({ ...base(), kind: 'bodyweight', mode: 'scale', kg: spec.bodyweight.goal }) : setAdding(id))}
               className={`h-12 rounded-card border-[1.5px] text-[14px] font-semibold flex items-center justify-center gap-2 transition active:scale-[.97] cursor-pointer ${
                 adding === id ? 'bg-ink-800 border-act text-fg' : 'border-dashed border-ink-600 text-fg-2 hover:bg-ink-850 hover:text-fg'
               }`}
@@ -218,31 +235,39 @@ export const BossesEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
           ))}
         </div>
         {adding === 'skill' && (
-          <SkillSelect
+          <SkillSheet
             tree="calisthenics"
-            lane={category}
-            label="Skill"
-            value=""
-            placeholder="Pick the skill to beat…"
-            onChange={(skill) => create({ ...base(), kind: 'skill', tree: 'calisthenics', skill })}
+            lane={laneLabel(category)}
+            lockTree
+            lockLane
+            aside="hits"
+            tags={bossSkills}
+            eyebrow={`New ${category} boss · Tree skill`}
+            title="Pick the skill to beat"
+            note="Every skill below it is a weak point: each one you master is a hit."
+            onPick={(_tree, skill) => create({ ...base(), kind: 'skill', tree: 'calisthenics', skill })}
+            onClose={() => setAdding(null)}
           />
         )}
         {adding === 'reps' && (
-          <GroupedSelect
-            label="Exercise"
-            value=""
-            placeholder="Pick the exercise…"
-            groups={exerciseGroups({ category, metrics: ['reps', 'seconds'] })}
-            onChange={(exercise) => create({ ...base(), kind: 'reps', exercise, target: metricOf(exercise) === 'seconds' ? 30 : 10 })}
+          <CatalogueSheet
+            category={category}
+            metrics={REPS}
+            eyebrow={`New ${category} boss · Max reps`}
+            title="Pick the exercise"
+            note="Measured in reps, or seconds for holds."
+            onPick={(exercise) => create({ ...base(), kind: 'reps', exercise, target: metricOf(exercise) === 'seconds' ? 30 : 10 })}
+            onClose={() => setAdding(null)}
           />
         )}
         {adding === 'multiple' && (
-          <GroupedSelect
-            label="Lift"
-            value=""
-            placeholder="Pick the lift…"
-            groups={exerciseGroups({ metrics: ['kg', 'added-kg'] })}
-            onChange={(exercise) => create({ ...base(), kind: 'bodyweight', mode: 'multiple', exercise, multiple: 1 })}
+          <CatalogueSheet
+            metrics={LOADED}
+            eyebrow={`New ${category} boss · × Bodyweight`}
+            title="Pick the lift"
+            note="Lifts logged in kg, or kg added on top of you."
+            onPick={(exercise) => create({ ...base(), kind: 'bodyweight', mode: 'multiple', exercise, multiple: 1 })}
+            onClose={() => setAdding(null)}
           />
         )}
       </Group>
