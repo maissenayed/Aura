@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { calisthenicsFigure } from '../skilltree/calisthenicsFigures';
-import { Figure } from './kit';
+import { GearedFigure, gearLookOf } from './GearedFigure';
 
 export interface PlayerCardData {
   id?: string;
@@ -43,7 +43,7 @@ export const PlayerCard: React.FC<{ card: PlayerCardData; gearNames?: Record<str
   return (
     <div className={`flex items-center gap-3 ${compact ? '' : 'p-3 rounded-card bg-ink-900'}`}>
       <span className="w-14 h-14 shrink-0 rounded-card bg-ink-850 flex items-center justify-center">
-        {spec && <Figure spec={spec} state={card.signature ? 'mastered' : 'locked'} className="w-12 h-12" />}
+        {spec && <GearedFigure spec={spec} state={card.signature ? 'mastered' : 'locked'} look={gearLookOf(card.gear)} className="w-12 h-12" />}
       </span>
       <span className="flex-1 min-w-0 flex flex-col gap-0.5">
         <span className="text-[15px] font-semibold text-fg truncate">{card.name}</span>

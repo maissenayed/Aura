@@ -11,6 +11,8 @@ import { ArrowRightIcon, BossIcon, CheckIcon, FlameIcon, ForgeIcon, MapIcon, Moo
 import { Figure, HexLevel, Meter, SegmentBar } from '../../../components/game/kit';
 import { RadarWeb, WEB_ORDER } from '../../../components/game/RadarWeb';
 import { useSignature } from '../../../components/game/useSignature';
+import { GearedFigure } from '../../../components/game/GearedFigure';
+import { useMyGearLook } from '../../../components/game/useGearLook';
 import { campaignComplete, questKey, restKey } from '../../../utils/protocolEngine';
 
 /** Camp: who you are, what today asks, and the boss today's training hits. */
@@ -119,6 +121,8 @@ function useTodayMove() {
 /** The character on the floor, doing today's move. No halo: light comes from the chalk. */
 const HeroStage: React.FC<{ className?: string }> = ({ className = '' }) => {
   const move = useTodayMove();
+  // The athlete wears their gear whatever move they strike.
+  const gear = useMyGearLook();
 
   return (
     <section className={`relative flex flex-col rounded-card bg-ink-900 overflow-hidden ${className}`} aria-label="Your character">
@@ -134,7 +138,7 @@ const HeroStage: React.FC<{ className?: string }> = ({ className = '' }) => {
         className="relative mx-auto mt-6 w-full max-w-[280px] aspect-square cursor-pointer disabled:cursor-default"
       >
         <span key={move.name} className="block w-full h-full anim-fade">
-          <Figure spec={move.spec} state={move.idle ? 'locked' : move.done ? 'mastered' : 'ready'} animate className="w-full h-full" />
+          <GearedFigure spec={move.spec} state={move.idle ? 'locked' : move.done ? 'mastered' : 'ready'} look={gear} animate className="w-full h-full" />
         </span>
       </button>
       <button
