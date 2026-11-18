@@ -25,7 +25,9 @@ export const ExerciseSheet: React.FC<{
   done: boolean;
   onToggle: () => void;
   onClose: () => void;
-}> = ({ exercise, dayKind, done, onToggle, onClose }) => {
+  /** The day is closed (more than two days ago, or still ahead): no ticking. */
+  locked?: boolean;
+}> = ({ exercise, dayKind, done, onToggle, onClose, locked = false }) => {
   const { derived, plan, save } = useGame();
   const lift = liftOf(plan, exercise.lift);
   // The last few logs, newest first: what to beat today.
@@ -206,15 +208,16 @@ export const ExerciseSheet: React.FC<{
           <button
             type="button"
             onClick={onToggle}
+            disabled={locked}
             aria-pressed={done}
-            className={`w-full h-14 rounded-2xl flex items-center justify-center gap-2.5 font-display font-bold text-lg tracking-[0.04em] active:scale-[.98] transition ${
+            className={`w-full h-14 rounded-2xl flex items-center justify-center gap-2.5 font-display font-bold text-lg tracking-[0.04em] active:scale-[.98] transition disabled:opacity-40 disabled:cursor-not-allowed ${
               done
                 ? 'bg-earned/15 border border-earned/50 text-earned'
                 : 'bg-act text-act-deep shadow-[0_10px_28px_rgba(62,232,255,0.25)]'
             }`}
           >
             <Check className="w-5 h-5" strokeWidth={3} />
-            {done ? 'DONE · TAP TO UNDO' : `COMPLETE · +${XP_RULES.mission} XP`}
+            {locked ? (done ? 'DONE · DAY CLOSED' : 'DAY CLOSED') : done ? 'DONE · TAP TO UNDO' : `COMPLETE · +${XP_RULES.mission} XP`}
           </button>
         </div>
       </aside>

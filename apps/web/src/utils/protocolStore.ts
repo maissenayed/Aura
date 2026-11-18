@@ -6,7 +6,7 @@ import { getAccountState, refreshAccount, signOut, subscribeAccount } from './ac
 import { CampaignPlan, PlanSpec, PlanSpecV2, normalizeSpec, normalizeSpecV2, resolvePlan } from './campaignPlan';
 import { HISTORY_LIMIT, HistoryPoint } from './campaignV3';
 import { isV3Save, migrateSave } from './migrateSaveV2';
-import { LogEntry, ProtocolSave, createInitialSave, mondayOf, toIsoDate } from './protocolEngine';
+import { LogEntry, ProtocolSave, createInitialSave, mondayOf, toIsoDate, trimLog } from './protocolEngine';
 import { resolveExerciseId } from '../data/exerciseAliases';
 
 /**
@@ -43,7 +43,6 @@ const PUSH_DEBOUNCE_MS = 700;
 const RETRY_MIN_MS = 5_000;
 const RETRY_MAX_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 12_000;
-const LOG_LIMIT = 40;
 
 /** What stands between the athlete and the board. `onboard`: a new account, choosing the campaign it starts with. */
 export type Gate = 'loading' | 'signin' | 'setup' | 'onboard' | 'ready';
@@ -297,8 +296,7 @@ function mergeBadges(
 function mergeSaves(from: ProtocolSave, mine: ProtocolSave, theirs: ProtocolSave): ProtocolSave {
   const seen = new Set(mine.log.map((entry) => canonical(entry)));
   const log = [...mine.log, ...theirs.log.filter((entry) => !seen.has(canonical(entry)))]
-    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
-    .slice(0, LOG_LIMIT);
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 
   // A field this version cannot read: this device's copy wins only if this device changed it.
   const extras: Record<string, unknown> = {};
@@ -312,13 +310,14 @@ function mergeSaves(from: ProtocolSave, mine: ProtocolSave, theirs: ProtocolSave
 
   return {
     ...extras,
+    // The same trim as the board's: day-to-day entries roll off, milestones stay.
+    log: trimLog(log),
     startedAt: mine.startedAt !== from.startedAt ? mine.startedAt : theirs.startedAt,
     bodyWeightKg: mine.bodyWeightKg !== from.bodyWeightKg ? mine.bodyWeightKg : theirs.bodyWeightKg,
     stats: mergeMap(from.stats, mine.stats, theirs.stats) as ProtocolSave['stats'],
     loads: mergeMap(from.loads, mine.loads, theirs.loads),
     milestones: mergeMap(from.milestones, mine.milestones, theirs.milestones),
     quests: mergeMap(from.quests, mine.quests, theirs.quests),
-    log,
     skills: mergeMap(from.skills, mine.skills, theirs.skills),
     // A save converted on either side stays converted; a fresh one here does not hide an unconverted one there.
     ...versionOf(mine.version !== from.version ? mine.version : theirs.version),

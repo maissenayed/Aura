@@ -8,6 +8,7 @@
  */
 
 import { BLUEPRINT_PLAN } from '../data/blueprintPlan';
+import { EXERCISE_BY_ID } from '../data/campaignCatalog';
 import {
   ArmorPiece,
   Boss,
@@ -35,7 +36,25 @@ import { AttributeStatus, evaluateAttributes } from './attributes';
 /* ------------------------------------------------------------------ */
 
 /** `log`: a session logged at the same number as last time (a toast only, never in the battle log). */
-export type EventKind = 'pr' | 'log' | 'tier' | 'boss' | 'level' | 'mass' | 'iron' | 'day' | 'week' | 'skill' | 'attribute' | 'badge';
+export type EventKind = 'pr' | 'log' | 'tier' | 'boss' | 'act' | 'campaign' | 'level' | 'mass' | 'iron' | 'day' | 'week' | 'skill' | 'attribute' | 'badge';
+
+/* ------------------------------------------------------------------ */
+/* Battle log                                                          */
+/* ------------------------------------------------------------------ */
+
+/** Entries that tell the campaign's story; they outlive the day-to-day ones. */
+export const MILESTONE_KINDS = new Set<EventKind>(['boss', 'act', 'campaign', 'level', 'attribute']);
+/** Day-to-day entries kept: PRs, days, weeks, skills. */
+export const LOG_RECENT = 40;
+/** Milestones kept: years of bosses, acts and level-ups. */
+export const LOG_MILESTONES = 300;
+
+/** Trims a newest-first log: the latest day-to-day entries, and the milestones for much longer. */
+export function trimLog<T extends { kind: EventKind }>(log: T[]): T[] {
+  let recent = 0;
+  let milestones = 0;
+  return log.filter((entry) => (MILESTONE_KINDS.has(entry.kind) ? ++milestones <= LOG_MILESTONES : ++recent <= LOG_RECENT));
+}
 
 export interface GameEvent {
   kind: EventKind;
@@ -121,6 +140,29 @@ export function mondayOf(iso: string): string {
 
 export function dayIdOf(iso: string): string {
   return WEEKDAY_IDS[fromIsoDate(iso).getDay()];
+}
+
+const BOARD_DAY_IDS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+/** The date of a day on the board: campaign week `week`, day `dayId`. Null before the campaign has a start. */
+export function dateOfDay(startedAt: string | null, week: number, dayId: string): string | null {
+  if (!startedAt) return null;
+  const date = fromIsoDate(startedAt);
+  date.setDate(date.getDate() + (week - 1) * 7 + Math.max(0, BOARD_DAY_IDS.indexOf(dayId)));
+  return toIsoDate(date);
+}
+
+/** Days behind today a board day can still be ticked: a late evening, or a forgotten tick the next day. */
+export const LATE_TICK_DAYS = 2;
+
+/** Today, or up to LATE_TICK_DAYS before it. Older days are closed and future days not open yet. */
+export function isDayOpen(startedAt: string | null, week: number, dayId: string, todayIso: string | null): boolean {
+  const date = dateOfDay(startedAt, week, dayId);
+  if (!date || !todayIso) return true;
+  if (date > todayIso) return false;
+  const earliest = fromIsoDate(todayIso);
+  earliest.setDate(earliest.getDate() - LATE_TICK_DAYS);
+  return date >= toIsoDate(earliest);
 }
 
 /** Campaign week for a date, starting at 1. */
@@ -655,7 +697,7 @@ export interface ArmorStatus {
   guardedBy: { name: string; day: DayId }[];
 }
 
-function evaluateWeek(save: ProtocolSave, week: number, plan: CampaignPlan): WeekStatus {
+export function evaluateWeek(save: ProtocolSave, week: number, plan: CampaignPlan): WeekStatus {
   const days = plan.days.map((day) => {
     const ids = missionIds(day);
     const done = ids.filter((id) => save.quests[questKey(week, id)]).length;
@@ -733,12 +775,19 @@ export function streakOf(save: ProtocolSave, plan: CampaignPlan, todayIso: strin
   const start = fromIsoDate(save.startedAt);
   const cursor = fromIsoDate(todayIso);
   let streak = clearedOn(todayIso) ? 1 : 0;
+  // One missed day per campaign week is forgiven: life happens, the streak survives a single gap.
+  const forgiven = new Set<number>();
 
   cursor.setDate(cursor.getDate() - 1);
   // Ten years is far beyond any campaign; the bound only guards the loop.
   for (let guard = 0; guard < 3660 && cursor >= start; guard += 1) {
-    const cleared = clearedOn(toIsoDate(cursor));
-    if (cleared === false) break;
+    const iso = toIsoDate(cursor);
+    const cleared = clearedOn(iso);
+    if (cleared === false) {
+      const week = weekOf(save.startedAt, iso);
+      if (forgiven.has(week)) break;
+      forgiven.add(week);
+    }
     if (cleared) streak += 1;
     cursor.setDate(cursor.getDate() - 1);
   }
@@ -767,9 +816,13 @@ export const XP_RULES = {
   perfectWeek: 150,
 };
 
+/** The sport a plan is mostly about, for rank titles. */
+export type Sport = 'calisthenics' | 'gym' | 'bouldering';
+
 export interface LevelStatus {
   level: number;
   rank: string;
+  sport: Sport;
   xp: number;
   xpIntoLevel: number;
   xpForLevel: number;
@@ -777,14 +830,31 @@ export interface LevelStatus {
   breakdown: { label: string; xp: number }[];
 }
 
-export function rankForLevel(level: number): string {
-  if (level >= 45) return 'Calisthenics Titan';
-  if (level >= 36) return 'Static Hold Master';
-  if (level >= 27) return 'Planche Squire';
-  if (level >= 19) return 'Lever Knight';
-  if (level >= 12) return 'Tension Adept';
-  if (level >= 6) return 'Iron Initiate';
-  return 'Novice Athlete';
+/** Rank titles per sport, from the lowest; each starts at the level beside it. */
+const RANKS: Record<Sport, [number, string][]> = {
+  calisthenics: [[1, 'Novice Athlete'], [6, 'Iron Initiate'], [12, 'Tension Adept'], [19, 'Lever Knight'], [27, 'Planche Squire'], [36, 'Static Hold Master'], [45, 'Calisthenics Titan']],
+  gym: [[1, 'Novice Lifter'], [6, 'Iron Initiate'], [12, 'Plate Adept'], [19, 'Barbell Knight'], [27, 'Steel Champion'], [36, 'Iron Master'], [45, 'Iron Titan']],
+  bouldering: [[1, 'Novice Climber'], [6, 'Chalk Initiate'], [12, 'Crimp Adept'], [19, 'Send Knight'], [27, 'Overhang Champion'], [36, 'Boulder Master'], [45, 'Stone Titan']],
+};
+
+export function rankForLevel(level: number, sport: Sport = 'calisthenics'): string {
+  let title = RANKS[sport][0][1];
+  for (const [from, name] of RANKS[sport]) if (level >= from) title = name;
+  return title;
+}
+
+/**
+ * What the plan is mostly about: bouldering when climbing is at least 40% of
+ * its exercises, the gym when calisthenics is under a fifth of them, otherwise
+ * calisthenics (hybrid plans keep the calisthenics titles).
+ */
+export function planSport(plan: CampaignPlan): Sport {
+  const counted = plan.days.flatMap((day) => day.exercises).map((exercise) => EXERCISE_BY_ID.get(exercise.exercise)?.discipline).filter((discipline) => discipline && discipline !== 'prep');
+  if (counted.length === 0) return 'calisthenics';
+  const share = (discipline: string) => counted.filter((entry) => entry === discipline).length / counted.length;
+  if (share('bouldering') >= 0.4) return 'bouldering';
+  if (share('calisthenics') < 0.2) return 'gym';
+  return 'calisthenics';
 }
 
 function evaluateLevel(
@@ -848,10 +918,12 @@ function evaluateLevel(
 
   const xp = breakdown.reduce((sum, entry) => sum + entry.xp, 0);
   const level = 1 + Math.floor(xp / XP_RULES.perLevel);
+  const sport = planSport(plan);
 
   return {
     level,
-    rank: rankForLevel(level),
+    rank: rankForLevel(level, sport),
+    sport,
     xp,
     xpIntoLevel: xp % XP_RULES.perLevel,
     xpForLevel: XP_RULES.perLevel,
@@ -1202,6 +1274,27 @@ export function badgesUnbacked(save: ProtocolSave, derived: Derived, plan: Campa
 /* diffEvents — what did that last action unlock?                      */
 /* ------------------------------------------------------------------ */
 
+/** Every act with goals is cleared. */
+export function campaignComplete(acts: ActStatus[]): boolean {
+  const played = acts.filter((act) => act.nodes.length > 0);
+  return played.length > 0 && played.every((act) => act.complete);
+}
+
+/** Acts cleared and the campaign finished between two states, matched by act id. */
+export function milestoneEvents(before: Pick<Derived, 'acts'>, after: Pick<Derived, 'acts'>): GameEvent[] {
+  const events: GameEvent[] = [];
+  const wasComplete = new Set(before.acts.filter((act) => act.complete).map((act) => act.id));
+  for (const act of after.acts) {
+    if (act.complete && act.nodes.length > 0 && !wasComplete.has(act.id)) {
+      events.push({ kind: 'act', key: `act_${act.id}`, title: `Act ${act.numeral} cleared`, detail: act.name });
+    }
+  }
+  if (campaignComplete(after.acts) && !campaignComplete(before.acts)) {
+    events.push({ kind: 'campaign', key: 'campaign', title: 'Campaign complete', detail: 'Every act on the map is cleared' });
+  }
+  return events;
+}
+
 /** Both answers must come from the same plan. */
 export function diffEvents(before: Derived, after: Derived): GameEvent[] {
   const events: GameEvent[] = [];
@@ -1280,6 +1373,8 @@ export function diffEvents(before: Derived, after: Derived): GameEvent[] {
       });
     }
   });
+
+  events.push(...milestoneEvents(before, after));
 
   if (after.level.level > before.level.level) {
     events.push({

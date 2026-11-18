@@ -9,7 +9,7 @@ import { bossForDay, bossHp, splitTarget } from '../../../components/game/helper
 import { Figure, HexLevel, Meter } from '../../../components/game/kit';
 import { RadarWeb } from '../../../components/game/RadarWeb';
 import { useSignature } from '../../../components/game/useSignature';
-import { questKey, restKey } from '../../../utils/protocolEngine';
+import { campaignComplete, questKey, restKey } from '../../../utils/protocolEngine';
 
 /** Camp: who you are, what today asks, and the boss today's training hits. */
 export default function CampPage() {
@@ -302,6 +302,23 @@ const ActTile: React.FC<{ className?: string }> = ({ className = '' }) => {
   const { derived } = useGame();
   const act = derived.acts.find((entry) => entry.current) ?? derived.acts[derived.acts.length - 1];
   if (!act) return null;
+  // Every act cleared: the tile points at the next campaign instead of a finished act.
+  if (campaignComplete(derived.acts)) {
+    return (
+      <Link
+        href="/forge"
+        aria-label="Campaign complete. Plan year two in the Forge"
+        className={`flex flex-col gap-2.5 p-4 rounded-[20px] bg-[#16110a] border border-[#5c4a22] active:scale-[.98] transition ${className}`}
+      >
+        <span className="flex items-center justify-between">
+          <Hammer className="w-[22px] h-[22px] text-earned" />
+          <span className="font-display font-bold text-[13px] text-earned">CAMPAIGN COMPLETE</span>
+        </span>
+        <span className="font-display font-bold text-base leading-tight">Plan year two</span>
+        <span className="text-xs text-fg-3">Every act is cleared. Start from a template or add new acts in the Forge.</span>
+      </Link>
+    );
+  }
   return (
     <Link
       href="/map"

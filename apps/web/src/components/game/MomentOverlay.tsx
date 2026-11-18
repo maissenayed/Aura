@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { Flame, Hexagon, Trophy } from 'lucide-react';
+import Link from 'next/link';
+import { Flag, Flame, Hexagon, Trophy } from 'lucide-react';
 import { CampaignPlan } from '../../utils/campaignPlan';
 import { LevelStatus, XP_RULES } from '../../utils/protocolEngine';
 import { figureForBoss } from './figures';
@@ -9,9 +10,9 @@ import { Figure, HexLevel } from './kit';
 import type { Moment } from './GameProvider';
 
 /**
- * The big moments, full screen and nearly wordless: a level, a boss slain, a
- * perfect day or week, a new attribute. One at a time; Continue (or Escape)
- * moves on to the next one in the queue.
+ * The big moments, full screen and nearly wordless: a level, a boss slain, an
+ * act cleared, the campaign finished, a perfect day or week, a new attribute.
+ * One at a time; Continue (or Escape) moves on to the next one in the queue.
  */
 export const MomentOverlay: React.FC<{
   moment: Moment;
@@ -60,9 +61,14 @@ export const MomentOverlay: React.FC<{
           {headline(moment)}
         </h2>
         <p className="font-display font-bold text-xl text-fg anim-rise" style={{ animationDelay: '.15s' }}>
-          {moment.kind === 'boss' ? moment.detail : moment.kind === 'level' ? level.rank : moment.title}
+          {moment.kind === 'boss' || moment.kind === 'act' ? moment.detail : moment.kind === 'level' ? level.rank : moment.kind === 'campaign' ? plan.name : moment.title}
         </p>
         <Reward moment={moment} streak={streak} />
+        {moment.kind === 'campaign' && (
+          <p className="text-sm text-fg-3 max-w-xs anim-rise" style={{ animationDelay: '.3s' }}>
+            Every act on the map is cleared. Plan the next one in the Forge: start from a template or add new acts and bosses.
+          </p>
+        )}
 
         <button
           ref={button}
@@ -72,6 +78,15 @@ export const MomentOverlay: React.FC<{
         >
           CONTINUE
         </button>
+        {moment.kind === 'campaign' && (
+          <Link
+            href="/forge"
+            onClick={onDone}
+            className="-mt-2 w-full h-12 rounded-[18px] border border-[#5c4a22] text-earned font-display font-bold flex items-center justify-center"
+          >
+            PLAN YEAR TWO
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -83,6 +98,10 @@ function headline(moment: Moment): string {
       return 'Level up';
     case 'boss':
       return 'Slain';
+    case 'act':
+      return 'Act cleared';
+    case 'campaign':
+      return 'Campaign complete';
     case 'week':
       return 'Perfect week';
     case 'day':
@@ -115,7 +134,8 @@ const MomentArt: React.FC<{ moment: Moment; plan: CampaignPlan; level: LevelStat
       </div>
     );
   }
-  if (moment.kind === 'week') return <Trophy className="w-36 h-36 text-earned" strokeWidth={1.4} />;
+  if (moment.kind === 'week' || moment.kind === 'campaign') return <Trophy className="w-36 h-36 text-earned" strokeWidth={1.4} />;
+  if (moment.kind === 'act') return <Flag className="w-32 h-32 text-earned" strokeWidth={1.4} />;
   if (moment.kind === 'attribute') return <Hexagon className="w-36 h-36 text-aura" strokeWidth={1.4} />;
   return (
     <div className="relative">
@@ -144,6 +164,9 @@ const Chest: React.FC = () => (
 
 const Reward: React.FC<{ moment: Moment; streak: number }> = ({ moment, streak }) => {
   const xp = moment.kind === 'boss' ? XP_RULES.boss : moment.kind === 'week' ? XP_RULES.perfectWeek : null;
+  // An act's name is already the big line; under it goes "Act IV cleared". The campaign has its own text.
+  if (moment.kind === 'act') return <p className="text-sm text-fg-3 max-w-xs">{moment.title}</p>;
+  if (moment.kind === 'campaign') return null;
   if (xp === null && moment.kind !== 'day') return <p className="text-sm text-fg-3 max-w-xs">{moment.detail}</p>;
   return (
     <div className="flex gap-3 anim-rise" style={{ animationDelay: '.3s' }}>
