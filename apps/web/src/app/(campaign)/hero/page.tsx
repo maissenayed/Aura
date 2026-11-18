@@ -431,12 +431,18 @@ const BadgesTab: React.FC = () => {
     if (skill) badges.push({ id: key, kind: 'skill', name: skill.name, date });
   }
 
-  // The campaign's story from the battle log: acts, the finish, new ranks and attributes.
+  // The campaign's story from the battle log: acts, the finish, new ranks and attributes, each once, at the
+  // first date (the log is newest first; an attribute lost and won back, or a merged device, logs it twice).
   const milestones = save.log.filter((entry, index, log) => {
-    if (entry.kind === 'act' || entry.kind === 'campaign' || entry.kind === 'attribute') return true;
+    const older = log.slice(index + 1);
+    if (entry.kind === 'act' || entry.kind === 'campaign' || entry.kind === 'attribute') {
+      return !older.some(
+        (other) => other.kind === entry.kind && other.title === entry.title && (entry.kind !== 'act' || other.detail === entry.detail),
+      );
+    }
     if (entry.kind !== 'level') return false;
-    const older = log.slice(index + 1).find((other) => other.kind === 'level');
-    return !older || older.detail !== entry.detail;
+    const previous = older.find((other) => other.kind === 'level');
+    return !previous || previous.detail !== entry.detail;
   });
   if (badges.length === 0 && milestones.length === 0) {
     return (
