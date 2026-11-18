@@ -266,6 +266,15 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
     return { cx: at2((left + right) / 2), cy: at2(Math.min(97, floor + 2.2)), rx: at2((right - left) / 2 + 7) };
   })();
 
+  const scenery = splitScenery(spec.wall);
+  // A bar seen end-on with nothing else around it runs out to the edge on the side the body leaves free, so it reads as a bar.
+  if (spec.scene === 'bar' && !spec.wall?.trim()) {
+    const arms = (spec.holds ?? [])
+      .filter((hold) => hold.shape === 'bar')
+      .map(({ at: [x, y] }) => (barArmSide(spec, x) === 'right' ? `M${x},${y - 1.3} L100,${y - 1.3} L100,${y + 1.3} L${x},${y + 1.3} Z` : `M0,${y - 1.3} L${x},${y - 1.3} L${x},${y + 1.3} L0,${y + 1.3} Z`));
+    scenery.rods = [scenery.rods, ...arms].join(' ').trim();
+  }
+
   return (
     <svg
       viewBox="0 0 100 100"
@@ -287,14 +296,13 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
 
       {framed && <rect x="0.5" y="0.5" width="99" height="99" rx="10" style={{ fill: INK.panel }} />}
       <g clipPath={`url(#${clip})`}>
-        {spec.wall && <path d={spec.wall} strokeWidth="1.2" strokeLinejoin="round" style={{ fill: INK.wall, stroke: INK.wallEdge }} />}
+        {scenery.ground && <path d={scenery.ground} strokeWidth="1.2" strokeLinejoin="round" style={{ fill: INK.wall, stroke: INK.wallEdge }} />}
+        {scenery.rods && <path d={scenery.rods} strokeWidth="1.2" strokeLinejoin="round" style={{ fill: INK.hold, stroke: INK.holdEdge }} />}
         {underlay}
 
         {shadow && <ellipse cx={shadow.cx} cy={shadow.cy} rx={shadow.rx} ry="1.8" opacity="0.85" style={{ fill: INK.shadow }} />}
 
-        {spec.holds?.map((hold, index) => (
-          <HoldMark key={index} hold={hold} accent={accent} />
-        ))}
+        {spec.holds?.map((hold, index) => hold.shape !== 'bar' && <HoldMark key={index} hold={hold} accent={accent} />)}
 
         {layers.map((layer) => (
           <g key={layer.key} opacity={layer.key === 'ghost' ? 0.55 : undefined}>
@@ -330,6 +338,21 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
             })}
           </g>
         ))}
+
+        {/* A bar seen end-on is gripped: drawn over the hands, like a plate, or the fist would hide it. */}
+        {spec.holds?.map(
+          (hold, index) =>
+            hold.shape === 'bar' && (
+              <circle
+                key={`bar${index}`}
+                cx={hold.at[0]}
+                cy={hold.at[1]}
+                r={2.6 * (hold.size ?? 1)}
+                strokeWidth={compact ? 1.8 : 1.4}
+                style={{ fill: hold.key ? accent : INK.wall, stroke: hold.key ? accent : INK.plate }}
+              />
+            ),
+        )}
 
         {equipment.map(({ disc, target }, index) =>
           disc.kind === 'ring' ? (
@@ -439,3 +462,38 @@ const HoldMark: React.FC<{ hold: Hold; accent: string }> = ({ hold, accent }) =>
       return <circle transform={transform} r="2.4" {...common} />;
   }
 };
+
+/**
+ * Splits scenery into the ground (floors, walls, boxes, rock) and rods: bars,
+ * posts, poles and ropes, anything drawn as a long thin box. Rods are
+ * equipment the athlete holds or hangs from, so they are drawn in the
+ * equipment colour; in the floor's colour a bar all but disappears.
+ * Only straight-sided shapes can be rods, so rock is never split.
+ */
+function splitScenery(wall?: string): { ground: string; rods: string } {
+  if (!wall) return { ground: '', rods: '' };
+  const ground: string[] = [];
+  const rods: string[] = [];
+  for (const part of wall.split(/(?=M)/).map((piece) => piece.trim()).filter(Boolean)) {
+    const straight = /^M[-\d.,\s]+(L[-\d.,\s]+)+Z?$/.test(part);
+    const nums = (part.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
+    const xs = nums.filter((_, index) => index % 2 === 0);
+    const ys = nums.filter((_, index) => index % 2 === 1);
+    const w = Math.max(...xs) - Math.min(...xs);
+    const h = Math.max(...ys) - Math.min(...ys);
+    (straight && Math.min(w, h) <= 4 && Math.max(w, h) >= 8 ? rods : ground).push(part);
+  }
+  return { ground: ground.join(' '), rods: rods.join(' ') };
+}
+
+/**
+ * Which side of a bar seen end-on the body leaves free, over both poses: the
+ * side its arm or upright goes, so the equipment never runs through the athlete.
+ */
+export function barArmSide(spec: FigureSpec, barX: number): 'left' | 'right' {
+  const xs = [...spec.strokes, ...(spec.motion?.strokes ?? [])]
+    .filter((stroke) => stroke.tone !== 'gear' && stroke.tone !== 'ghost')
+    .flatMap((stroke) => stroke.pts.map(([x]) => x));
+  if (xs.length === 0) return 'right';
+  return Math.max(...xs) - barX <= barX - Math.min(...xs) ? 'right' : 'left';
+}

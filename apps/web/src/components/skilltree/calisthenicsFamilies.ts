@@ -780,13 +780,15 @@ export interface FrontLeverOptions {
   toInverted?: 'from-lever' | 'from-hang';
   /** One hand on the bar, the other along the side. */
   oneArm?: boolean;
+  /** Hold the lever and climb a hanging rope hand over hand. */
+  rope?: boolean;
 }
 
-export function frontLever(legs: LeverLegs, { rows = false, rings = false, toInverted, oneArm = false }: FrontLeverOptions = {}): FigureSpec {
+export function frontLever(legs: LeverLegs, { rows = false, rings = false, toInverted, oneArm = false, rope = false }: FrontLeverOptions = {}): FigureSpec {
   const bar: Pt = [56, 18];
   const hold = (person: Drawn) => (rings ? onRings(person, [bar]) : person);
   const other = (pelvis: Pt): Pt => (oneArm ? [pelvis[0] + 7, pelvis[1] + 3] : behind(bar));
-  const at = (y: number) => {
+  const at = (y: number, hands?: [Pt, Pt]) => {
     const neck: Pt = [60, y];
     const pelvis: Pt = [38, y];
     const shape: Record<LeverLegs, { l: Pt; r: Pt; lKnee?: Pt; rKnee?: Pt }> = {
@@ -798,12 +800,24 @@ export function frontLever(legs: LeverLegs, { rows = false, rings = false, toInv
       full: { l: [8.5, y], r: [8.5, y + 1.5] },
     };
     const { l, r, lKnee, rKnee } = shape[legs];
-    return hold(S({ neck, pelvis, lHand: bar, rHand: other(pelvis), lFoot: l, rFoot: r, bend: { lArm: 'down', rArm: 'down' }, joints: { ...(lKnee ? { lLeg: lKnee } : {}), ...(rKnee ? { rLeg: rKnee } : {}) } }, ['torso', 'lArm', 'rArm']));
+    return hold(S({ neck, pelvis, lHand: hands?.[0] ?? bar, rHand: hands?.[1] ?? other(pelvis), lFoot: l, rFoot: r, bend: { lArm: 'down', rArm: 'down' }, joints: { ...(lKnee ? { lLeg: lKnee } : {}), ...(rKnee ? { rLeg: rKnee } : {}) } }, ['torso', 'lArm', 'rArm']));
   };
   const hang = hold(S({ neck: [56, 41.5], pelvis: [56, 63.5], lHand: bar, rHand: oneArm ? [59.5, 61] : behind(bar), lFoot: [56, 92], rFoot: [54.5, 92] }, ['torso', 'lArm', 'rArm']));
   const inverted = hold(S({ neck: [57, 41.5], pelvis: [58, 19.5], lHand: bar, rHand: behind(bar), lFoot: [60, -9], rFoot: [58.5, -9] }, ['torso', 'lArm', 'rArm']));
   const scene: Scene = rings ? 'rings' : 'bar';
   const holds = rings ? undefined : BAR_HOLD(bar[0], bar[1]);
+  if (rope) {
+    // The rope hangs through the hands; the lower hand reaches past the upper one and the lever climbs.
+    const x = bar[0];
+    return clip({
+      scene: 'bar',
+      wall: `M${x - 0.8},0 L${x + 0.8},0 L${x + 0.8},96 L${x - 0.8},96 Z`,
+      start: at(40, [[x, 18], [x, 25]]),
+      end: at(34, [[x, 19], [x, 12]]),
+      seconds: 2.2,
+      arrows: [{ d: 'M84,46 L84,30' }],
+    });
+  }
   if (toInverted) return clip({ scene, holds, start: toInverted === 'from-hang' ? hang : at(40), end: inverted, seconds: 3, arrows: [{ d: 'M80,62 Q90,40 74,24' }] });
   return rows ? clip({ scene, holds, start: at(40), end: at(27), seconds: 2.6 }) : clip({ scene, holds, start: hang, end: at(40), seconds: 3 });
 }

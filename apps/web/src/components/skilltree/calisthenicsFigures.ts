@@ -529,7 +529,7 @@ const ELITE: Record<string, () => FigureSpec> = {
 
   // Levers
   ex_293: () => frontLever('full', { toInverted: 'from-lever' }),
-  ex_294: () => frontLever('full', { rows: true }),
+  ex_294: () => frontLever('full', { rope: true }),
   ex_322: () => frontLever('full', { oneArm: true }),
   ex_331: () => backLever('full', { from: 'pull-up', rings: true }),
 
