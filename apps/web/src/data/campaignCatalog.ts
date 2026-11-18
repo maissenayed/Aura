@@ -325,7 +325,7 @@ const GYM_LIFTS: Record<string, string> = {
   gym_squat_2_5x: 'backSquat',
   gym_deadlift_3x: 'deadlift',
 };
-const GYM_BODYWEIGHT = new Set(['gym_pushup', 'gym_pullup', 'gym_plank', 'gym_hanging_leg_raise', 'gym_ab_wheel']);
+const GYM_BODYWEIGHT = new Set(['gym_pushup', 'gym_pullup', 'gym_plank', 'gym_hanging_leg_raise', 'gym_ab_wheel', 'captains_chair', 'back_extension']);
 const laneGroup = (lane: string) => (lane === 'Core' ? 'Core & Grip' : lane);
 
 /** A gym lift from the tree: strength standards on a lift the campaign tracks log that lift, the rest keep a working weight. */
