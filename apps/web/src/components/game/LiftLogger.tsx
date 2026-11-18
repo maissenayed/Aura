@@ -5,11 +5,16 @@ import { PlanExercise, formatStatValue, liftOf, unitLabel } from '../../utils/ca
 import { currentOf } from '../../utils/protocolEngine';
 import { useGame } from './GameProvider';
 import { prToday } from './helpers';
+import { HoldTimer } from './HoldTimer';
 import { Stepper } from './kit';
 
-/** The number an exercise logs, with a PR badge on a record day. Nothing when it is ticked, not measured. */
+/**
+ * The number an exercise logs, with a PR badge on a record day. Timed holds
+ * also get a hold timer: seconds it measures count at once. Nothing when the
+ * exercise is ticked, not measured.
+ */
 export const LiftLogger: React.FC<{ exercise: PlanExercise; onLogged?: () => void }> = ({ exercise, onLogged }) => {
-  const { save, plan, todayIso, logStat } = useGame();
+  const { save, plan, todayIso, logStat, logTimed } = useGame();
   const stat = liftOf(plan, exercise.lift);
   if (!stat) return null;
   const pr = prToday(save, stat.id, todayIso);
@@ -17,6 +22,16 @@ export const LiftLogger: React.FC<{ exercise: PlanExercise; onLogged?: () => voi
   return (
     <span className="flex items-center gap-2">
       {pr && <span className="notch h-7 pl-2 pr-3 rounded-tag bg-earned text-earned-deep font-display font-extrabold text-[15px] leading-7">PR</span>}
+      {stat.unit === 'seconds' && (
+        <HoldTimer
+          compact
+          label={`Time a ${stat.short} hold`}
+          onDone={(seconds) => {
+            logTimed(stat.id, seconds);
+            onLogged?.();
+          }}
+        />
+      )}
       <Stepper
         value={currentOf(save, stat)}
         step={stat.step}

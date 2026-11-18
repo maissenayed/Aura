@@ -17,6 +17,7 @@ import { CheckIcon, CrownIcon, LockIcon, RouteIcon } from '../game/icons';
 import { useGame } from '../game/GameProvider';
 import { skillEvidence } from '../../utils/skillStandards';
 import { Meter } from '../game/kit';
+import { LockedLine, SkillTestCard } from './SkillTestCard';
 import { SCENE_LABEL, SkillFigure } from './SkillFigure';
 import { SkillTreeDef, laneThemeOf } from './skillTrees';
 
@@ -198,32 +199,17 @@ const ProgressView: React.FC<SkillPanelProps> = ({
 
       {summary.mastered === 0 && (
         <p className="p-3 rounded-card bg-ink-850 text-xs text-fg-2 leading-relaxed">
-          <strong className="text-fg">New here?</strong> Pick anything marked Ready, learn it, and mark it mastered
-          when you meet its standard. That unlocks the next step in its progression.
+          <strong className="text-fg">New here?</strong> Pick anything marked Ready, learn it, and test it when you meet
+          its standard. Pass on two different days to master it and unlock the next step.
         </p>
       )}
 
       <section aria-label="Manage progress" className="pt-4 border-t border-ink-700 space-y-2">
-        {basicsRemaining > 0 &&
-          (confirmSkip ? (
-            <Confirm
-              message={`Mark all ${basicsRemaining} remaining ${basics} ${tree.noun.many} as mastered?`}
-              confirmLabel="Yes, mark them"
-              onConfirm={() => {
-                setConfirmSkip(false);
-                onSkipBasics();
-              }}
-              onCancel={() => setConfirmSkip(false)}
-            />
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirmSkip(true)}
-              className="w-full h-11 rounded-card border border-ink-600 text-fg text-[13px] font-bold hover:bg-ink-850 active:scale-[.97] transition cursor-pointer"
-            >
-              I already own the basics ({basics})
-            </button>
-          ))}
+        {basicsRemaining > 0 && (
+          <p className="text-xs text-fg-4 leading-relaxed">
+            Already past the basics? Open the hardest skill you own and use its placement test: one pass places every step before it.
+          </p>
+        )}
 
         {summary.mastered > 0 &&
           (confirmReset ? (
@@ -279,7 +265,6 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
   const { save } = useGame();
   // What the athlete's logs say about this standard, when a log can prove it.
   const evidence = tree.id === 'calisthenics' ? skillEvidence(save, exercise.id) : null;
-  const vouched = Boolean(save.vouched?.[`calisthenics:${exercise.id}`]);
   const theme = laneThemeOf(tree, exercise.swimlane);
   const prerequisites = exercise.prerequisites.map((id) => graph.byId.get(id)).filter((entry): entry is TreeSkill => Boolean(entry));
   const unlocks = (graph.children.get(exercise.id) ?? []).map((id) => graph.byId.get(id)).filter((entry): entry is TreeSkill => Boolean(entry));
@@ -350,73 +335,27 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
         </figure>
       )}
 
-      {/* Status and the one thing to do about it */}
-      {status === 'ready' && (
-        <div className="p-4 rounded-card bg-ink-850 space-y-3">
-          <p className="eyebrow flex items-center gap-2 text-act">
-            <Sparkles className="w-4 h-4" />
-            Ready to train
-          </p>
-          <Standard text={exercise.unlockRequirements} evidence={evidence} />
-          <button
-            type="button"
-            onClick={() => onToggleMastered(exercise.id)}
-            className="w-full h-12 rounded-card bg-earned text-earned-deep font-display font-extrabold uppercase text-lg tracking-[0.02em] active:scale-[.97] transition cursor-pointer"
-          >
-            Mark as mastered · +{exercise.xpReward} XP
-          </button>
-        </div>
-      )}
-
-      {status === 'locked' && (
-        <div className="p-4 rounded-card bg-ink-850 space-y-3">
-          <p className="eyebrow flex items-center gap-2 text-fg-3">
-            <LockIcon className="w-4 h-4" />
-            Locked · master {missing.length === 1 ? 'this' : `these ${missing.length}`} first
-          </p>
-          <ul className="space-y-1.5">
-            {missing.map((entry) => (
-              <li key={entry.id}>
-                <ExerciseRow tree={tree} exercise={entry} status={statusOf(entry, mastered)} raised onClick={() => onGoTo(entry.id)} />
-              </li>
-            ))}
-          </ul>
-          <Standard text={exercise.unlockRequirements} evidence={evidence} />
-          <button
-            type="button"
-            onClick={() => onToggleMastered(exercise.id)}
-            className="w-full min-h-11 px-3 py-2 rounded-card border border-ink-600 text-fg text-[13px] font-bold hover:bg-ink-800 active:scale-[.97] transition cursor-pointer"
-          >
-            I can already do this — mark it and the {stepsBefore} {stepsBefore === 1 ? 'step' : 'steps'} before it as mastered
-          </button>
-        </div>
-      )}
-
-      {status === 'mastered' && (
-        <div className="p-4 rounded-card bg-earned-deep space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="eyebrow flex items-center gap-2 text-earned-soft">
-              <CheckIcon className="w-4 h-4" strokeWidth={3} />
-              Mastered · +{exercise.xpReward} XP
-            </p>
-            <button
-              type="button"
-              onClick={() => onToggleMastered(exercise.id)}
-              className="flex items-center gap-1.5 h-9 px-2.5 rounded-card border border-earned-line text-earned-soft text-xs font-bold hover:border-earned-dim active:scale-[.97] transition cursor-pointer"
-            >
-              <Undo2 className="w-3.5 h-3.5" />
-              Undo
-            </button>
-          </div>
-          {/* Already mastered: the best log is worth showing, the "log it to master it" hint is not. */}
-          <Standard text={exercise.unlockRequirements} evidence={evidence && evidence.best > 0 ? evidence : null} />
-          {vouched && (
-            <p className="text-[13px] text-earned-dim">
-              Marked as a step before a harder skill. It counts for less XP until a log meets its standard.
-            </p>
-          )}
-        </div>
-      )}
+      {/* Status and the one thing to do about it: test it, prove it again, or place yourself on it */}
+      <SkillTestCard
+        tree={tree}
+        exercise={exercise}
+        status={status}
+        stepsBefore={stepsBefore}
+        onUndo={() => onToggleMastered(exercise.id)}
+        standard={<Standard text={exercise.unlockRequirements} evidence={evidence} />}
+        locked={
+          <>
+            <LockedLine missing={missing.length} />
+            <ul className="space-y-1.5">
+              {missing.map((entry) => (
+                <li key={entry.id}>
+                  <ExerciseRow tree={tree} exercise={entry} status={statusOf(entry, mastered)} raised onClick={() => onGoTo(entry.id)} />
+                </li>
+              ))}
+            </ul>
+          </>
+        }
+      />
 
       {ancestors.size > 0 && (
         <button
@@ -576,7 +515,7 @@ const Standard: React.FC<{ text: string; evidence: ReturnType<typeof skillEviden
             {evidence.met ? ' · meets it' : ` · ${amount(Math.round((evidence.target - evidence.best) * 10) / 10, evidence.unit)} to go`}
           </>
         ) : (
-          <>Log it on a quest and it is mastered the day you reach {amount(evidence.target, evidence.unit)}.</>
+          <>Log it on a quest: each day you reach {amount(evidence.target, evidence.unit)} counts as a pass.</>
         )}
       </p>
     )}
