@@ -9,7 +9,7 @@ import { figureForBoss, figureForExercise } from '../../../components/game/figur
 import { bossForDay, bossHp, splitTarget } from '../../../components/game/helpers';
 import { ArrowRightIcon, BossIcon, CheckIcon, FlameIcon, ForgeIcon, MapIcon, MoonIcon } from '../../../components/game/icons';
 import { Figure, HexLevel, Meter, SegmentBar } from '../../../components/game/kit';
-import { RadarWeb } from '../../../components/game/RadarWeb';
+import { RadarWeb, WEB_ORDER } from '../../../components/game/RadarWeb';
 import { useSignature } from '../../../components/game/useSignature';
 import { campaignComplete, questKey, restKey } from '../../../utils/protocolEngine';
 
@@ -313,7 +313,8 @@ const ActTile: React.FC<{ className?: string }> = ({ className = '' }) => {
 
 const WebTile: React.FC<{ className?: string }> = ({ className = '' }) => {
   const { derived } = useGame();
-  const core = derived.attributes.filter((attribute) => attribute.unlocked && !attribute.def.unlock).slice(0, 6);
+  const byId = new Map(derived.attributes.map((attribute) => [attribute.def.id as string, attribute]));
+  const core = WEB_ORDER.map((id) => byId.get(id)).filter((attribute): attribute is NonNullable<typeof attribute> => Boolean(attribute));
   return (
     <Link href="/hero" aria-label="Hero sheet" className={`items-center gap-3 p-4 rounded-card bg-ink-900 ${className}`}>
       <RadarWeb attributes={core} size={150} bare />

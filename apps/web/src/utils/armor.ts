@@ -94,3 +94,45 @@ export function lastTickedWeek(quests: Record<string, boolean>): number {
   }
   return last;
 }
+
+/* ------------------------------------------------------------------ */
+/* Tempering: armour that builds up over months                        */
+/* ------------------------------------------------------------------ */
+
+export const TEMPER_GRADES = [
+  { name: 'Raw', weeks: 0, look: 'Cotton tape' },
+  { name: 'Tempered', weeks: 4, look: 'Leather' },
+  { name: 'Hardened', weeks: 12, look: 'Steel thread' },
+  { name: 'Masterwork', weeks: 26, look: 'Gold stitching' },
+] as const;
+
+/** The real gear an athlete wears on each joint. */
+export const JOINT_GEAR: Record<ArmorSlot, string> = {
+  wrists: 'Wrist wraps',
+  elbows: 'Elbow sleeves',
+  shoulders: 'Shoulder band',
+  fingers: 'Finger tape',
+  knees: 'Knee sleeves',
+  ankles: 'Ankle straps',
+};
+
+/**
+ * Weeks each joint's piece was forged, in total (not in a row). Tendons adapt
+ * slowly and so does the armour; a grade, once reached, is never lost.
+ */
+export function temperOf(quests: Record<string, boolean>, plan: WeekPlan): Map<ArmorSlot, number> {
+  const weeks = new Map<ArmorSlot, number>();
+  for (let week = 1, last = lastTickedWeek(quests); week <= last; week += 1) {
+    for (const slot of forgedIn(quests, plan, week).keys()) weeks.set(slot, (weeks.get(slot) ?? 0) + 1);
+  }
+  return weeks;
+}
+
+export function gradeOf(weeks: number): { index: number; name: string; look: string; next: number | null } {
+  let index = 0;
+  TEMPER_GRADES.forEach((grade, i) => {
+    if (weeks >= grade.weeks) index = i;
+  });
+  const next = TEMPER_GRADES[index + 1]?.weeks ?? null;
+  return { index, name: TEMPER_GRADES[index].name, look: TEMPER_GRADES[index].look, next };
+}

@@ -1,27 +1,34 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Castle, Hexagon, Lock, Medal, Sparkles, Star, TrendingUp } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Castle, Hexagon, Lock, Medal, Shirt, Sparkles, Star, TrendingUp } from 'lucide-react';
+import { GearTab } from '../../../components/game/GearTab';
 import { CrownIcon, ShieldIcon } from '../../../components/game/icons';
 import { ThemeChoice, useThemeChoice } from '../../../utils/theme';
 import { useGame } from '../../../components/game/GameProvider';
 import { figureForLift } from '../../../components/game/figures';
 import { Figure, HexLevel, Label, Meter, Stepper } from '../../../components/game/kit';
-import { RadarWeb } from '../../../components/game/RadarWeb';
-import { ATTRIBUTE_MAX } from '../../../utils/attributes';
+import { RadarWeb, WEB_ORDER } from '../../../components/game/RadarWeb';
+import { ATTRIBUTE_MAX, AttributeStatus, evaluateAttributes } from '../../../utils/attributes';
+import { addDays, asOf } from '../../../utils/evidence';
 import { DAY_NAMES, formatStatValue, recordName, unitLabel } from '../../../utils/campaignPlan';
 import { HistoryPoint } from '../../../utils/campaignV3';
 import { BODYWEIGHT_RECORD, Sport, badgesUnbacked, currentOf, rankForLevel } from '../../../utils/protocolEngine';
+import { JOINT_GEAR, gradeOf, temperOf } from '../../../utils/armor';
+import type { ArmorSlot } from '../../../utils/campaignV3';
+import { TIER_NAMES, familiesOf } from '../../../utils/badgeFamilies';
+import { useCrewAwards } from '../../../utils/crewStore';
 import { metricOf } from '../../../utils/records';
 import { skillOf } from '../../../utils/treeIndex';
 
-type Tab = 'stats' | 'badges' | 'lifts' | 'armor';
+type Tab = 'stats' | 'badges' | 'lifts' | 'armor' | 'gear';
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'stats', label: 'Stats', icon: Hexagon },
   { id: 'badges', label: 'Badges', icon: Medal },
   { id: 'lifts', label: 'Lifts', icon: TrendingUp },
   { id: 'armor', label: 'Armour', icon: ShieldIcon },
+  { id: 'gear', label: 'Gear', icon: Shirt },
 ];
 
 /** The level where the next rank starts, or null at the top. */
@@ -56,7 +63,7 @@ export default function HeroPage() {
         </div>
       </div>
 
-      <div role="tablist" aria-label="Hero" className="grid grid-cols-4 gap-1 p-1 rounded-card bg-ink-900 lg:max-w-lg">
+      <div role="tablist" aria-label="Hero" className="grid grid-cols-5 gap-1 p-1 rounded-card bg-ink-900 lg:max-w-xl">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -68,7 +75,7 @@ export default function HeroPage() {
               tab === id ? 'bg-ink-800 raised text-fg' : 'text-fg-4 hover:text-fg'
             }`}
           >
-            <Icon className="w-4 h-4" />
+            <Icon className="hidden sm:block w-4 h-4" />
             {label}
           </button>
         ))}
@@ -78,6 +85,7 @@ export default function HeroPage() {
       {tab === 'badges' && <BadgesTab />}
       {tab === 'armor' && <ArmorTab />}
       {tab === 'lifts' && <LiftsTab />}
+      {tab === 'gear' && <GearTab />}
 
       <ThemeSwitch />
     </main>
@@ -87,16 +95,32 @@ export default function HeroPage() {
 /* ------------------------------------------------------------------ */
 
 const StatsTab: React.FC = () => {
-  const { derived } = useGame();
-  const shown = derived.attributes.filter((attribute) => attribute.unlocked);
-  const hidden = derived.attributes.filter((attribute) => !attribute.unlocked);
-  const [selectedId, setSelectedId] = useState<string>(shown[0]?.def.id ?? '');
-  const selected = shown.find((attribute) => attribute.def.id === selectedId) ?? shown[0];
+  const { derived, save, plan, todayIso } = useGame();
+  const byId = new Map(derived.attributes.map((attribute) => [attribute.def.id as string, attribute]));
+  // The web: six qualities in opposing pairs. A locked one stays on the web, at its floor.
+  const web = WEB_ORDER.map((id) => byId.get(id)).filter((attribute): attribute is AttributeStatus => Boolean(attribute));
+  const monthAgo = useMemo(() => {
+    if (!todayIso) return null;
+    const then = asOf(save, addDays(todayIso, -28));
+    const attributes = evaluateAttributes(then, plan, derived.bosses, derived.ladders);
+    const at = new Map(attributes.map((attribute) => [attribute.def.id as string, attribute]));
+    return WEB_ORDER.map((id) => (at.get(id)?.unlocked ? (at.get(id)?.value ?? null) : null));
+  }, [save, plan, todayIso, derived.bosses, derived.ladders]);
+  const bars = derived.attributes.filter((attribute) => attribute.unlocked && !WEB_ORDER.includes(attribute.def.id) && attribute.def.id !== 'mass' && attribute.def.id !== 'aura');
+  const mass = byId.get('mass');
+  const aura = byId.get('aura');
+  const hidden = derived.attributes.filter((attribute) => !attribute.unlocked && !WEB_ORDER.includes(attribute.def.id));
+  const selectable = [...web.filter((attribute) => attribute.unlocked), ...bars];
+  const [selectedId, setSelectedId] = useState<string>(selectable[0]?.def.id ?? '');
+  const selected = selectable.find((attribute) => attribute.def.id === selectedId) ?? selectable[0];
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[auto_minmax(0,1fr)] items-start">
-      <div className="flex justify-center overflow-hidden">
-        <RadarWeb attributes={shown} size={340} selectedId={selected?.def.id} onSelect={setSelectedId} />
+      <div className="flex flex-col items-center gap-2 overflow-hidden">
+        <RadarWeb attributes={web} previous={monthAgo ?? undefined} size={340} selectedId={selected?.def.id} onSelect={setSelectedId} />
+        <p className="text-[12px] text-fg-4 text-center max-w-[320px]">
+          Solid: now. Dashed: four weeks ago. Push sits opposite Pull, so a lopsided shape is an imbalance to train.
+        </p>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -120,6 +144,46 @@ const StatsTab: React.FC = () => {
               </div>
             ))}
             {selected.value === null && selected.measure && <p className="text-[13px] text-fg-2">{selected.measure}</p>}
+          </section>
+        )}
+
+        {web.some((attribute) => !attribute.unlocked) && (
+          <p className="text-[12.5px] text-fg-4">
+            {web
+              .filter((attribute) => !attribute.unlocked)
+              .map((attribute) => `${attribute.def.short}: ${attribute.unlockLabel}`)
+              .join(' · ')}
+          </p>
+        )}
+
+        {bars.length > 0 && (
+          <section className="flex flex-col gap-2 p-4 rounded-card bg-ink-900" aria-label="More qualities">
+            <Label>More qualities</Label>
+            {bars.map((attribute) => (
+              <button key={attribute.def.id} type="button" onClick={() => setSelectedId(attribute.def.id)} className="flex items-center gap-2.5 text-left cursor-pointer">
+                <span className="w-[112px] shrink-0 text-xs font-semibold text-fg-3 truncate">{attribute.def.name}</span>
+                <Meter value={(attribute.value ?? 0) / ATTRIBUTE_MAX} tone="act" />
+                <span className="w-10 shrink-0 text-right num font-bold text-[13px] text-fg-2">{attribute.value ?? '–'}</span>
+              </button>
+            ))}
+          </section>
+        )}
+
+        {mass && (
+          <section className="flex flex-col gap-1.5 p-4 rounded-card bg-ink-900" aria-label="Body">
+            <Label>Body · never shared</Label>
+            <span className="flex items-baseline justify-between gap-2">
+              <span className="text-[13px] text-fg-3">{mass.explain || mass.def.blurb}</span>
+              <span className="num font-bold text-[18px] text-fg">{mass.display ?? mass.value ?? '–'}</span>
+            </span>
+          </section>
+        )}
+
+        {aura?.unlocked && (
+          <section className="notch flex items-center gap-3 p-4 rounded-card bg-earned-deep" aria-label="Aura">
+            <Sparkles className="w-[22px] h-[22px] text-earned" />
+            <span className="flex-1 text-[13px] text-earned-soft">{aura.def.blurb}</span>
+            <span className="num font-bold text-[24px] text-earned">{aura.display ?? aura.value ?? '–'}</span>
           </section>
         )}
 
@@ -161,6 +225,32 @@ const SLOTS: Record<string, { side: 'L' | 'R'; row: number; joint: [number, numb
   wrists: { side: 'R', row: 1, joint: [64, 50] },
   ankles: { side: 'L', row: 2, joint: [44, 88] },
   knees: { side: 'R', row: 2, joint: [55, 70] },
+};
+
+/** A joint's tempering: weeks forged in total, its grade, and the next one. Grades are never lost. */
+const TemperLine: React.FC<{ slot: string }> = ({ slot }) => {
+  const { save, plan } = useGame();
+  const weeks = temperOf(save.quests, plan).get(slot as ArmorSlot) ?? 0;
+  const grade = gradeOf(weeks);
+  const gear = JOINT_GEAR[slot as ArmorSlot];
+  return (
+    <span className="flex flex-col gap-1.5 p-2.5 rounded-card bg-ink-850">
+      <span className="flex items-center justify-between gap-2">
+        <span className={`text-[13px] font-semibold ${grade.index === 3 ? 'text-earned' : grade.index === 2 ? 'text-armour' : 'text-fg-2'}`}>
+          {grade.name} {gear ? gear.toLowerCase() : ''} · {grade.look.toLowerCase()}
+        </span>
+        <span className="num font-bold text-[13px] text-fg-3">
+          {weeks} {weeks === 1 ? 'week' : 'weeks'}
+        </span>
+      </span>
+      {grade.next !== null && <Meter value={weeks / grade.next} tone="armour" label="Weeks to the next grade" />}
+      <span className="text-[12px] text-fg-4">
+        {grade.next !== null
+          ? `${grade.next - weeks} more ${grade.next - weeks === 1 ? 'week' : 'weeks'} forged to reach ${gradeOf(grade.next).name}. Weeks need not be in a row.`
+          : 'Masterwork: the highest grade. It stays, whatever comes next.'}
+      </span>
+    </span>
+  );
 };
 
 const ArmorTab: React.FC = () => {
@@ -242,6 +332,7 @@ const ArmorTab: React.FC = () => {
                 {picked.forged ? 'Forged' : 'Not yet'}
               </span>
             </span>
+            <TemperLine slot={picked.piece.slot.toLowerCase()} />
             <span className="text-[13px] text-fg-3">
               {picked.forged
                 ? `Forged this week by ${picked.forgedBy.join(', ') || 'hand'}.`
@@ -415,6 +506,7 @@ const BADGE_LOOK: Record<BadgeKind, { label: string; icon: React.ComponentType<{
  */
 const BadgesTab: React.FC = () => {
   const { save, plan, derived, recountBadges, todayIso } = useGame();
+  const crew = useCrewAwards();
   const unbacked = todayIso ? badgesUnbacked(save, derived, plan, todayIso) : [];
   const badges: { id: string; kind: BadgeKind; name: string; date: string }[] = [];
   for (const [id, date] of Object.entries(save.badges ?? {})) {
@@ -427,6 +519,8 @@ const BadgesTab: React.FC = () => {
   for (const [key, date] of Object.entries(save.skills ?? {})) {
     const [tree, ...rest] = key.split(':');
     if (tree !== 'calisthenics' && tree !== 'bouldering') continue;
+    // Placed skills are credited, not earned: no badge until they are proven.
+    if (save.vouched?.[key]) continue;
     const skill = skillOf(tree, rest.join(':'));
     if (skill) badges.push({ id: key, kind: 'skill', name: skill.name, date });
   }
@@ -444,13 +538,7 @@ const BadgesTab: React.FC = () => {
     const previous = older.find((other) => other.kind === 'level');
     return !previous || previous.detail !== entry.detail;
   });
-  if (badges.length === 0 && milestones.length === 0) {
-    return (
-      <p className="p-5 rounded-card border border-dashed border-ink-600 text-fg-3">
-        No badges yet. Master a skill on the tree, slay a boss, climb a tower or reach a lift&apos;s end-game number.
-      </p>
-    );
-  }
+  const families = familiesOf(save, plan, derived.level.perfectWeeks, crew);
 
   const named = new Map(badges.map((badge) => [badge.id, badge.kind === 'record' ? `${badge.name} end-game number` : badge.name]));
   return (
@@ -471,6 +559,31 @@ const BadgesTab: React.FC = () => {
             Take {unbacked.length === 1 ? 'it' : 'them'} back
           </button>
         </section>
+      )}
+      <section aria-label="Badge families" className="flex flex-col gap-2.5">
+        <Label>Families · Chalk, Iron, Steel, Gold</Label>
+        <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {families.map(({ def, count, tier, next }) => (
+            <li key={def.id} className={`list-none flex flex-col gap-1 p-3 rounded-card ${tier === 4 ? 'bg-earned-deep' : 'bg-ink-900'}`}>
+              <span className="flex items-center justify-between gap-2">
+                <span className="text-[13px] font-semibold text-fg">{def.name}</span>
+                <span className={`eyebrow ${tier === 4 ? 'text-earned' : tier === 3 ? 'text-armour' : tier > 0 ? 'text-fg-2' : 'text-fg-5'}`}>
+                  {tier > 0 ? TIER_NAMES[tier - 1] : 'None yet'}
+                </span>
+              </span>
+              <span className="num font-bold text-[20px] text-fg leading-none">{def.crew && !crew ? '–' : count}</span>
+              <span className="text-[11.5px] text-fg-4">
+                {def.counts}
+                {next !== null ? ` · ${TIER_NAMES[tier]} at ${next}` : ''}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+      {badges.length === 0 && milestones.length === 0 && (
+        <p className="p-4 rounded-card border border-dashed border-ink-600 text-fg-3 text-sm">
+          No feats yet. Prove a skill, slay a boss, climb a tower or reach a lift&apos;s end-game number.
+        </p>
       )}
       {milestones.length > 0 && (
         <section aria-label="Milestones" className="flex flex-col gap-2.5">

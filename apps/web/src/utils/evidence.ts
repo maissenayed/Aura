@@ -490,3 +490,28 @@ export function levelOfXp(xp: number): { level: number; into: number; forLevel: 
   }
   return { level, into: left, forLevel: xpToNext(level) };
 }
+
+/* ------------------------------------------------------------------ */
+/* The save as it stood on a day                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The save with everything after `date` left out: logs, ticks, tests,
+ * sessions and skills. The spider web draws last month's shape from it.
+ */
+export function asOf(save: ProtocolSave, date: string): ProtocolSave {
+  const history: ProtocolSave['history'] = {};
+  for (const [key, points] of Object.entries(save.history ?? {})) history[key] = points.filter((point) => point[0] <= date);
+  const quests: ProtocolSave['quests'] = {};
+  if (save.startedAt) {
+    for (const [key, ticked] of Object.entries(save.quests ?? {})) {
+      const match = /^w(\d+)_/.exec(key);
+      if (ticked && match && boardDate(save.startedAt, Number(match[1]), 'mon') <= date) quests[key] = true;
+    }
+  }
+  const tests: ProtocolSave['tests'] = {};
+  for (const [key, entries] of Object.entries(save.tests ?? {})) tests[key] = entries.filter(([day]) => day <= date);
+  const skills = Object.fromEntries(Object.entries(save.skills ?? {}).filter(([, day]) => day <= date));
+  const sessions = Object.fromEntries(Object.entries(save.sessions ?? {}).filter(([day]) => day <= date));
+  return { ...save, history, quests, tests, skills, sessions };
+}

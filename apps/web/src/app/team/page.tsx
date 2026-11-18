@@ -205,6 +205,8 @@ const FlagReview: React.FC = () => {
     setFlags(result.data ?? []);
   }, []);
   useEffect(() => {
+    // Loading the flags is the point of this section.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
   const resolve = async (id: string, action: 'clear' | 'uphold') => {

@@ -216,6 +216,7 @@ function normalizeSave(raw: unknown): ProtocolSave {
     placements: strings(raw.placements),
     sessions,
     gear: strings(raw.gear),
+    clips: strings(raw.clips),
     signature: typeof raw.signature === 'string' ? currentSkillKey(raw.signature) : null,
     startedAt: typeof raw.startedAt === 'string' ? raw.startedAt : fresh.startedAt,
     bodyWeightKg:
@@ -258,6 +259,7 @@ const KNOWN_SAVE_FIELDS = new Set([
   'sessions',
   'gear',
   'signature',
+  'clips',
 ]);
 
 /** Everything in a stored save that this version does not read. */
@@ -374,6 +376,7 @@ function mergeSaves(from: ProtocolSave, mine: ProtocolSave, theirs: ProtocolSave
     placements: mergeMap(from.placements ?? {}, mine.placements ?? {}, theirs.placements ?? {}),
     sessions: mergeMap(from.sessions ?? {}, mine.sessions ?? {}, theirs.sessions ?? {}),
     gear: mergeMap(from.gear ?? {}, mine.gear ?? {}, theirs.gear ?? {}),
+    clips: mergeMap(from.clips ?? {}, mine.clips ?? {}, theirs.clips ?? {}),
     signature: mine.signature !== from.signature ? mine.signature : theirs.signature,
   };
 }
