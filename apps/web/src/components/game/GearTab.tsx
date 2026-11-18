@@ -4,7 +4,9 @@ import React, { useMemo, useState } from 'react';
 import { Lock } from 'lucide-react';
 import { useGame } from './GameProvider';
 import { useSignature } from './useSignature';
-import { Figure, Label } from './kit';
+import { Label } from './kit';
+import { GearedFigure } from './GearedFigure';
+import { useMyGearLook } from './useGearLook';
 import { PlayerCard } from './PlayerCard';
 import { GEAR_SLOTS, GearItem, GearSlot, GearTone, equippedGear, gearCatalog } from '../../data/gear';
 import { useCrewAwards } from '../../utils/crewStore';
@@ -29,6 +31,7 @@ export const GearTab: React.FC = () => {
   const { save, plan, derived, equip } = useGame();
   const crew = useCrewAwards();
   const signature = useSignature();
+  const look = useMyGearLook();
   const catalog = useMemo(() => gearCatalog(save, plan, derived.level.level, derived.level.rank, crew), [save, plan, derived.level.level, derived.level.rank, crew]);
   const equipped = equippedGear(save, catalog);
   const [openSlot, setOpenSlot] = useState<GearSlot | null>(null);
@@ -46,7 +49,7 @@ export const GearTab: React.FC = () => {
           aria-label={`${signature.name}${signature.choices > 1 ? '. Tap for another of your hardest skills' : ''}`}
           className="w-[220px] h-[220px] rounded-card bg-ink-850 flex items-center justify-center cursor-pointer disabled:cursor-default"
         >
-          <Figure spec={signature.spec} state={signature.earned ? 'mastered' : 'locked'} animate className="w-[200px] h-[200px]" />
+          <GearedFigure spec={signature.spec} state={signature.earned ? 'mastered' : 'locked'} look={look} animate className="w-[200px] h-[200px]" />
         </button>
         <span className="text-center">
           <span className={`block font-display font-extrabold uppercase text-[20px] leading-none ${TONE_TEXT[equipped.title?.tone ?? 'iron']}`}>{equipped.title?.name ?? derived.level.rank}</span>
