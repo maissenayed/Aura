@@ -20,8 +20,9 @@
  */
 
 import { forgedIn, lastTickedWeek } from './armor';
+import { confirmPoints, missionEvidence } from './evidence';
 import { formatStatValue } from './campaignPlan';
-import type { CampaignPlan, PlanExercise, TrainableAttribute } from './campaignPlan';
+import type { CampaignPlan, PlanExercise, StatUnit, TrainableAttribute } from './campaignPlan';
 import type { BossStatus, LadderStatus, ProtocolSave } from './protocolEngine';
 
 export interface AttributeContext {
@@ -77,10 +78,14 @@ function liftsOf(ctx: AttributeContext, exercises: PlanExercise[]) {
 /** The top of every axis on the web. */
 export const ATTRIBUTE_MAX = 999;
 
-/** A lift's best: its last log or any day in its history, so a bad week does not shrink the character. */
-function bestNumber(save: ProtocolSave, id: string, baseline: number): number {
+/**
+ * A lift's best that counts: a bad week does not shrink the character, and a
+ * big jump grows it once it is shown again on another day.
+ */
+function bestNumber(save: ProtocolSave, id: string, baseline: number, unit: StatUnit = 'reps'): number {
   const points = save.history?.[id] ?? [];
-  return points.reduce((best, [, value]) => Math.max(best, value), save.records?.[id] ?? save.stats[id] ?? baseline);
+  const legacy = points.length === 0 ? (save.records?.[id] ?? save.stats[id] ?? baseline) : baseline;
+  return confirmPoints(points, Math.max(baseline, legacy), unit).best;
 }
 
 /** One thing an attribute is built from, as shown in its breakdown. */
@@ -112,7 +117,7 @@ function liftAssessment(ctx: AttributeContext, exercises: PlanExercise[]): Asses
   const lifts = liftsOf(ctx, exercises);
   if (lifts.length === 0) return null;
   const parts: AttributePart[] = lifts.map((lift) => {
-    const current = bestNumber(ctx.save, lift.id, lift.baseline);
+    const current = bestNumber(ctx.save, lift.id, lift.hasBaseline ? lift.baseline : 0, lift.unit);
     if (!lift.endgame) return { label: lift.name, detail: 'No end-game number — not counted', share: null };
     if (!lift.hasBaseline && current === 0) return { label: lift.name, detail: 'Not logged yet — left out until you log it', share: null };
     return {
@@ -279,7 +284,7 @@ export const ATTRIBUTES: AttributeDef[] = [
       },
       test: (ctx) =>
         liftsOf(ctx, tagged(ctx, 'power')).some(
-          (lift) => lift.endgame !== null && bestNumber(ctx.save, lift.id, lift.baseline) >= (lift.endgame * 2) / 3,
+          (lift) => lift.endgame !== null && bestNumber(ctx.save, lift.id, lift.hasBaseline ? lift.baseline : 0, lift.unit) >= (lift.endgame * 2) / 3,
         ),
     },
   },
@@ -325,13 +330,21 @@ export interface AttributeStatus {
   sessions: number;
 }
 
-/** Missions ticked per exercise id, and weeks with every armour piece forged by warm-ups. */
+/**
+ * Sessions per exercise id, and weeks with every armour piece forged by
+ * warm-ups. A mission logged that day counts as a whole session; one only
+ * ticked counts as half, so taps alone fill an axis at half speed.
+ */
 export function tally(save: ProtocolSave, plan: CampaignPlan): { ticks: Map<string, number>; fullArmorWeeks: number } {
   const ticks = new Map<string, number>();
+  const graded = new Map(missionEvidence(save, plan).map((mission) => [mission.key, mission]));
   for (const [key, done] of Object.entries(save.quests)) {
     if (!done) continue;
     const match = /^w(\d+)_(.+)$/.exec(key);
-    if (match) ticks.set(match[2], (ticks.get(match[2]) ?? 0) + 1);
+    if (!match) continue;
+    const mission = graded.get(key);
+    const weight = mission ? (mission.grade === 'done' ? 0.5 : 1) : 1;
+    ticks.set(match[2], (ticks.get(match[2]) ?? 0) + weight);
   }
 
   let fullArmorWeeks = 0;

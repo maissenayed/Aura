@@ -24,11 +24,11 @@ export const BossHpChip: React.FC<{ status: BossStatus }> = ({ status }) => {
   }, [hit]);
 
   return (
-    <Link href={`/bosses/${status.boss.id}`} className="relative" aria-label={`${status.boss.name}, ${hp} HP`}>
+    <Link href={`/bosses/${status.boss.id}`} className="relative" aria-label={status.ready ? `${status.boss.name}, staggered, falls next week` : `${status.boss.name}, ${hp} HP`}>
       <Chip tone="boss" className={hit ? 'anim-shake' : ''}>
         <BossIcon className="w-3.5 h-3.5" />
         <span className="font-sans [font-stretch:100%] font-semibold text-[12px] tracking-normal truncate max-w-[110px]">{status.boss.name.replace(/^The /, '')}</span>
-        <span className="num">{hp}</span>
+        <span className="num">{status.ready ? 'Mon' : hp}</span>
       </Chip>
       {hit && (
         <span key={hit.id} className="absolute right-1 -top-5 num font-bold text-sm text-boss anim-float">

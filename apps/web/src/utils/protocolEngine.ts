@@ -26,7 +26,21 @@ import {
 import { formatStatValue } from './campaignPlan';
 import { forgedIn, lastTickedWeek, slotOfPiece } from './armor';
 import { ArmorSlot, HistoryPoint, PLAN_FORMAT_V3, SkillTreeRef } from './campaignV3';
-import { floorsOf, masteredIn } from './treeIndex';
+import { canonicalSkill, floorsOf, masteredIn } from './treeIndex';
+import type { SessionClock, TestEntry } from './evidence';
+import {
+  boardDate,
+  campaignWeekOf,
+  confirmationOf,
+  confirmedBestOf,
+  landedSkills,
+  levelOfXp,
+  masterySlots,
+  missionEvidence,
+  startOf,
+  trainingDays,
+} from './evidence';
+import { logPassDates } from './skillStandards';
 
 export { formatStatValue, unitLabel } from './campaignPlan';
 import { AttributeStatus, evaluateAttributes } from './attributes';
@@ -99,10 +113,21 @@ export interface ProtocolSave {
    */
   perfectWeeks: number[];
   /**
-   * Skills marked mastered as "the steps before" a harder one, with no log to
-   * back them, keyed like `skills`. They count for less XP until a log proves them.
+   * Skills placed: credited as "the steps before" a harder skill passed in a
+   * placement test, keyed like `skills`. They open what follows them and pay no
+   * XP until they are proven themselves.
    */
   vouched: Record<string, string>;
+  /** Skill tests, keyed like `skills`: each day a test was taken, passed or not. */
+  tests?: Record<string, TestEntry[]>;
+  /** The last placement test per skill line (`tree:line`), by date. */
+  placements?: Record<string, string>;
+  /** Sessions on the clock, by date: when Start and Finish were tapped. */
+  sessions?: Record<string, SessionClock>;
+  /** The avatar's equipped items, by slot. */
+  gear?: Record<string, string>;
+  /** The skill whose pose the avatar strikes, keyed like `skills`. */
+  signature?: string | null;
 }
 
 export function createInitialSave(plan: CampaignPlan = BLUEPRINT_PLAN): ProtocolSave {
@@ -121,6 +146,11 @@ export function createInitialSave(plan: CampaignPlan = BLUEPRINT_PLAN): Protocol
     badges: {},
     perfectWeeks: [],
     vouched: {},
+    tests: {},
+    placements: {},
+    sessions: {},
+    gear: {},
+    signature: null,
   };
 }
 
@@ -223,8 +253,10 @@ export interface SkillClimb {
   name: string;
   floors: number;
   mastered: number;
-  /** The summit itself is mastered. */
+  /** The summit itself is mastered (or placed). */
   done: boolean;
+  /** The summit is mastered and proven, not only placed. */
+  proven: boolean;
   /** The skills to master next: not mastered, with every skill they need mastered. Easiest first. */
   next: { id: string; name: string; level: number }[];
 }
@@ -246,6 +278,7 @@ export function climbOf(save: ProtocolSave, tree: SkillTreeRef, skill: string): 
     floors: floors.length,
     mastered: floors.filter((floor) => owned.has(floor.id)).length,
     done: owned.has(summit.id),
+    proven: owned.has(summit.id) && !save.vouched?.[`${tree}:${summit.id}`],
     next,
   };
 }
@@ -303,6 +336,8 @@ export interface RequirementStatus {
   ratio: number;
   /** The target grows with bodyweight. */
   scales: boolean;
+  /** A higher logged number that counts once it is shown again on another day. */
+  pending?: number | null;
 }
 
 export interface BossStatus {
@@ -316,6 +351,8 @@ export interface BossStatus {
   defeated: boolean;
   /** The numbers beat it right now. */
   beaten: boolean;
+  /** Beaten, but another boss already fell this campaign week: it falls next week. */
+  ready: boolean;
   /** A prerequisite boss is still standing. */
   sealed: boolean;
   sealedBy?: string;
@@ -330,7 +367,8 @@ function evaluateRequirement(
   if (req.kind === 'lift') {
     const lift = liftOf(plan, req.lift);
     if (!lift) return { requirement: req, label: req.label ?? 'Missing lift', target: 1, current: 0, met: false, ratio: 0, scales: false };
-    const current = bestOf(save, lift);
+    const confirmation = confirmationOf(save, lift);
+    const current = confirmation.best;
     const target = scaledTarget(req.target, req.atGoal, save.bodyWeightKg, plan);
     return {
       requirement: req,
@@ -341,13 +379,15 @@ function evaluateRequirement(
       met: current >= target,
       ratio: travel(lift, current, target),
       scales: req.atGoal !== undefined,
+      pending: confirmation.pending,
     };
   }
 
   if (req.kind === 'multiple') {
     const lift = liftOf(plan, req.lift);
     if (!lift) return { requirement: req, label: req.label ?? 'Missing lift', target: 1, current: 0, met: false, ratio: 0, scales: false };
-    const current = bestOf(save, lift);
+    const confirmation = confirmationOf(save, lift);
+    const current = confirmation.best;
     const target = multipleTarget(lift, req.multiple, save.bodyWeightKg);
     return {
       requirement: req,
@@ -358,6 +398,7 @@ function evaluateRequirement(
       met: current >= target,
       ratio: travel(lift, current, target),
       scales: true,
+      pending: confirmation.pending,
     };
   }
 
@@ -377,7 +418,8 @@ function evaluateRequirement(
 
   if (req.kind === 'skill') {
     const climb = climbOf(save, req.tree, req.skill);
-    const met = Boolean(climb?.done);
+    // A placed summit opens the way, but only a proven one lands the blow.
+    const met = Boolean(climb?.proven);
     return {
       requirement: req,
       label: req.label ?? `Master ${climb?.name ?? 'the skill'}`,
@@ -426,31 +468,53 @@ function evaluateRequirement(
  * and stays slain, whatever its numbers do now (a heavier bodyweight, a lift
  * history that has rolled over).
  */
-export function evaluateBosses(save: ProtocolSave, plan: CampaignPlan): BossStatus[] {
+export function evaluateBosses(save: ProtocolSave, plan: CampaignPlan, currentWeek?: number): BossStatus[] {
   const slain = new Set(plan.bosses.filter((boss) => save.badges?.[`boss:${boss.id}`]).map((boss) => boss.id));
   const beatenNow = (boss: Boss, defeated: Set<string>) =>
     boss.requirements.length > 0 && boss.requirements.every((r) => evaluateRequirement(r, save, plan, defeated).met);
   let defeated = new Set<string>(slain);
-  for (let pass = 0; pass <= plan.bosses.length; pass += 1) {
-    const next = new Set<string>(slain);
-    for (const boss of plan.bosses) if (beatenNow(boss, defeated)) next.add(boss.id);
-    const changed = next.size !== defeated.size;
-    defeated = next;
-    if (!changed) break;
+  if (currentWeek === undefined) {
+    // No calendar (converting an old save): everything the numbers beat counts.
+    for (let pass = 0; pass <= plan.bosses.length; pass += 1) {
+      const next = new Set<string>(slain);
+      for (const boss of plan.bosses) if (beatenNow(boss, defeated)) next.add(boss.id);
+      const changed = next.size !== defeated.size;
+      defeated = next;
+      if (!changed) break;
+    }
+  } else {
+    // One boss falls per campaign week. The first beaten one in the plan falls; the rest wait at their last hit point.
+    const killWeeks = new Set(
+      save.startedAt
+        ? plan.bosses.flatMap((boss) => {
+            const date = save.badges?.[`boss:${boss.id}`];
+            return date ? [campaignWeekOf(save.startedAt as string, date)] : [];
+          })
+        : [],
+    );
+    if (!killWeeks.has(currentWeek)) {
+      const falling = plan.bosses.find((boss) => !slain.has(boss.id) && beatenNow(boss, slain));
+      if (falling) defeated = new Set([...slain, falling.id]);
+    }
   }
 
   return plan.bosses.map((boss, index) => {
     const requirements = boss.requirements.map((r) => evaluateRequirement(r, save, plan, defeated));
     const seal = requirements.find((r) => r.requirement.kind === 'boss' && !r.met);
     const beaten = requirements.length > 0 && requirements.every((r) => r.met);
+    const isDefeated = defeated.has(boss.id);
+    const ready = beaten && !isDefeated;
+    const chipped = requirements.length ? requirements.reduce((sum, r) => sum + r.ratio, 0) / requirements.length : 0;
     return {
       boss,
       order: index + 1,
       requirements,
-      damage: defeated.has(boss.id) ? 1 : requirements.length ? requirements.reduce((sum, r) => sum + r.ratio, 0) / requirements.length : 0,
-      defeated: defeated.has(boss.id),
+      // A boss waiting for its week stands at its last hit point.
+      damage: isDefeated ? 1 : ready ? 0.99 : Math.min(chipped, 0.98),
+      defeated: isDefeated,
       beaten,
-      sealed: !defeated.has(boss.id) && Boolean(seal),
+      ready,
+      sealed: !isDefeated && Boolean(seal),
       sealedBy: seal?.label,
     };
   });
@@ -483,6 +547,8 @@ export interface LadderStatus {
   ladder: SkillTree;
   tiers: TierStatus[];
   clearedCount: number;
+  /** A tower's summit is mastered and proven, not only placed. Always true for a lift ladder. */
+  summitProven: boolean;
 }
 
 function evaluateLadder(ladder: SkillTree, save: ProtocolSave, plan: CampaignPlan): LadderStatus {
@@ -498,7 +564,7 @@ function evaluateLadder(ladder: SkillTree, save: ProtocolSave, plan: CampaignPla
       const lift = liftOf(plan, gate.lift);
       if (!lift) continue;
       const target = scaledTarget(gate.target, gate.atGoal, save.bodyWeightKg, plan);
-      const current = bestOf(save, lift);
+      const current = confirmedBestOf(save, lift);
       gates.push({ stat: lift, target, current, met: current >= target, scales: gate.atGoal !== undefined });
     }
 
@@ -516,7 +582,10 @@ function evaluateLadder(ladder: SkillTree, save: ProtocolSave, plan: CampaignPla
   const current = tiers.find((tier) => !tier.cleared);
   if (current) current.isCurrent = true;
 
-  return { ladder, tiers, clearedCount: tiers.filter((tier) => tier.cleared).length };
+  const summit = ladder.tower ? canonicalSkill(ladder.tower.tree, ladder.tower.summit) : null;
+  const summitProven =
+    !ladder.tower || (Boolean(owned?.has(summit as string)) && !save.vouched?.[`${ladder.tower.tree}:${summit}`]);
+  return { ladder, tiers, clearedCount: tiers.filter((tier) => tier.cleared).length, summitProven };
 }
 
 /* ------------------------------------------------------------------ */
@@ -583,8 +652,12 @@ export interface MassStatus {
   gaining: boolean;
   /** 0–1 towards the goal weight. */
   finalProgress: number;
-  /** 0–1 towards the goal at the best weigh-in so far: what bodyweight XP is paid on, so a lighter week never takes it back. */
+  /** 0–1 towards the goal at the best weigh-in so far, so a lighter week never takes it back. */
   bestProgress: number;
+  /** What bodyweight XP is paid on: the best progress, but no faster than the plan's weekly change. */
+  xpProgress: number;
+  /** The furthest the plan's pace allows by this week: weight goals beyond it wait. */
+  pacedKg: number;
   finalBossDown: boolean;
   /** The next weight goal on the map that is not reached yet. */
   next: WeightGoalStatus | null;
@@ -606,6 +679,14 @@ function evaluateMass(save: ProtocolSave, week: number, plan: CampaignPlan): Mas
   const checkpoints = weightGoals(plan).map((entry) => ({ ...entry, cleared: reached(current, start, entry.kg) }));
   const next = checkpoints.find((entry) => !entry.cleared) ?? null;
   const lastWeekTarget = massTargetForWeek(week - 1, plan);
+  const bestProgress = (save.history?.[BODYWEIGHT_RECORD] ?? []).reduce(
+    (best, [, kg]) => Math.max(best, towards(kg, start, goal)),
+    towards(current, start, goal),
+  );
+  // A healthy rate is the plan's weekly change: the XP never runs ahead of it.
+  const span = Math.abs(goal - start);
+  const pace = span > 0 ? clamp01((week * weeklyChangeKg) / span) : 1;
+  const pacedKg = round1(start + Math.sign(goal - start) * Math.min(span, week * weeklyChangeKg));
 
   return {
     current,
@@ -614,10 +695,9 @@ function evaluateMass(save: ProtocolSave, week: number, plan: CampaignPlan): Mas
     gained: round1(current - start),
     gaining,
     finalProgress: towards(current, start, goal),
-    bestProgress: (save.history?.[BODYWEIGHT_RECORD] ?? []).reduce(
-      (best, [, kg]) => Math.max(best, towards(kg, start, goal)),
-      towards(current, start, goal),
-    ),
+    bestProgress,
+    xpProgress: Math.min(bestProgress, pace),
+    pacedKg,
     finalBossDown: reached(current, start, goal),
     next,
     nextProgress: next ? towards(current, start, next.kg) : 1,
@@ -650,7 +730,7 @@ function evaluateCheckpoints(save: ProtocolSave, plan: CampaignPlan): IronCheckp
       if (goal.kind !== 'lift') return [];
       const lift = liftOf(plan, goal.lift);
       if (!lift) return [];
-      const current = bestOf(save, lift);
+      const current = confirmedBestOf(save, lift);
       return [
         {
           id: goal.id,
@@ -826,18 +906,14 @@ export function streakOf(save: ProtocolSave, plan: CampaignPlan, todayIso: strin
 /* ------------------------------------------------------------------ */
 
 export const XP_RULES = {
-  perLevel: 500,
   statMax: 300,
   tier: 400,
-  /** A tower climbed to its summit. Its floors are skills, which earn on the tree. */
+  /** A tower climbed to a proven summit. Its floors are skills, which earn on the tree. */
   tower: 400,
-  /** Each skill mastered on the way up a tower or a skill boss. */
-  floor: 50,
-  /** A floor marked only as one of "the steps before" a harder skill, until a log proves it. */
-  vouchedFloor: 10,
   boss: 1500,
   ironCheckpoint: 300,
   massMax: 1500,
+  /** A mission ticked at the usual number; logged at target it pays 20, more for an overload or a PR. */
   mission: 10,
   warmUp: 5,
   /** Each armour piece forged in a week. */
@@ -857,6 +933,8 @@ export interface LevelStatus {
   xpForLevel: number;
   perfectWeeks: number;
   breakdown: { label: string; xp: number }[];
+  /** Mastery XP waiting for a free slot in a later week. */
+  queuedXp: number;
 }
 
 /** Rank titles per sport, from the lowest; each starts at the level beside it. */
@@ -886,6 +964,13 @@ export function planSport(plan: CampaignPlan): Sport {
   return 'calisthenics';
 }
 
+/** Progress from where the athlete started to a target, 0–1. Starting at or past it pays nothing. */
+function travelFrom(from: number, current: number, target: number): number {
+  const span = target - from;
+  if (span <= 0) return 0;
+  return clamp01((current - from) / span);
+}
+
 function evaluateLevel(
   save: ProtocolSave,
   plan: CampaignPlan,
@@ -893,63 +978,52 @@ function evaluateLevel(
   ladders: LadderStatus[],
   mass: MassStatus,
   checkpoints: IronCheckpointStatus[],
+  horizon: string | null,
 ): LevelStatus {
+  // Strength is the distance travelled from the athlete's own start, on numbers that count.
   const strength = plan.lifts.reduce((sum, lift) => {
     if (lift.endgame === null) return sum;
-    return sum + travel(lift, bestOf(save, lift), lift.endgame) * XP_RULES.statMax;
+    return sum + travelFrom(startOf(save, lift), confirmedBestOf(save, lift), lift.endgame) * XP_RULES.statMax;
   }, 0);
 
   const earnedTiers = ladders.reduce(
     (sum, ladder) => (ladder.ladder.tower ? sum : sum + ladder.tiers.filter((tier) => tier.cleared && !tier.byBlueprint).length),
     0,
   );
-  const towersClimbed = ladders.filter((ladder) => ladder.ladder.tower && ladder.tiers.length > 0 && ladder.clearedCount === ladder.tiers.length).length;
-  // Skills that are floors of a tower or weak points of a skill boss, counted once each.
-  const climbed = new Set<string>();
-  for (const ladder of ladders) {
-    for (const tier of ladder.tiers) {
-      if (tier.cleared && tier.tier.skill) climbed.add(`${tier.tier.skill.tree}:${tier.tier.skill.id}`);
-    }
-  }
-  for (const status of bosses) {
-    for (const { climb } of status.requirements) {
-      if (!climb) continue;
-      const owned = masteredIn(save.skills, climb.tree);
-      for (const floor of floorsOf(climb.tree, climb.skill)) {
-        if (owned.has(floor.id)) climbed.add(`${climb.tree}:${floor.id}`);
-      }
-    }
-  }
+  const towersClimbed = ladders.filter(
+    (ladder) => ladder.ladder.tower && ladder.tiers.length > 0 && ladder.clearedCount === ladder.tiers.length && ladder.summitProven,
+  ).length;
 
-  // Warm-ups and hand-ticked armour are not missions; armour counts once per piece per week.
-  let missions = 0;
-  let warmUps = 0;
-  for (const [key, ticked] of Object.entries(save.quests)) {
-    if (!ticked || key.includes('_armor_')) continue;
-    if (key.includes('_warm_')) warmUps += 1;
-    else missions += 1;
-  }
+  // Training: missions graded by their logs, warm-ups, rest and finished sessions, each day capped.
+  const evidence = missionEvidence(save, plan);
+  let training = 0;
+  for (const day of trainingDays(save, plan, evidence).values()) if (!horizon || day.date <= horizon) training += day.xp;
   let armor = 0;
   for (let week = 1, last = lastTickedWeek(save.quests); week <= last; week += 1) armor += forgedIn(save.quests, plan, week).size;
   const perfectWeeks = countPerfectWeeks(save, plan);
 
+  // Skills: landed once on the first pass; mastered at three a week, one per line, placed for nothing.
+  const landed = landedSkills(save, (key) => logPassDates(save, key)).reduce((sum, entry) => sum + entry.xp, 0);
+  const slots = masterySlots(save);
+  const mastered = slots.filter((slot) => !horizon || slot.slotWeek <= horizon).reduce((sum, slot) => sum + slot.xp, 0);
+  const queuedXp = slots.filter((slot) => horizon && slot.slotWeek > horizon).reduce((sum, slot) => sum + slot.xp, 0);
+
   const breakdown = [
-    { label: 'Iron strength', xp: Math.round(strength) },
-    ...(earnedTiers ? [{ label: 'Skill tiers', xp: earnedTiers * XP_RULES.tier }] : []),
-    {
-      label: 'Skills climbed',
-      xp: [...climbed].reduce((sum, key) => sum + (save.vouched?.[key] ? XP_RULES.vouchedFloor : XP_RULES.floor), 0),
-    },
+    { label: 'Training', xp: training },
+    { label: 'Armour', xp: armor * XP_RULES.armor },
+    { label: 'Perfect weeks', xp: perfectWeeks * XP_RULES.perfectWeek },
+    { label: 'Skills landed', xp: landed },
+    { label: 'Skills mastered', xp: mastered },
     { label: 'Towers', xp: towersClimbed * XP_RULES.tower },
+    ...(earnedTiers ? [{ label: 'Skill tiers', xp: earnedTiers * XP_RULES.tier }] : []),
     { label: 'Bosses', xp: bosses.filter((b) => b.defeated).length * XP_RULES.boss },
     { label: 'Lift checkpoints', xp: checkpoints.filter((c) => c.met).length * XP_RULES.ironCheckpoint },
-    { label: 'Bodyweight', xp: Math.round(mass.bestProgress * XP_RULES.massMax) },
-    { label: 'Missions', xp: missions * XP_RULES.mission + warmUps * XP_RULES.warmUp + armor * XP_RULES.armor },
-    { label: 'Perfect weeks', xp: perfectWeeks * XP_RULES.perfectWeek },
+    { label: 'Iron strength', xp: Math.round(strength) },
+    { label: 'Bodyweight', xp: Math.round(mass.xpProgress * XP_RULES.massMax) },
   ];
 
   const xp = breakdown.reduce((sum, entry) => sum + entry.xp, 0);
-  const level = 1 + Math.floor(xp / XP_RULES.perLevel);
+  const { level, into, forLevel } = levelOfXp(xp);
   const sport = planSport(plan);
 
   return {
@@ -957,10 +1031,11 @@ function evaluateLevel(
     rank: rankForLevel(level, sport),
     sport,
     xp,
-    xpIntoLevel: xp % XP_RULES.perLevel,
-    xpForLevel: XP_RULES.perLevel,
+    xpIntoLevel: into,
+    xpForLevel: forLevel,
     perfectWeeks,
     breakdown,
+    queuedXp,
   };
 }
 
@@ -1006,7 +1081,7 @@ function evaluateActs(
     const scored = act.goals.flatMap((goal): { node: ActNode; progress: number }[] => {
       switch (goal.kind) {
         case 'weight': {
-          const done = reached(mass.current, mass.start, goal.kg);
+          const done = reached(mass.current, mass.start, goal.kg) && reached(mass.pacedKg, mass.start, goal.kg);
           return [
             {
               node: {
@@ -1166,7 +1241,7 @@ function evaluateGates(
   const best = new Map<string, { lift: Lift; target: number; unlocks: string }>();
 
   const consider = (lift: Lift, target: number, unlocks: string) => {
-    if (bestOf(save, lift) >= target) return;
+    if (confirmedBestOf(save, lift) >= target) return;
     const existing = best.get(lift.id);
     if (!existing || target < existing.target) best.set(lift.id, { lift, target, unlocks });
   };
@@ -1188,7 +1263,7 @@ function evaluateGates(
 
   return [...best.values()]
     .map(({ lift, target, unlocks }) => {
-      const current = bestOf(save, lift);
+      const current = confirmedBestOf(save, lift);
       return {
         stat: lift,
         target,
@@ -1222,10 +1297,13 @@ export interface Clock {
   currentWeek: number;
   /** The week the player is looking at on the mission board. */
   viewWeek: number;
+  /** Today. XP paced into later weeks waits until then; without it, the end of the current week. */
+  today?: string | null;
 }
 
 export function derive(save: ProtocolSave, clock: Clock, plan: CampaignPlan): Derived {
-  const bosses = evaluateBosses(save, plan);
+  const horizon = clock.today ?? (save.startedAt ? boardDate(save.startedAt, clock.currentWeek, 'sun') : null);
+  const bosses = evaluateBosses(save, plan, clock.currentWeek);
   const ladders = plan.trees.map((tree) => evaluateLadder(tree, save, plan));
   const mass = evaluateMass(save, clock.currentWeek, plan);
   const checkpoints = evaluateCheckpoints(save, plan);
@@ -1236,7 +1314,7 @@ export function derive(save: ProtocolSave, clock: Clock, plan: CampaignPlan): De
     mass,
     checkpoints,
     acts: evaluateActs(save, plan, bosses, ladders, mass, checkpoints),
-    level: evaluateLevel(save, plan, bosses, ladders, mass, checkpoints),
+    level: evaluateLevel(save, plan, bosses, ladders, mass, checkpoints, horizon),
     week: evaluateWeek(save, clock.viewWeek, plan),
     gates: evaluateGates(save, plan, bosses, ladders, checkpoints),
     attributes: evaluateAttributes(save, plan, bosses, ladders),
@@ -1255,23 +1333,28 @@ export interface BadgeAward {
 }
 
 /** Every badge the plan can hand out right now, and whether the save's numbers back it today. */
-function badgeChecks(save: ProtocolSave, derived: Derived, plan: CampaignPlan): { award: BadgeAward; held: boolean }[] {
-  const checks: { award: BadgeAward; held: boolean }[] = [];
+function badgeChecks(save: ProtocolSave, derived: Derived, plan: CampaignPlan): { award: BadgeAward; held: boolean; due?: boolean }[] {
+  const checks: { award: BadgeAward; held: boolean; due?: boolean }[] = [];
   for (const status of derived.bosses) {
-    checks.push({ award: { id: `boss:${status.boss.id}`, kind: 'boss', title: status.boss.name, detail: 'Boss defeated' }, held: status.beaten });
+    // The numbers back it while it is beaten; it is handed out only in the week it falls.
+    checks.push({
+      award: { id: `boss:${status.boss.id}`, kind: 'boss', title: status.boss.name, detail: 'Boss defeated' },
+      held: status.beaten,
+      due: status.defeated && status.beaten,
+    });
   }
   for (const ladder of derived.ladders) {
     if (!ladder.ladder.tower || ladder.tiers.length === 0) continue;
     checks.push({
       award: { id: `tower:${ladder.ladder.id}`, kind: 'tower', title: ladder.ladder.name, detail: 'Climbed to the summit' },
-      held: ladder.clearedCount === ladder.tiers.length,
+      held: ladder.clearedCount === ladder.tiers.length && ladder.summitProven,
     });
   }
   for (const lift of plan.lifts) {
     if (lift.endgame === null) continue;
     checks.push({
       award: { id: `record:${lift.id}`, kind: 'record', title: lift.name, detail: `End-game number · ${formatStatValue(lift.endgame, lift.unit)}` },
-      held: bestOf(save, lift) >= lift.endgame,
+      held: confirmedBestOf(save, lift) >= lift.endgame,
     });
   }
   return checks;
@@ -1280,7 +1363,7 @@ function badgeChecks(save: ProtocolSave, derived: Derived, plan: CampaignPlan): 
 /** Badges the save has earned but not been given yet: bosses down, towers climbed, lifts at their end-game number. */
 export function badgesDue(save: ProtocolSave, derived: Derived, plan: CampaignPlan): BadgeAward[] {
   return badgeChecks(save, derived, plan)
-    .filter((check) => check.held && !save.badges[check.award.id])
+    .filter((check) => check.held && (check.due ?? true) && !save.badges[check.award.id])
     .map((check) => check.award);
 }
 
