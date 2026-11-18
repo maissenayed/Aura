@@ -84,6 +84,19 @@ export const Submit: React.FC<SubmitProps> = ({ busy, children, busyLabel = 'One
   </button>
 );
 
+/** An on/off switch with a line on what it does. Chalk when on, iron when off. */
+export const Switch: React.FC<{ label: string; detail: string; on: boolean; onChange: (on: boolean) => void }> = ({ label, detail, on, onChange }) => (
+  <button type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)} className="w-full flex items-center gap-3 text-left cursor-pointer">
+    <span className="flex-1 min-w-0">
+      <span className="block text-sm font-semibold text-fg">{label}</span>
+      <span className="block text-[12px] text-fg-4">{detail}</span>
+    </span>
+    <span className={`w-11 h-6 shrink-0 rounded-full p-0.5 transition ${on ? 'bg-fg' : 'bg-ink-700'}`}>
+      <span className={`block w-5 h-5 rounded-full transition ${on ? 'translate-x-5 bg-ink-950' : 'bg-fg-3'}`} />
+    </span>
+  </button>
+);
+
 export const FormMessage: React.FC<{ tone: 'error' | 'success' | 'info'; children: React.ReactNode }> = ({ tone, children }) => (
   <p
     role={tone === 'error' ? 'alert' : 'status'}

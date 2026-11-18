@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Check, Copy, Flag, KeyRound, Link2, Mail, RefreshCw, Share2, Trash2, UserPlus, Users, X } from 'lucide-react';
 import { AccountMenu } from '../../components/account/AccountMenu';
+import { CrewSharing } from '../../components/account/CrewSharing';
 import {
   DANGER_BUTTON,
   Field,
@@ -41,6 +42,26 @@ interface IssuedLink {
   emailed: boolean;
 }
 
+/** A member as the crew counts them. A private member carries no training numbers at all. */
+interface RosterEntry {
+  id: string;
+  trainPrivately: boolean;
+  showNumbers: boolean;
+  openFlags: number;
+  started: boolean | null;
+  week: { xp: number; sessions: number; prs: number; held: boolean } | null;
+}
+
+interface CrewFlag {
+  id: string;
+  target: string;
+  byName: string;
+  targetName: string;
+  week: string;
+  reason: string;
+  at: string;
+}
+
 /** Only a joined invitation is gold: it is the one that paid off. */
 const STATUS: Record<Invite['status'], { label: string; tone: Tone }> = {
   pending: { label: 'Waiting', tone: 'act' },
@@ -50,6 +71,8 @@ const STATUS: Record<Invite['status'], { label: string; tone: Tone }> = {
 };
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+/** A training week is a calendar day, not an instant: read it at noon so no timezone moves it. */
+const formatDay = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
 /** Row actions: small outlined buttons, and crimson text for the ones that take something away. */
 const SMALL = `${SECONDARY_BUTTON} h-9 px-3 text-xs`;
@@ -73,7 +96,15 @@ export default function TeamPage() {
       </Notice>
     );
   } else if (account.role !== 'admin') {
-    body = <Notice title="Owner only">Only the owner of this app can invite people and manage accounts.</Notice>;
+    body = (
+      <Notice title="Owner only">
+        Only the owner can invite people to the crew and manage accounts. Your crew is on the{' '}
+        <Link href="/crew" className="font-bold text-act hover:underline">
+          Crew
+        </Link>{' '}
+        page.
+      </Notice>
+    );
   } else {
     body = <TeamManager selfId={account.id} />;
   }
@@ -83,8 +114,8 @@ export default function TeamPage() {
       <main className="w-full max-w-4xl mx-auto px-4 pt-5 lg:px-8 lg:pt-8 pb-8 flex flex-col gap-5">
         {/* On desktop the account menu sits in the sidebar; on a phone this page keeps it in reach here. */}
         <ScreenHeader
-          eyebrow="Account"
-          title="Team & invitations"
+          eyebrow="Owner · your crew"
+          title="Team"
           right={
             <div className="lg:hidden">
               <AccountMenu />
@@ -105,13 +136,14 @@ const Notice: React.FC<{ title: string; children: React.ReactNode }> = ({ title,
 );
 
 /** A flat section of the owner's view: a glyph, a title, a line on what it is for. */
-const Section: React.FC<{ icon: React.ReactNode; title: string; subtitle?: string; children: React.ReactNode }> = ({
+const Section: React.FC<{ id?: string; icon: React.ReactNode; title: string; subtitle?: string; children: React.ReactNode }> = ({
+  id,
   icon,
   title,
   subtitle,
   children,
 }) => (
-  <section className="flex flex-col gap-4 p-4 sm:p-6 rounded-card bg-ink-900">
+  <section id={id} className="flex flex-col gap-4 p-4 sm:p-6 rounded-card bg-ink-900 scroll-mt-4">
     <div className="flex items-start gap-3">
       <span className="flex items-center justify-center w-9 h-9 shrink-0 rounded-card bg-ink-800 text-fg">{icon}</span>
       <div className="min-w-0">
@@ -131,14 +163,24 @@ const TeamManager: React.FC<{ selfId: string }> = ({ selfId }) => {
   const { email: emailEnabled } = useAccount();
   const [invites, setInvites] = useState<Invite[] | null>(null);
   const [members, setMembers] = useState<Member[] | null>(null);
+  const [roster, setRoster] = useState<Map<string, RosterEntry> | null>(null);
+  const [flags, setFlags] = useState<CrewFlag[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [issued, setIssued] = useState<IssuedLink | null>(null);
 
   const reload = useCallback(async () => {
-    const [inviteResult, memberResult] = await Promise.all([api<Invite[]>('GET', '/invites'), api<Member[]>('GET', '/members')]);
+    const [inviteResult, memberResult, rosterResult, flagResult] = await Promise.all([
+      api<Invite[]>('GET', '/invites'),
+      api<Member[]>('GET', '/members'),
+      api<RosterEntry[]>('GET', '/crew/roster'),
+      api<CrewFlag[]>('GET', '/crew/flags'),
+    ]);
     setLoadError(inviteResult.error ?? memberResult.error ?? null);
     if (inviteResult.data) setInvites(inviteResult.data);
     if (memberResult.data) setMembers(memberResult.data);
+    // The crew state is extra: without it the people lists still work.
+    if (rosterResult.data) setRoster(new Map(rosterResult.data.map((entry) => [entry.id, entry])));
+    setFlags(flagResult.data ?? []);
   }, []);
 
   useEffect(() => {
@@ -147,17 +189,49 @@ const TeamManager: React.FC<{ selfId: string }> = ({ selfId }) => {
     void reload();
   }, [reload]);
 
+  const openFlags = flags?.length ?? 0;
+  const flagReview = <FlagReview flags={flags} onResolved={reload} />;
+
   return (
     <div className="flex flex-col gap-5">
-      <p className="-mt-2 text-sm text-fg-3">Invite people by email address. Each person gets their own private campaign.</p>
+      <p className="-mt-2 text-sm text-fg-3 max-w-2xl">
+        Everyone you invite joins one crew: the weekly board, the feed, duels and the raid. Each person keeps their own campaign.
+      </p>
 
       {loadError && <FormMessage tone="error">{loadError}</FormMessage>}
+
+      <CrewSummary members={members} roster={roster} invites={invites} openFlags={flags === null ? null : openFlags} />
+
+      {/* Open flags hold someone's week off the board, so they come first until they are decided. */}
+      {openFlags > 0 && flagReview}
 
       <InviteForm emailEnabled={emailEnabled} onIssued={(link) => { setIssued(link); void reload(); }} />
 
       {issued && <IssuedLinkCard issued={issued} onClose={() => setIssued(null)} />}
 
-      <Section icon={<Mail className="w-4 h-4" />} title="Invitations" subtitle="Links work once and expire after 14 days.">
+      <Section
+        icon={<Users className="w-4 h-4" />}
+        title="Crew members"
+        subtitle="Everyone who can sign in. You see what the board shows and no more: someone who trains privately shows only as private."
+      >
+        {members === null ? (
+          <p className="text-xs text-fg-5">Loading…</p>
+        ) : (
+          <ul className="flex flex-col">
+            {members.map((member) => (
+              <MemberRow
+                key={member.id}
+                member={member}
+                crew={roster?.get(member.id) ?? null}
+                isSelf={member.id === selfId}
+                onChanged={reload}
+              />
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      <Section icon={<Mail className="w-4 h-4" />} title="Invitations" subtitle="Links work once and expire after 14 days. Joining puts them in the crew.">
         {invites === null ? (
           <p className="text-xs text-fg-5">Loading…</p>
         ) : invites.length === 0 ? (
@@ -171,50 +245,63 @@ const TeamManager: React.FC<{ selfId: string }> = ({ selfId }) => {
         )}
       </Section>
 
-      <Section icon={<Users className="w-4 h-4" />} title="Members" subtitle="Everyone who can sign in.">
-        {members === null ? (
-          <p className="text-xs text-fg-5">Loading…</p>
-        ) : (
-          <ul className="flex flex-col">
-            {members.map((member) => (
-              <MemberRow key={member.id} member={member} isSelf={member.id === selfId} onChanged={reload} />
-            ))}
-          </ul>
-        )}
-      </Section>
-
-      <FlagReview />
+      {openFlags === 0 && flagReview}
     </div>
   );
 };
 
-interface CrewFlag {
-  id: string;
-  byName: string;
-  targetName: string;
-  week: string;
-  reason: string;
-  at: string;
-}
+/** The crew at a glance: how many, how many train privately, who is still to join, and what waits for the owner. */
+const CrewSummary: React.FC<{
+  members: Member[] | null;
+  roster: Map<string, RosterEntry> | null;
+  invites: Invite[] | null;
+  openFlags: number | null;
+}> = ({ members, roster, invites, openFlags }) => {
+  const privately = roster ? [...roster.values()].filter((entry) => entry.trainPrivately).length : null;
+  const waiting = invites ? invites.filter((invite) => invite.status === 'pending').length : null;
+  return (
+    <dl className="grid grid-cols-4 gap-1.5" aria-label="Crew at a glance">
+      <Stat label="In the crew" value={members?.length ?? null} />
+      <Stat label="Private" value={privately} />
+      <Stat label="Invites out" value={waiting} />
+      <Stat label="Open flags" value={openFlags} href={openFlags ? '#flags' : undefined} danger={Boolean(openFlags)} />
+    </dl>
+  );
+};
+
+const Stat: React.FC<{ label: string; value: number | null; href?: string; danger?: boolean }> = ({ label, value, href, danger }) => {
+  const inner = (
+    <>
+      <dt className={`eyebrow leading-tight ${danger ? 'text-boss-soft' : 'text-fg-4'}`}>{label}</dt>
+      <dd className={`num font-bold text-[22px] leading-none ${danger ? 'text-boss-soft' : 'text-fg'}`}>{value ?? '–'}</dd>
+    </>
+  );
+  const look = `flex flex-col-reverse justify-end gap-1.5 min-w-0 p-3 rounded-card ${danger ? 'bg-boss-deep' : 'bg-ink-900'}`;
+  return href ? (
+    <a href={href} className={`${look} hover:brightness-110`}>
+      {inner}
+    </a>
+  ) : (
+    <div className={look}>{inner}</div>
+  );
+};
 
 /** Flags the crew raised: a flagged week stays off the board until the owner clears it or upholds it. */
-const FlagReview: React.FC = () => {
-  const [flags, setFlags] = useState<CrewFlag[] | null>(null);
-  const load = useCallback(async () => {
-    const result = await api<CrewFlag[]>('GET', '/crew/flags');
-    setFlags(result.data ?? []);
-  }, []);
-  useEffect(() => {
-    // Loading the flags is the point of this section.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load();
-  }, [load]);
+const FlagReview: React.FC<{ flags: CrewFlag[] | null; onResolved: () => Promise<void> }> = ({ flags, onResolved }) => {
+  const [busy, setBusy] = useState<string | null>(null);
   const resolve = async (id: string, action: 'clear' | 'uphold') => {
+    setBusy(id);
     await api('POST', `/crew/flags/${id}/resolve`, { action });
-    void load();
+    await onResolved();
+    setBusy(null);
   };
   return (
-    <Section icon={<Flag className="w-4 h-4" />} title="Crew flags" subtitle="Clear a flag to put that week back on the board; uphold it to count the week as zero.">
+    <Section
+      id="flags"
+      icon={<Flag className="w-4 h-4" />}
+      title="Crew flags"
+      subtitle="Anyone in the crew can flag a week that looks wrong; it stays off the board until you decide. Clear puts the week back on the board. Uphold counts it as zero."
+    >
       {flags === null ? (
         <p className="text-xs text-fg-5">Loading…</p>
       ) : flags.length === 0 ? (
@@ -224,14 +311,14 @@ const FlagReview: React.FC = () => {
           {flags.map((flag) => (
             <li key={flag.id} className="flex flex-col gap-2 p-3 rounded-card bg-ink-850">
               <span className="text-sm text-fg">
-                <strong>{flag.byName}</strong> flagged <strong>{flag.targetName}</strong>, week of {formatDate(flag.week)}
+                <strong>{flag.byName}</strong> flagged <strong>{flag.targetName}</strong>, week of {formatDay(flag.week)}
               </span>
-              <span className="text-[13px] text-fg-3">{flag.reason}</span>
+              <span className="text-[13px] text-fg-3">“{flag.reason}”</span>
               <span className="flex gap-2">
-                <button type="button" onClick={() => void resolve(flag.id, 'clear')} className={SMALL}>
+                <button type="button" disabled={busy === flag.id} onClick={() => void resolve(flag.id, 'clear')} className={SMALL}>
                   Clear
                 </button>
-                <button type="button" onClick={() => void resolve(flag.id, 'uphold')} className={SMALL_DANGER}>
+                <button type="button" disabled={busy === flag.id} onClick={() => void resolve(flag.id, 'uphold')} className={SMALL_DANGER}>
                   Uphold
                 </button>
               </span>
@@ -274,11 +361,11 @@ const InviteForm: React.FC<{ emailEnabled: boolean; onIssued: (link: IssuedLink)
   return (
     <Section
       icon={<UserPlus className="w-4 h-4" />}
-      title="Invite someone"
+      title="Invite to the crew"
       subtitle={
         emailEnabled
-          ? 'They get an email with a personal link to create their account.'
-          : 'You get a personal link to send them — by message, email or however you like. Automatic emails switch on once a sending domain is connected.'
+          ? 'They get an email with a personal link. They make their own account and campaign, and join the crew.'
+          : 'You get a personal link to send them by message, email or however you like. They make their own account and campaign, and join the crew. Automatic emails switch on once a sending domain is connected.'
       }
     >
       <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2 sm:items-end" noValidate>
@@ -291,6 +378,8 @@ const InviteForm: React.FC<{ emailEnabled: boolean; onIssued: (link: IssuedLink)
         </button>
       </form>
       {error && <FormMessage tone="error">{error}</FormMessage>}
+      {/* The same words they read on the join screen. */}
+      <CrewSharing className="sm:grid-cols-2" />
     </Section>
   );
 };
@@ -313,11 +402,12 @@ const IssuedLinkCard: React.FC<{ issued: IssuedLink; onClose: () => void }> = ({
     <section aria-live="polite" className="p-4 sm:p-5 rounded-card bg-ink-800 raised">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-display font-bold text-base text-fg break-words">Invitation ready for {issued.email}</h2>
+          <h2 className="font-display font-bold text-base text-fg break-words">Crew invite ready for {issued.email}</h2>
           <p className="mt-0.5 text-xs text-fg-3 leading-relaxed">
             {issued.emailed
               ? 'We emailed them this link. You can also send it yourself.'
-              : 'Send them this link. It works once, for 14 days. It is shown only now — make a new one from the list if you lose it.'}
+              : 'Send them this link. It works once, for 14 days. It is shown only now; make a new one from the list if you lose it.'}{' '}
+            The join screen tells them what the crew sees and that they can train privately.
           </p>
         </div>
         <button
@@ -345,7 +435,11 @@ const IssuedLinkCard: React.FC<{ issued: IssuedLink; onClose: () => void }> = ({
           {canShare && (
             <button
               type="button"
-              onClick={() => void navigator.share({ title: 'Join me on Aura', url: issued.link }).catch(() => undefined)}
+              onClick={() =>
+                void navigator
+                  .share({ title: 'Join my crew on Aura', text: 'Train with my crew on Aura. The link works once, for 14 days.', url: issued.link })
+                  .catch(() => undefined)
+              }
               className={`${SECONDARY_BUTTON} flex-1 sm:flex-none h-11 px-4 text-sm`}
             >
               <Share2 className="w-4 h-4" />
@@ -427,7 +521,28 @@ const InviteRow: React.FC<{ invite: Invite; onIssued: (link: IssuedLink) => void
 /* Members                                                             */
 /* ------------------------------------------------------------------ */
 
-const MemberRow: React.FC<{ member: Member; isSelf: boolean; onChanged: () => void }> = ({ member, isSelf, onChanged }) => {
+/** One line on where a member stands in the crew, from what the board already shows. */
+function crewLine(crew: RosterEntry): string {
+  if (crew.trainPrivately) return 'Trains privately: off the board and feed';
+  if (!crew.started) return 'Has not started a campaign yet';
+  if (!crew.week) return '';
+  if (crew.week.held) return 'This week is held off the board for review';
+  const { xp, sessions, prs } = crew.week;
+  if (sessions === 0 && xp === 0) return 'On the board · no training yet this week';
+  const parts = [
+    `${xp.toLocaleString()} XP`,
+    ...(sessions > 0 ? [`${sessions} ${sessions === 1 ? 'session' : 'sessions'}`] : []),
+    ...(prs > 0 ? [`${prs} PR${prs === 1 ? '' : 's'}`] : []),
+  ];
+  return `This week: ${parts.join(' · ')}`;
+}
+
+const MemberRow: React.FC<{ member: Member; crew: RosterEntry | null; isSelf: boolean; onChanged: () => void }> = ({
+  member,
+  crew,
+  isSelf,
+  onChanged,
+}) => {
   const [panel, setPanel] = useState<'none' | 'password' | 'remove'>('none');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -474,8 +589,20 @@ const MemberRow: React.FC<{ member: Member; isSelf: boolean; onChanged: () => vo
             <span className="break-all">{member.email}</span>
             <span className="whitespace-nowrap"> · joined {formatDate(member.joinedAt)}</span>
           </p>
+          {crew && <p className="mt-1 text-xs text-fg-3">{crewLine(crew)}</p>}
         </div>
-        <Chip tone={member.role === 'admin' ? 'act' : 'dim'}>{member.role === 'admin' ? 'Owner' : 'Member'}</Chip>
+        <span className="flex flex-wrap gap-1.5">
+          {crew && crew.openFlags > 0 && (
+            <a href="#flags" className="rounded-tag" aria-label={`${crew.openFlags} open ${crew.openFlags === 1 ? 'flag' : 'flags'} against ${member.name}: review`}>
+              <Chip tone="boss">
+                <Flag className="w-3.5 h-3.5" />
+                {crew.openFlags}
+              </Chip>
+            </a>
+          )}
+          {crew?.trainPrivately && <Chip tone="dim">Private</Chip>}
+          <Chip tone={member.role === 'admin' ? 'act' : 'dim'}>{member.role === 'admin' ? 'Owner' : 'Member'}</Chip>
+        </span>
         <div className="flex gap-2">
           <button
             type="button"
@@ -517,7 +644,8 @@ const MemberRow: React.FC<{ member: Member; isSelf: boolean; onChanged: () => vo
       {panel === 'remove' && (
         <div className="mt-3">
           <p className="text-sm text-fg-2">
-            Remove <strong className="text-fg">{member.name}</strong>? Their account and their whole campaign are deleted for good.
+            Remove <strong className="text-fg">{member.name}</strong>? Their account and their whole campaign are deleted for good, and they
+            leave the crew: off the board and feed, with their chalk and &ldquo;I saw it&rdquo; seals taken back. Duels already fought stay.
           </p>
           <div className="mt-3 flex gap-2">
             <button type="button" disabled={busy} onClick={remove} className={SMALL_DANGER}>

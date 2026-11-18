@@ -3,12 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { MailCheck, UserPlus } from 'lucide-react';
+import { UserPlus, Users } from 'lucide-react';
 import { api, refreshAccount, useAccount } from '../../utils/accountStore';
 import { signOutOfCampaign } from '../../utils/protocolStore';
-import { AuthCard, Field, FormMessage, PasswordField, SECONDARY_BUTTON, Submit, passwordProblem } from '../../components/account/ui';
+import { CrewSharing } from '../../components/account/CrewSharing';
+import { AuthCard, Field, FormMessage, PasswordField, SECONDARY_BUTTON, Submit, Switch, passwordProblem } from '../../components/account/ui';
 
-type Invitation = { email: string; expiresAt: string };
+/** The inviter's name and the crew's size come from newer servers; the screen reads fine without them. */
+type Invitation = { email: string; expiresAt: string; invitedBy?: string; crewSize?: number };
 
 export const JoinForm: React.FC = () => {
   const token = useSearchParams().get('token') ?? '';
@@ -19,6 +21,7 @@ export const JoinForm: React.FC = () => {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [trainPrivately, setTrainPrivately] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,7 +84,7 @@ export const JoinForm: React.FC = () => {
 
     setBusy(true);
     setError(null);
-    const result = await api('POST', `/join/${encodeURIComponent(token)}`, { name, password });
+    const result = await api('POST', `/join/${encodeURIComponent(token)}`, { name, password, trainPrivately });
     if (result.error) {
       setBusy(false);
       return setError(result.error);
@@ -90,25 +93,53 @@ export const JoinForm: React.FC = () => {
     router.push('/camp');
   };
 
+  const inviter = invite.invitedBy?.trim() || null;
+  // Everyone with an account is in the one crew; the count tells them it is a small, invited group.
+  const crewSize = invite.crewSize ?? 0;
+
   return (
     <AuthCard
-      icon={<MailCheck className="w-7 h-7" />}
-      title="You're invited"
+      icon={<Users className="w-7 h-7" />}
+      title="Join the crew"
       intro={
         <>
-          Create your account for <strong className="text-fg">{invite.email}</strong>. You will get your own campaign —
-          missions, bosses and character that only you can see.
+          {inviter ? <strong className="text-fg">{inviter}</strong> : 'The owner'} invited you to train with their crew on Aura
+          {crewSize > 0 ? `, ${crewSize} ${crewSize === 1 ? 'person' : 'people'} so far` : ''}. You get your own campaign: missions,
+          bosses and a character nobody else can change.
         </>
       }
     >
+      <section aria-labelledby="crew-what" className="mb-6 flex flex-col gap-3">
+        <h2 id="crew-what" className="font-display font-bold text-base text-fg">
+          What the crew is
+        </h2>
+        <p className="text-[13px] leading-snug text-fg-3">
+          Everyone {inviter ?? 'the owner'} has invited, on one weekly board of training XP. Chalk each other&apos;s PRs in the feed, take
+          someone on in a seven-day duel and bring down the weekly raid together. A second board ranks each of you against your own last
+          four weeks, so a beginner can top it.
+        </p>
+        <CrewSharing />
+        <p className="text-[12px] text-fg-4">
+          Find it under <strong className="text-fg-2">Crew</strong>: on Camp on a phone, in the sidebar on a computer.
+        </p>
+      </section>
+
       <form onSubmit={submit} className="space-y-3" noValidate>
         <Field label="Email" value={invite.email} onChange={() => undefined} readOnly disabled className="opacity-70" />
-        <Field label="Your name" autoComplete="name" autoFocus value={name} onChange={setName} maxLength={60} />
+        <Field label="Your name" hint="The crew sees this name." autoComplete="name" value={name} onChange={setName} maxLength={60} />
         <PasswordField label="Choose a password" hint="At least 8 characters." autoComplete="new-password" value={password} onChange={setPassword} />
         <PasswordField label="Repeat the password" autoComplete="new-password" value={confirm} onChange={setConfirm} />
+        <div className="pt-1 pb-1">
+          <Switch
+            label="Start training privately"
+            detail="Off every board and feed until you switch it off on the Crew page."
+            on={trainPrivately}
+            onChange={setTrainPrivately}
+          />
+        </div>
         {error && <FormMessage tone="error">{error}</FormMessage>}
         <Submit busy={busy} busyLabel="Creating your account…" icon={<UserPlus className="w-4 h-4" />}>
-          Create account and start
+          Join the crew
         </Submit>
       </form>
       <p className="mt-4 text-[11px] text-fg-5 text-center">

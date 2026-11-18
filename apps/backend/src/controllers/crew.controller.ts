@@ -50,6 +50,13 @@ export class CrewController {
     return { success: true, data: await this.crew.flags() };
   }
 
+  /** The owner's view of who is on the board, who trains privately and who has open flags. */
+  @Get('roster')
+  @UseGuards(AdminGuard)
+  async roster() {
+    return { success: true, data: await this.crew.roster() };
+  }
+
   @Post('flags/:id/resolve')
   @UseGuards(AdminGuard)
   @HttpCode(200)

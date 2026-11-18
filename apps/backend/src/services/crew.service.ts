@@ -65,6 +65,25 @@ interface Athlete {
   save: EngineSave;
   plan: EnginePlan;
   settings: CrewSettings;
+  /** Whether they have saved a campaign at all. */
+  started: boolean;
+}
+
+/**
+ * One member as the owner sees them on the Team page. It holds nothing the
+ * crew board does not already show: a member who trains privately is only
+ * "private", with no training numbers.
+ */
+export interface RosterEntry {
+  id: string;
+  trainPrivately: boolean;
+  showNumbers: boolean;
+  /** Open flags against them, waiting for the owner. */
+  openFlags: number;
+  /** Null for a private member. */
+  started: boolean | null;
+  /** This week as the board counts it; null for a private member. */
+  week: { xp: number; sessions: number; prs: number; held: boolean } | null;
 }
 
 export interface BoardRow {
@@ -146,7 +165,13 @@ export class CrewService {
       this.campaign.seen(account.id),
       this.settings(account.id),
     ]);
-    return { account, save: witnessed(saveDoc?.value ?? null, seen ?? {}), plan: planOf(planDoc?.value ?? null), settings };
+    return {
+      account,
+      save: witnessed(saveDoc?.value ?? null, seen ?? {}),
+      plan: planOf(planDoc?.value ?? null),
+      settings,
+      started: Boolean(saveDoc?.value),
+    };
   }
 
   private async athletes(): Promise<Athlete[]> {
@@ -333,7 +358,11 @@ export class CrewService {
     const names = new Map(members.map((member) => [member.id, member.name]));
     return flags
       .filter((flag) => flag.status === 'open')
-      .map((flag) => ({ ...flag, byName: names.get(flag.by) ?? 'Someone', targetName: names.get(flag.target) ?? 'Someone' }));
+      .map((flag) => ({
+        ...flag,
+        byName: names.get(flag.by) ?? 'A former member',
+        targetName: names.get(flag.target) ?? 'A former member',
+      }));
   }
 
   async resolveFlag(id: string, action: 'clear' | 'uphold') {
@@ -341,6 +370,55 @@ export class CrewService {
       value.map((flag) => (flag.id === id ? { ...flag, status: action === 'clear' ? 'cleared' : 'upheld' } : flag)),
     );
     return { ok: true };
+  }
+
+  /* ---------------- the owner's roster ---------------- */
+
+  /** Where each member stands in the crew this week, for the Team page. */
+  async roster(): Promise<RosterEntry[]> {
+    const today = serverToday();
+    const monday = mondayOfDate(today);
+    const [everyone, flags] = await Promise.all([this.athletes(), this.read<Flag[]>(FLAGS, [])]);
+    const open = flags.filter((flag) => flag.status === 'open');
+    return everyone.map((athlete) => {
+      const id = athlete.account.id;
+      const base = {
+        id,
+        trainPrivately: athlete.settings.trainPrivately,
+        showNumbers: athlete.settings.showNumbers,
+        openFlags: open.filter((flag) => flag.target === id).length,
+      };
+      if (athlete.settings.trainPrivately) return { ...base, started: null, week: null };
+      const week = crewWeek(athlete.save, athlete.plan, monday, today);
+      const upheld = flags.some((flag) => flag.status === 'upheld' && flag.week === monday && flag.target === id);
+      return {
+        ...base,
+        started: athlete.started,
+        week: {
+          xp: upheld ? 0 : week.xp,
+          sessions: week.sessions,
+          prs: week.prs,
+          held: open.some((flag) => flag.week === monday && flag.target === id),
+        },
+      };
+    });
+  }
+
+  /**
+   * Takes a removed member out of the crew: their switches and spotter picks,
+   * their chalk and "I saw it" seals, and the flags raised against them. Duels
+   * stay, so nobody loses a duel they already won. Flags they raised stay open
+   * for the owner to decide.
+   */
+  async forget(id: string) {
+    await Promise.all([this.store.delete(settingsKey(id)), this.store.delete(spottersKey(id))]);
+    const without = (value: Record<string, string[]>) =>
+      Object.fromEntries(Object.entries(value).map(([item, ids]) => [item, ids.filter((other) => other !== id)]));
+    await this.change<Record<string, string[]>>(CHALK, {}, without);
+    await this.change<Record<string, string[]>>(WITNESS, {}, without);
+    await this.change<Flag[]>(FLAGS, [], (value) =>
+      value.map((flag) => (flag.status === 'open' && flag.target === id ? { ...flag, status: 'cleared' } : flag)),
+    );
   }
 
   /* ---------------- duels ---------------- */
@@ -352,7 +430,8 @@ export class CrewService {
     const cache = new Map<string, Athlete>();
     const athleteOf = async (id: string) => {
       if (!cache.has(id)) {
-        const member = members.find((entry) => entry.id === id) ?? { id, name: 'Athlete' };
+        // A rival the owner has since removed keeps the duel, without a name.
+        const member = members.find((entry) => entry.id === id) ?? { id, name: 'A former member' };
         cache.set(id, await this.athlete(member));
       }
       return cache.get(id) as Athlete;
