@@ -14,7 +14,7 @@ import { Chip, Figure, Label, Ring, SegmentBar, TickButton } from '../../../comp
 import { EVENT_VISUAL } from '../../../components/protocol/Toasts';
 import { DAY_NAMES, DayId, PlanExercise, PlanWarmUp, formatStatValue, liftOf } from '../../../utils/campaignPlan';
 import { slotOfPiece } from '../../../utils/armor';
-import { XP_RULES, questKey, restKey } from '../../../utils/protocolEngine';
+import { LATE_TICK_DAYS, XP_RULES, dateOfDay, isDayOpen, questKey, restKey } from '../../../utils/protocolEngine';
 
 /** Today's quest: the day's missions, ticked and logged, filling a bar towards the day's chest. */
 export default function QuestPage() {
@@ -25,6 +25,10 @@ export default function QuestPage() {
   const day = selected.day;
   const isLiveWeek = viewWeek === currentWeek;
   const awayFromToday = !isLiveWeek || (todayDayId !== null && selectedDayId !== todayDayId);
+  // Today and the two days before it can be ticked; older days are closed, later ones not open yet.
+  const locked = !isDayOpen(save.startedAt, viewWeek, selectedDayId, todayIso);
+  const boardDate = dateOfDay(save.startedAt, viewWeek, selectedDayId);
+  const ahead = Boolean(todayIso && boardDate && boardDate > todayIso);
   const isRest = day.kind === 'rest';
   const rest = restKey(viewWeek, day.id);
   const missionDone = isRest
@@ -127,14 +131,22 @@ export default function QuestPage() {
             <Chest open={selected.cleared} />
           </div>
 
-          {day.warmUps.length > 0 && <WarmUpBoard warmUps={day.warmUps} dayKind={day.kind} />}
+          {locked && (
+            <p className="text-xs text-fg-4 -mb-1">
+              {ahead
+                ? 'This day is still ahead: its missions open on the day.'
+                : `This day is closed: days can be ticked until ${LATE_TICK_DAYS} days after. Anything logged goes on today.`}
+            </p>
+          )}
+          {day.warmUps.length > 0 && <WarmUpBoard warmUps={day.warmUps} dayKind={day.kind} locked={locked} />}
 
           {isRest ? (
             <button
               type="button"
               onClick={() => game.toggleQuest(rest)}
+              disabled={locked}
               aria-pressed={missionDone[0]}
-              className={`flex items-center gap-4 p-5 rounded-[22px] border-[1.5px] text-left transition cursor-pointer ${
+              className={`flex items-center gap-4 p-5 rounded-[22px] border-[1.5px] text-left transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                 missionDone[0] ? 'bg-[#100d07] border-[#4a3a18]' : 'bg-ink-850 border-ink-700 hover:border-ink-600'
               }`}
             >
@@ -160,6 +172,8 @@ export default function QuestPage() {
                   exercise={exercise}
                   dayKind={day.kind}
                   done={Boolean(save.quests[questKey(viewWeek, exercise.id)])}
+                  locked={locked}
+                  onToday={!awayFromToday}
                   onToggle={() => game.toggleQuest(questKey(viewWeek, exercise.id), awayFromToday ? undefined : exercise.lift)}
                   onOpen={() => setOpenId(exercise.id)}
                 />
@@ -185,6 +199,7 @@ export default function QuestPage() {
           done={Boolean(save.quests[questKey(viewWeek, opened.id)])}
           onToggle={() => game.toggleQuest(questKey(viewWeek, opened.id), awayFromToday ? undefined : opened.lift)}
           onClose={closeSheet}
+          locked={locked}
         />
       )}
     </main>
@@ -210,13 +225,16 @@ const Chest: React.FC<{ open: boolean }> = ({ open }) => (
   </span>
 );
 
-const MissionCard: React.FC<{ exercise: PlanExercise; dayKind: string; done: boolean; onToggle: () => void; onOpen: () => void }> = ({
-  exercise,
-  dayKind,
-  done,
-  onToggle,
-  onOpen,
-}) => {
+const MissionCard: React.FC<{
+  exercise: PlanExercise;
+  dayKind: string;
+  done: boolean;
+  locked: boolean;
+  /** The card is on today's board, so logging its number also completes it. */
+  onToday: boolean;
+  onToggle: () => void;
+  onOpen: () => void;
+}> = ({ exercise, dayKind, done, locked, onToday, onToggle, onOpen }) => {
   const { plan, derived } = useGame();
   const [xpFloat, setXpFloat] = useState(0);
   const logs = Boolean(liftOf(plan, exercise.lift));
@@ -274,7 +292,7 @@ const MissionCard: React.FC<{ exercise: PlanExercise; dayKind: string; done: boo
               +{XP_RULES.mission} XP
             </span>
           )}
-          <TickButton done={done} onClick={toggle} label={`${done ? 'Undo' : 'Complete'} ${exercise.name}`} />
+          <TickButton done={done} onClick={toggle} disabled={locked} label={`${done ? 'Undo' : 'Complete'} ${exercise.name}`} />
         </span>
       </div>
 
@@ -289,7 +307,7 @@ const MissionCard: React.FC<{ exercise: PlanExercise; dayKind: string; done: boo
             </Chip>
           )}
           <span className="flex-1" />
-          <LiftLogger exercise={exercise} />
+          <LiftLogger exercise={exercise} onLogged={onToday && !done && !locked ? toggle : undefined} />
         </div>
       )}
     </li>
@@ -297,7 +315,7 @@ const MissionCard: React.FC<{ exercise: PlanExercise; dayKind: string; done: boo
 };
 
 /** The day's warm-up: each one ticked forges the armour of the joints it guards, for the week. */
-const WarmUpBoard: React.FC<{ warmUps: PlanWarmUp[]; dayKind: string }> = ({ warmUps, dayKind }) => {
+const WarmUpBoard: React.FC<{ warmUps: PlanWarmUp[]; dayKind: string; locked: boolean }> = ({ warmUps, dayKind, locked }) => {
   const { save, viewWeek, toggleQuest, plan } = useGame();
   const wanted = new Set(plan.armor.map((piece) => slotOfPiece(piece.id)));
   const done = warmUps.filter((warmUp) => save.quests[questKey(viewWeek, warmUp.id)]).length;
@@ -335,7 +353,7 @@ const WarmUpBoard: React.FC<{ warmUps: PlanWarmUp[]; dayKind: string }> = ({ war
                   </span>
                 )}
               </span>
-              <TickButton done={ticked} onClick={() => toggleQuest(questKey(viewWeek, warmUp.id))} label={`${ticked ? 'Undo' : 'Complete'} ${warmUp.name}`} />
+              <TickButton done={ticked} onClick={() => toggleQuest(questKey(viewWeek, warmUp.id))} disabled={locked} label={`${ticked ? 'Undo' : 'Complete'} ${warmUp.name}`} />
             </li>
           );
         })}

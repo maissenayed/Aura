@@ -8,7 +8,7 @@ import { prToday } from './helpers';
 import { Stepper } from './kit';
 
 /** The number an exercise logs, with a PR badge on a record day. Nothing when it is ticked, not measured. */
-export const LiftLogger: React.FC<{ exercise: PlanExercise }> = ({ exercise }) => {
+export const LiftLogger: React.FC<{ exercise: PlanExercise; onLogged?: () => void }> = ({ exercise, onLogged }) => {
   const { save, plan, todayIso, logStat } = useGame();
   const stat = liftOf(plan, exercise.lift);
   if (!stat) return null;
@@ -25,7 +25,10 @@ export const LiftLogger: React.FC<{ exercise: PlanExercise }> = ({ exercise }) =
         highlight={pr}
         placeholder={stat.hasBaseline ? undefined : 'log it'}
         ariaLabel={`${stat.name}, last ${formatStatValue(currentOf(save, stat), stat.unit)}`}
-        onCommit={(value) => logStat(stat.id, value)}
+        onCommit={(value) => {
+          logStat(stat.id, value);
+          onLogged?.();
+        }}
         commitSame
       />
     </span>

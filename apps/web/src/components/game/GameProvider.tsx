@@ -15,9 +15,11 @@ import {
   dayIdOf,
   derive,
   diffEvents,
+  milestoneEvents,
   formatStatValue,
   streakOf,
   toIsoDate,
+  trimLog,
   weekOf,
 } from '../../utils/protocolEngine';
 import {
@@ -42,12 +44,24 @@ import { MomentOverlay } from './MomentOverlay';
  * into battle-log entries, toasts and — for the big ones — full-screen moments.
  */
 
-const LOG_LIMIT = 40;
 const TOAST_LIMIT = 4;
 const TOAST_MS = 5200;
 
 /** Events big enough to stop the screen for. Everything else is a toast. */
-const MOMENT_KINDS = new Set<EventKind>(['level', 'boss', 'week', 'day', 'attribute']);
+const MOMENT_KINDS = new Set<EventKind>(['level', 'boss', 'act', 'campaign', 'week', 'day', 'attribute']);
+
+/** What has been celebrated so far: bosses slain, acts as they stood, the level. */
+interface Celebrated {
+  bosses: Set<string>;
+  acts: Derived['acts'];
+  level: number;
+}
+
+const celebratedIn = (derived: Derived): Celebrated => ({
+  bosses: new Set(derived.bosses.filter((status) => status.defeated).map((status) => status.boss.id)),
+  acts: derived.acts,
+  level: derived.level.level,
+});
 
 export interface Moment extends GameEvent {
   id: number;
@@ -97,7 +111,8 @@ function mergeLog(log: LogEntry[], events: GameEvent[], date: string): LogEntry[
     if (event.key) next = next.filter((entry) => !(entry.key === event.key && entry.date === date));
     next = [{ ...event, date }, ...next];
   }
-  return next.slice(0, LOG_LIMIT);
+  // Day-to-day entries roll off after a while; bosses, acts and level-ups stay for years.
+  return trimLog(next);
 }
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
@@ -158,12 +173,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [dismissToast],
   );
 
+  // Bosses slain, acts cleared and levels reached are celebrated once. `play` keeps this current
+  // for its own changes; the watcher below catches the rest.
+  const celebrated = useRef<Celebrated | null>(null);
+
   const play = useCallback(
     (mutate: (current: ProtocolSave) => ProtocolSave, extra: GameEvent[] = []) => {
       const before = peekSave();
       const after = mutate(before);
       const clock = { currentWeek, viewWeek };
-      const events = [...extra, ...diffEvents(derive(before, clock, plan), derive(after, clock, plan))];
+      const afterDerived = derive(after, clock, plan);
+      const events = [...extra, ...diffEvents(derive(before, clock, plan), afterDerived)];
+      if (celebrated.current) celebrated.current = celebratedIn(afterDerived);
       commitSave(
         events.length ? { ...after, log: mergeLog(after.log, events, todayIso ?? toIsoDate(new Date())) } : after,
       );
@@ -171,6 +192,34 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
     [announce, currentWeek, plan, todayIso, viewWeek],
   );
+
+  // A boss slain on the tree page, an act cleared by a plan edit, a level reached on another
+  // device: changes that never went through `play` still get their moment and their line in
+  // the battle log. The first look after loading only takes note, so nothing bursts on open.
+  useEffect(() => {
+    if (snapshot.gate !== 'ready') {
+      celebrated.current = null;
+      return;
+    }
+    if (!celebrated.current) {
+      if (snapshot.sync === 'synced') celebrated.current = celebratedIn(derived);
+      return;
+    }
+    const seen = celebrated.current;
+    const events: GameEvent[] = [];
+    for (const status of derived.bosses) {
+      if (status.defeated && !seen.bosses.has(status.boss.id)) {
+        events.push({ kind: 'boss', title: `Boss ${status.order} defeated`, detail: status.boss.name });
+      }
+    }
+    events.push(...milestoneEvents({ acts: seen.acts }, derived));
+    if (derived.level.level > seen.level) events.push({ kind: 'level', title: `Level ${derived.level.level}`, detail: derived.level.rank });
+    celebrated.current = celebratedIn(derived);
+    if (!events.length) return;
+    const current = peekSave();
+    commitSave({ ...current, log: mergeLog(current.log, events, todayIso ?? toIsoDate(new Date())) });
+    announce(events);
+  }, [announce, derived, snapshot.gate, snapshot.sync, todayIso]);
 
   // Badges are handed out whenever the save has earned one, wherever it was earned (the
   // tree page masters skills outside the campaign). The first look after loading hands out

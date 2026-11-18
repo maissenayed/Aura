@@ -132,18 +132,20 @@ export const SegmentBar: React.FC<{ done: boolean[]; className?: string; label?:
 /* Buttons                                                             */
 /* ------------------------------------------------------------------ */
 
-export const TickButton: React.FC<{ done: boolean; onClick: () => void; label: string; size?: 'md' | 'lg' }> = ({
+export const TickButton: React.FC<{ done: boolean; onClick: () => void; label: string; size?: 'md' | 'lg'; disabled?: boolean }> = ({
   done,
   onClick,
   label,
   size = 'lg',
+  disabled = false,
 }) => (
   <button
     type="button"
     onClick={onClick}
+    disabled={disabled}
     aria-pressed={done}
     aria-label={label}
-    className={`shrink-0 flex items-center justify-center rounded-full border-2 transition active:scale-90 cursor-pointer ${
+    className={`shrink-0 flex items-center justify-center rounded-full border-2 transition active:scale-90 cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed disabled:active:scale-100 ${
       size === 'lg' ? 'w-12 h-12' : 'w-11 h-11'
     } ${done ? 'bg-earned border-earned text-earned-deep' : 'border-act text-act hover:bg-act/10'}`}
   >

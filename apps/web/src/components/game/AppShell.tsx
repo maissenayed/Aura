@@ -7,6 +7,17 @@ import { Activity, Cloud, CloudOff, CloudUpload, Flame, Hammer, Map, Network, Sh
 import { AccountMenu } from '../account/AccountMenu';
 import { useGame } from './GameProvider';
 import { HexLevel, Meter } from './kit';
+import { evaluateWeek } from '../../utils/protocolEngine';
+
+/** Missions left today, whatever week the board is showing. */
+function useLeftToday(): number {
+  const { save, plan, currentWeek, todayDayId } = useGame();
+  return React.useMemo(() => {
+    if (!todayDayId) return 0;
+    const today = evaluateWeek(save, currentWeek, plan).days.find((entry) => entry.day.id === todayDayId);
+    return today ? today.total - today.done : 0;
+  }, [currentWeek, plan, save, todayDayId]);
+}
 
 /**
  * The frame around every game screen: a bottom bar on phones with the quest as
@@ -62,9 +73,9 @@ const SYNC = {
 
 const Sidebar: React.FC = () => {
   const pathname = usePathname();
-  const { gate, derived, streak, sync, derived: { week } } = useGame();
+  const { gate, derived, streak, sync } = useGame();
   const ready = gate === 'ready';
-  const left = week.total - week.done;
+  const left = useLeftToday();
   const SyncIcon = SYNC[sync].icon;
 
   return (
@@ -151,8 +162,8 @@ const Sidebar: React.FC = () => {
 
 const BottomNav: React.FC = () => {
   const pathname = usePathname();
-  const { gate, derived } = useGame();
-  const left = derived.week.total - derived.week.done;
+  const { gate } = useGame();
+  const left = useLeftToday();
 
   return (
     <nav

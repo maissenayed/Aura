@@ -1,5 +1,6 @@
 import { blankSpec, normalizeSpec, type DayId, type DayKind, type PlanSpec } from '../utils/campaignPlan';
-import type { ActV3, ArmorSlot, BossSpec, SpecDayV3, TowerSpec } from '../utils/campaignV3';
+import type { ActV3, ArmorSlot, BossSpec, SpecDayV3, TowerSpec, TrackedLift } from '../utils/campaignV3';
+import { metricOf, recordKeyOf } from '../utils/records';
 
 /**
  * The campaigns a new athlete can start from: calisthenics, bodybuilding and
@@ -39,6 +40,14 @@ function day(id: DayId, kind: DayKind, title: string, purpose: string, warmUps: 
 
 const rest = (id: DayId, title = 'Rest', purpose = 'Full rest. Growth happens today.'): SpecDayV3 => day(id, 'rest', title, purpose, [], []);
 
+/** A lift's end-game number: a number of reps or seconds, or `x` × bodyweight for loads. */
+function endgame(exercise: string, target: number): TrackedLift {
+  return { exercise: recordKeyOf(exercise), metric: metricOf(exercise), baseline: null, endgame: target };
+}
+
+/** `multiple` × bodyweight, to the nearest `step` kilos. */
+const ofBody = (bodyWeightKg: number, multiple: number, step = 2.5) => Math.round((bodyWeightKg * multiple) / step) * step;
+
 /** Bosses that are all goals of one act, in order. */
 const bossGoals = (ids: string[]) => ids.map((boss) => ({ id: `goal_${boss}`, kind: 'boss' as const, boss }));
 
@@ -46,7 +55,7 @@ function spec(
   name: string,
   bodyWeightKg: number,
   goalKg: number,
-  parts: { days: SpecDayV3[]; armor: ArmorSlot[]; bosses: BossSpec[]; trees: TowerSpec[]; acts: ActV3[] },
+  parts: { days: SpecDayV3[]; armor: ArmorSlot[]; bosses: BossSpec[]; trees: TowerSpec[]; acts: ActV3[]; lifts?: TrackedLift[] },
 ): PlanSpec {
   const raw: PlanSpec = {
     ...blankSpec(bodyWeightKg),
@@ -74,6 +83,7 @@ const CALISTHENICS: CampaignTemplate = {
   build: (bw, goal) =>
     spec('Bodyweight Foundations', bw, goal, {
       armor: ['wrists', 'shoulders', 'elbows', 'knees'],
+      lifts: [endgame('pushups_amrap', 40), endgame('pullups_amrap', 15), endgame('bw_dips', 20), endgame('pistol_squats', 10), endgame('lsit_holds', 30)],
       days: [
         day('mon', 'push', 'Push — Strength', 'Dips and push-ups for pressing strength.', [['scap_pushups', 2, '15'], ['wrist_prep', 1, '5']], [
           ['bw_dips', 3, '8–12'],
@@ -173,6 +183,20 @@ const BODYBUILDING: CampaignTemplate = {
   build: (bw, goal) =>
     spec('Machine to Barbell', bw, goal, {
       armor: ['shoulders', 'elbows', 'knees'],
+      lifts: [
+        endgame('machine_chest_press', ofBody(bw, 1.25)),
+        endgame('bench_press', ofBody(bw, 1.25)),
+        endgame('incline_db_press', ofBody(bw, 0.35, 1)),
+        endgame('machine_shoulder_press', ofBody(bw, 0.75)),
+        endgame('lat_pulldown', ofBody(bw, 1.1)),
+        endgame('cable_row', ofBody(bw, 1.1)),
+        endgame('machine_row', ofBody(bw, 1)),
+        endgame('barbell_curl', ofBody(bw, 0.5)),
+        endgame('leg_press', ofBody(bw, 3)),
+        endgame('hack_squat', ofBody(bw, 1.5)),
+        endgame('back_squat', ofBody(bw, 1.75)),
+        endgame('deadlift', ofBody(bw, 2.25)),
+      ],
       days: [
         day('mon', 'push', 'Push — Chest, Shoulders & Triceps', 'Machines first: load the muscle safely while the form settles.', [['band_dislocates', 2, '10'], ['scap_pushups', 2, '15']], [
           ['machine_chest_press', 3, '8–12'],
@@ -276,6 +300,7 @@ const BOULDERING: CampaignTemplate = {
   build: (bw, goal) =>
     spec('Send Season', bw, goal, {
       armor: ['fingers', 'elbows', 'shoulders', 'wrists'],
+      lifts: [endgame('pullups_amrap', 12), endgame('pushups_amrap', 30), endgame('lsit_holds', 20)],
       days: [
         day('mon', 'pull', 'Climb — Technique', 'Quiet feet and good body position on easy problems.', [['easy_routes', 1, ''], ['wrist_prep', 1, '5']], [
           ['boulder_technique', 1, '15'],

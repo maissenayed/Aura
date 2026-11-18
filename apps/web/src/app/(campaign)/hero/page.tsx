@@ -9,7 +9,8 @@ import { RadarWeb } from '../../../components/game/RadarWeb';
 import { ATTRIBUTE_MAX } from '../../../utils/attributes';
 import { DAY_NAMES, formatStatValue, recordName, unitLabel } from '../../../utils/campaignPlan';
 import { HistoryPoint } from '../../../utils/campaignV3';
-import { badgesUnbacked, currentOf, rankForLevel } from '../../../utils/protocolEngine';
+import { Sport, badgesUnbacked, currentOf, rankForLevel } from '../../../utils/protocolEngine';
+import { metricOf } from '../../../utils/records';
 import { skillOf } from '../../../utils/treeIndex';
 
 type Tab = 'stats' | 'badges' | 'lifts' | 'armor';
@@ -22,9 +23,9 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: st
 ];
 
 /** The level where the next rank starts, or null at the top. */
-function nextRank(level: number): { level: number; rank: string } | null {
+function nextRank(level: number, sport: Sport): { level: number; rank: string } | null {
   for (let next = level + 1; next <= 60; next += 1) {
-    if (rankForLevel(next) !== rankForLevel(level)) return { level: next, rank: rankForLevel(next) };
+    if (rankForLevel(next, sport) !== rankForLevel(level, sport)) return { level: next, rank: rankForLevel(next, sport) };
   }
   return null;
 }
@@ -34,7 +35,7 @@ export default function HeroPage() {
   const { derived } = useGame();
   const { level } = derived;
   const [tab, setTab] = useState<Tab>('stats');
-  const upcoming = nextRank(level.level);
+  const upcoming = nextRank(level.level, level.sport);
 
   return (
     <main className="w-full max-w-[1180px] mx-auto px-4 pt-5 lg:px-8 lg:pt-8 pb-8 flex flex-col gap-4">
@@ -287,9 +288,14 @@ const ArmorTab: React.FC = () => {
 
 const LiftsTab: React.FC = () => {
   const { derived, save, plan, logStat } = useGame();
+  // Lifts that left the plan keep their history here instead of vanishing with the mission.
+  const earlier = Object.entries(save.history ?? {})
+    .filter(([key, points]) => points.length > 0 && !plan.lifts.some((lift) => lift.id === key))
+    .sort((a, b) => (a[1][a[1].length - 1][0] < b[1][b[1].length - 1][0] ? 1 : -1));
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_320px] items-start">
+      <div className="flex flex-col gap-4 min-w-0">
       <ul className="grid grid-cols-[minmax(0,1fr)] sm:grid-cols-2 gap-2.5">
         {plan.lifts.map((lift) => {
           const value = currentOf(save, lift);
@@ -329,6 +335,33 @@ const LiftsTab: React.FC = () => {
           );
         })}
       </ul>
+      {earlier.length > 0 && (
+        <section aria-label="Earlier lifts" className="flex flex-col gap-2">
+          <span className="flex items-baseline justify-between">
+            <Label>Earlier lifts</Label>
+            <span className="text-[11px] text-fg-5">No longer in your plan</span>
+          </span>
+          <ul className="grid grid-cols-[minmax(0,1fr)] sm:grid-cols-2 gap-2">
+            {earlier.map(([key, points]) => {
+              const unit = metricOf(key);
+              const best = Math.max(...points.map((point) => point[1]));
+              const last = points[points.length - 1];
+              return (
+                <li key={key} className="list-none flex items-center gap-3 p-3 rounded-[16px] bg-ink-900 border border-ink-750">
+                  <span className="flex-1 min-w-0 flex flex-col">
+                    <span className="text-[13px] font-semibold text-fg-3 truncate">{recordName(key)}</span>
+                    <span className="text-[11px] text-fg-5 truncate">
+                      Best {formatStatValue(best, unit)} · last {last[0].slice(5).replace('-', '/')} · {points.length} logs
+                    </span>
+                  </span>
+                  {points.length > 1 && <Sparkline points={points} />}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+      </div>
 
       <section className="flex flex-col gap-2.5 p-4 rounded-[20px] bg-ink-900 border border-ink-700" aria-label="Where your XP comes from">
         <div className="flex items-baseline justify-between">
@@ -396,7 +429,14 @@ const BadgesTab: React.FC = () => {
     if (skill) badges.push({ id: key, kind: 'skill', name: skill.name, date });
   }
 
-  if (badges.length === 0) {
+  // The campaign's story from the battle log: acts, the finish, new ranks and attributes.
+  const milestones = save.log.filter((entry, index, log) => {
+    if (entry.kind === 'act' || entry.kind === 'campaign' || entry.kind === 'attribute') return true;
+    if (entry.kind !== 'level') return false;
+    const older = log.slice(index + 1).find((other) => other.kind === 'level');
+    return !older || older.detail !== entry.detail;
+  });
+  if (badges.length === 0 && milestones.length === 0) {
     return (
       <p className="p-5 rounded-[20px] border border-dashed border-ink-600 text-fg-3">
         No badges yet. Master a skill on the tree, slay a boss, climb a tower or reach a lift&apos;s end-game number.
@@ -422,6 +462,21 @@ const BadgesTab: React.FC = () => {
           >
             TAKE {unbacked.length === 1 ? 'IT' : 'THEM'} BACK
           </button>
+        </section>
+      )}
+      {milestones.length > 0 && (
+        <section aria-label="Milestones" className="flex flex-col gap-2.5">
+          <Label>Milestones</Label>
+          <ol className="flex flex-col gap-1.5">
+            {milestones.map((entry, index) => (
+              <li key={`${entry.date}_${index}`} className="list-none flex items-center gap-3 p-2.5 rounded-[14px] bg-ink-900 border border-ink-750">
+                <span className="w-[84px] shrink-0 font-display font-bold text-[11px] text-fg-5">{entry.date}</span>
+                <span className="flex-1 min-w-0 text-[13px] font-semibold text-fg-2 truncate">
+                  {entry.kind === 'level' ? `${entry.title} · ${entry.detail}` : entry.kind === 'act' ? `${entry.title} · ${entry.detail}` : entry.title}
+                </span>
+              </li>
+            ))}
+          </ol>
         </section>
       )}
       {(Object.keys(BADGE_LOOK) as BadgeKind[]).map((kind) => {

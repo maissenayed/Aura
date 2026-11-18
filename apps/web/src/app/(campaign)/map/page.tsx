@@ -6,7 +6,7 @@ import { Castle, Check, ChevronRight, Crown, Dumbbell, Flag, Medal, Scale, Skull
 import { ScreenHeader } from '../../../components/game/AppShell';
 import { useGame } from '../../../components/game/GameProvider';
 import { Chip, Meter, Stepper } from '../../../components/game/kit';
-import { ActNode, ActStatus } from '../../../utils/protocolEngine';
+import { ActNode, ActStatus, campaignComplete } from '../../../utils/protocolEngine';
 
 /** Each kind of goal wears its own icon until it is reached. */
 const NODE_ICON: Record<ActNode['kind'], React.ComponentType<{ className?: string }>> = {
@@ -95,7 +95,7 @@ export default function MapPage() {
         back={{ href: '/camp', label: 'Back to camp' }}
         title="Campaign"
         eyebrow={`Week ${currentWeek}`}
-        right={current && <Chip tone="act">ACT {current.numeral}</Chip>}
+        right={campaignComplete(acts) ? <Chip tone="earned">COMPLETE</Chip> : current && <Chip tone="act">ACT {current.numeral}</Chip>}
       />
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_340px] items-start">
