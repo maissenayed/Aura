@@ -1,22 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { CampaignPlan, PlanSpec, newId } from '../../utils/campaignPlan';
 import { ActV3 as Act, GoalV3 as ActGoal } from '../../utils/campaignV3';
-import { SkillSelect } from './pickers';
-import {
-  AddButton,
-  DeleteButton,
-  EditCard,
-  Group,
-  MoveButtons,
-  NumberField,
-  SelectField,
-  TextField,
-  moveBy,
-  removeAt,
-  setAt,
-} from './fields';
+import { useGame } from '../game/GameProvider';
+import { CardPicker, PickerSheet } from './CardPicker';
+import { SkillField, SkillSheet, bossOptions, liftOptions, towerOptions } from './pickers';
+import { AddButton, DeleteButton, EditCard, Group, MoveButtons, NumberField, TextField, moveBy, removeAt, setAt } from './fields';
 
 type GoalKind = ActGoal['kind'];
 
@@ -27,6 +17,10 @@ const GOAL_KINDS: { id: GoalKind; label: string }[] = [
   { id: 'skill', label: 'Skill' },
   { id: 'tower', label: 'Tower' },
 ];
+
+const BOSS_NOUN = { one: 'boss', many: 'bosses' };
+const TOWER_NOUN = { one: 'tower', many: 'towers' };
+const LIFT_NOUN = { one: 'lift', many: 'lifts' };
 
 const NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
 
@@ -93,6 +87,7 @@ export const MapEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
           {spec.acts.map((act, index) => (
             <ActCard
               key={act.id}
+              spec={spec}
               plan={plan}
               act={act}
               index={index}
@@ -112,6 +107,7 @@ export const MapEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
 };
 
 interface ActCardProps {
+  spec: PlanSpec;
   plan: CampaignPlan;
   act: Act;
   index: number;
@@ -123,8 +119,27 @@ interface ActCardProps {
   onDelete: () => void;
 }
 
-const ActCard: React.FC<ActCardProps> = ({ plan, act, index, count, open, onToggle, onChange, onMove, onDelete }) => {
+/** The plan's bosses, towers and lifts as cards, for the goals that point at them. */
+function useGoalOptions(spec: PlanSpec, plan: CampaignPlan) {
+  const { derived, save } = useGame();
+  const slain = useMemo(() => new Set(derived.bosses.filter((status) => status.defeated).map((status) => status.boss.id)), [derived.bosses]);
+  const bosses = useMemo(() => bossOptions(plan, spec, slain), [plan, spec, slain]);
+  const towers = useMemo(() => towerOptions(plan, save.skills), [plan, save.skills]);
+  const lifts = useMemo(() => liftOptions(plan), [plan]);
+  return { bosses, towers, lifts };
+}
+
+/** The goal kinds that open a picker when added. */
+type PickedKind = Exclude<GoalKind, 'weight'>;
+
+const ActCard: React.FC<ActCardProps> = ({ spec, plan, act, index, count, open, onToggle, onChange, onMove, onDelete }) => {
   const setGoals = (goals: ActGoal[]) => onChange({ ...act, goals });
+  const options = useGoalOptions(spec, plan);
+  const [adding, setAdding] = useState<PickedKind | null>(null);
+  const addGoal = (goal: ActGoal) => {
+    setGoals([...act.goals, goal]);
+    setAdding(null);
+  };
 
   const blank = (kind: GoalKind, id = newId('goal')): ActGoal | null => {
     switch (kind) {
@@ -163,23 +178,16 @@ const ActCard: React.FC<ActCardProps> = ({ plan, act, index, count, open, onTogg
         <TextField label="Tagline" value={act.tagline} maxLength={200} onChange={(tagline) => onChange({ ...act, tagline })} />
       </div>
 
-      <fieldset className="space-y-2">
+      <fieldset className="space-y-2 min-w-0">
         <legend className="eyebrow block mb-1 text-fg-4">Goals</legend>
         {act.goals.length === 0 && <p className="text-[12px] text-fg-4">No goals yet. An act without goals is skipped on the map.</p>}
         {act.goals.map((goal, goalIndex) => (
           <div key={goal.id} className="p-3 rounded-card bg-ink-850 space-y-2">
-            <div className="flex flex-wrap items-end gap-2">
-              <SelectField<GoalKind>
-                className="flex-1 min-w-[180px]"
-                label={`Goal ${goalIndex + 1}`}
-                value={goal.kind}
-                options={available.some((kind) => kind.id === goal.kind) ? available : [...available, GOAL_KINDS.find((k) => k.id === goal.kind)!]}
-                onChange={(kind) => {
-                  const next = blank(kind, goal.id);
-                  if (next) setGoals(setAt(act.goals, goalIndex, next));
-                }}
-              />
-              <span className="flex items-center gap-1 ml-auto">
+            <div className="flex items-center gap-2">
+              <span className="flex-1 min-w-0 eyebrow text-fg-3">
+                Goal {goalIndex + 1} · {GOAL_KINDS.find((kind) => kind.id === goal.kind)?.label}
+              </span>
+              <span className="flex items-center gap-1">
                 <MoveButtons label={`goal ${goalIndex + 1}`} index={goalIndex} count={act.goals.length} onMove={(delta) => setGoals(moveBy(act.goals, goalIndex, delta))} />
                 <DeleteButton compact label={`goal ${goalIndex + 1}`} onDelete={() => setGoals(removeAt(act.goals, goalIndex))} />
               </span>
@@ -213,13 +221,17 @@ const ActCard: React.FC<ActCardProps> = ({ plan, act, index, count, open, onTogg
 
             {goal.kind === 'record' && (
               <>
-                <div className="grid gap-2 grid-cols-2 sm:grid-cols-[2fr_1fr]">
-                  <SelectField
-                    className="col-span-2 sm:col-span-1"
+                <div className="grid gap-2 sm:grid-cols-[2fr_1fr] sm:items-end">
+                  <CardPicker
                     label="Lift"
                     value={goal.exercise}
-                    options={plan.lifts.map((lift) => ({ id: lift.id, label: lift.name }))}
-                    onChange={(exercise) => setGoals(setAt(act.goals, goalIndex, { ...goal, exercise }))}
+                    options={options.lifts}
+                    groupModes={['line']}
+                    noun={LIFT_NOUN}
+                    eyebrow={`${act.name || 'Act'} · Goal ${goalIndex + 1}`}
+                    title="Pick a lift"
+                    placeholder="Pick a lift"
+                    onPick={(exercise) => setGoals(setAt(act.goals, goalIndex, { ...goal, exercise }))}
                   />
                   <NumberField
                     label="Target"
@@ -242,17 +254,31 @@ const ActCard: React.FC<ActCardProps> = ({ plan, act, index, count, open, onTogg
             )}
 
             {goal.kind === 'boss' && (
-              <SelectField
+              <CardPicker
                 label="Boss"
                 value={goal.boss}
-                options={plan.bosses.map((boss, i) => ({ id: boss.id, label: `${i + 1} · ${boss.name}` }))}
-                onChange={(boss) => setGoals(setAt(act.goals, goalIndex, { ...goal, boss }))}
+                options={options.bosses}
+                groupModes={[]}
+                noun={BOSS_NOUN}
+                eyebrow={`${act.name || 'Act'} · Goal ${goalIndex + 1}`}
+                title="Pick a boss"
+                note="The bosses in your plan, in fighting order."
+                placeholder="Pick a boss"
+                onPick={(boss) => setGoals(setAt(act.goals, goalIndex, { ...goal, boss }))}
               />
             )}
 
             {goal.kind === 'skill' && (
               <>
-                <SkillSelect tree={goal.tree} label="Skill" value={goal.skill} onChange={(skill) => setGoals(setAt(act.goals, goalIndex, { ...goal, skill }))} hint="Reached when you master it on the skill tree." />
+                <SkillField
+                  label="Skill"
+                  tree={goal.tree}
+                  value={goal.skill}
+                  hint="Reached when you master it on the skill tree."
+                  sheetEyebrow={`${act.name || 'Act'} · Goal ${goalIndex + 1}`}
+                  sheetTitle="Pick the skill"
+                  onPick={(tree, skill) => setGoals(setAt(act.goals, goalIndex, { ...goal, tree, skill }))}
+                />
                 <TextField
                   label="Label (optional)"
                   value={goal.label ?? ''}
@@ -264,11 +290,16 @@ const ActCard: React.FC<ActCardProps> = ({ plan, act, index, count, open, onTogg
             )}
 
             {goal.kind === 'tower' && (
-              <SelectField
+              <CardPicker
                 label="Tower"
                 value={goal.tower}
-                options={plan.trees.map((tower) => ({ id: tower.id, label: tower.name }))}
-                onChange={(tower) => setGoals(setAt(act.goals, goalIndex, { ...goal, tower }))}
+                options={options.towers}
+                groupModes={[]}
+                noun={TOWER_NOUN}
+                eyebrow={`${act.name || 'Act'} · Goal ${goalIndex + 1}`}
+                title="Pick a tower"
+                placeholder="Pick a tower"
+                onPick={(tower) => setGoals(setAt(act.goals, goalIndex, { ...goal, tower }))}
               />
             )}
           </div>
@@ -279,7 +310,9 @@ const ActCard: React.FC<ActCardProps> = ({ plan, act, index, count, open, onTogg
               <button
                 key={kind.id}
                 type="button"
+                aria-haspopup={kind.id === 'weight' ? undefined : 'dialog'}
                 onClick={() => {
+                  if (kind.id !== 'weight') return setAdding(kind.id);
                   const next = blank(kind.id);
                   if (next) setGoals([...act.goals, next]);
                 }}
@@ -290,7 +323,54 @@ const ActCard: React.FC<ActCardProps> = ({ plan, act, index, count, open, onTogg
             ))}
           </div>
         )}
+        {act.goals.length < 30 && <p className="text-[12px] text-fg-5">Lift number, Boss, Skill and Tower open their picker; a goal&apos;s kind stays as added.</p>}
       </fieldset>
+
+      {adding === 'skill' && (
+        <SkillSheet
+          tree={plan.trees.find((tree) => tree.tower)?.tower?.tree ?? 'calisthenics'}
+          eyebrow={`${act.name || 'Act'} · New goal`}
+          title="Pick the skill"
+          note="Reached when you master it on the skill tree."
+          onPick={(tree, skill) => addGoal({ id: newId('goal'), kind: 'skill', tree, skill })}
+          onClose={() => setAdding(null)}
+        />
+      )}
+      {adding === 'boss' && (
+        <PickerSheet
+          eyebrow={`${act.name || 'Act'} · New goal`}
+          title="Pick a boss"
+          note="The bosses in your plan, in fighting order."
+          options={options.bosses}
+          groupModes={[]}
+          noun={BOSS_NOUN}
+          onPick={(boss) => addGoal({ id: newId('goal'), kind: 'boss', boss: boss.id })}
+          onClose={() => setAdding(null)}
+        />
+      )}
+      {adding === 'tower' && (
+        <PickerSheet
+          eyebrow={`${act.name || 'Act'} · New goal`}
+          title="Pick a tower"
+          options={options.towers}
+          groupModes={[]}
+          noun={TOWER_NOUN}
+          onPick={(tower) => addGoal({ id: newId('goal'), kind: 'tower', tower: tower.id })}
+          onClose={() => setAdding(null)}
+        />
+      )}
+      {adding === 'record' && (
+        <PickerSheet
+          eyebrow={`${act.name || 'Act'} · New goal`}
+          title="Pick a lift"
+          note="Reached when you log the target number."
+          options={options.lifts}
+          groupModes={['line']}
+          noun={LIFT_NOUN}
+          onPick={(lift) => addGoal({ id: newId('goal'), kind: 'record', exercise: lift.id, target: plan.lifts.find((entry) => entry.id === lift.id)?.endgame ?? 0 })}
+          onClose={() => setAdding(null)}
+        />
+      )}
 
       <div className="flex flex-wrap items-center gap-2 pt-1">
         <MoveButtons label={act.name} index={index} count={count} onMove={onMove} />
