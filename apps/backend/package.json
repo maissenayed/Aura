@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "nest start --watch",
-    "build": "nest build && node scripts/mark-dist-esm.mjs",
+    "dev": "node scripts/build-engine.mjs && nest start --watch",
+    "build": "nest build && node scripts/mark-dist-esm.mjs && node scripts/build-engine.mjs",
     "start": "node dist/main.js",
-    "db:migrate": "nest build && node scripts/mark-dist-esm.mjs && node dist/auth/migrate.js"
+    "db:migrate": "nest build && node scripts/mark-dist-esm.mjs && node scripts/build-engine.mjs && node dist/auth/migrate.js",
+    "build:engine": "node scripts/build-engine.mjs"
   },
   "dependencies": {
     "@aura/types": "*",

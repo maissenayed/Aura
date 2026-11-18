@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { KEY_VALUE_STORE } from '../repositories/key-value.store.js';
 import type { KeyValueStore, StoredDoc } from '../repositories/key-value.store.js';
+import { stampSeen } from '../engine/aura-engine.mjs';
+import type { Seen } from '../engine/aura-engine.mjs';
 
 const MAX_SAVE_BYTES = 512 * 1024;
 const MAX_PLAN_BYTES = 256 * 1024;
@@ -76,6 +78,11 @@ export type WriteResult<T = CampaignSave> =
 const LEGACY_KEY = 'save';
 const keyFor = (userId: string) => (userId === 'local' ? LEGACY_KEY : `save:${userId}`);
 export const planKeyFor = (userId: string) => (userId === 'local' ? 'plan' : `plan:${userId}`);
+/** When the server first saw each tick, log and test of a save. Written by the server only. */
+export const seenKeyFor = (userId: string) => (userId === 'local' ? 'seen' : `seen:${userId}`);
+
+/** Today on the server, as the date the client would write (UTC; the rules allow a day either way). */
+export const serverToday = () => new Date().toISOString().slice(0, 10);
 
 @Injectable()
 export class CampaignService {
@@ -96,8 +103,31 @@ export class CampaignService {
    */
   async write(userId: string, save: CampaignSave, baseRev: number): Promise<WriteResult> {
     const doc = await this.store.put(keyFor(userId), save, baseRev);
-    if (doc) return { ok: true, doc };
-    return { ok: false, current: await this.load(userId) };
+    if (!doc) return { ok: false, current: await this.load(userId) };
+    await this.witness(userId, save);
+    return { ok: true, doc };
+  }
+
+  /** The witness stamps of a save: when the server first saw each dated item in it. */
+  async seen(userId: string): Promise<Seen | null> {
+    return (await this.store.get<Seen>(seenKeyFor(userId)))?.value ?? null;
+  }
+
+  /**
+   * Stamps every tick, log, test, session and mastered skill the server has
+   * not seen before with today's date. A failed stamp never fails the save; the
+   * next save stamps what this one missed, a little later.
+   */
+  private async witness(userId: string, save: CampaignSave): Promise<void> {
+    try {
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const current = await this.store.get<Seen>(seenKeyFor(userId));
+        const next = stampSeen(save, current?.value ?? null, serverToday());
+        if (await this.store.put(seenKeyFor(userId), next, current?.rev ?? 0)) return;
+      }
+    } catch (error) {
+      console.warn('Could not stamp witness dates', error);
+    }
   }
 
   loadPlan(userId: string): Promise<StoredDoc<CampaignPlan> | null> {
