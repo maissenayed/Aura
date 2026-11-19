@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { CampaignPlan, PlanSpec, usesOf } from '../../utils/campaignPlan';
+import { CampaignPlan, PlanSpec, usesOf, withoutLift } from '../../utils/campaignPlan';
 import { TrackedLift } from '../../utils/campaignV3';
 import { currentOf, formatStatValue } from '../../utils/protocolEngine';
 import { metricOf } from '../../utils/records';
@@ -43,7 +43,7 @@ export const LiftsEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
   return (
     <Group
       title={`Lifts · ${plan.lifts.length}`}
-      hint="Your week's exercises. Log a number when you finish a mission and it lands here, so you can see where you progressed. Bosses and map goals add the exercises they read. Track another exercise to follow it without a mission."
+      hint="Your week's exercises. Log a number when you finish a mission and it lands here, so you can see where you progressed. Bosses and map goals add the exercises they read. Track another exercise to follow it without a mission; delete one to take it out of the plan with the missions, bosses and goals that use it."
     >
       <ul className="space-y-2">
         {plan.lifts.map((lift) => {
@@ -100,11 +100,16 @@ export const LiftsEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
                 />
               </div>
 
-              {entry && !uses.length && (
-                <div className="flex justify-end pt-1">
-                  <DeleteButton label={`${lift.name} from your lifts`} onDelete={() => onChange({ ...spec, lifts: spec.lifts.filter((other) => other.exercise !== lift.id) })} />
-                </div>
-              )}
+              <div className="flex justify-end pt-1">
+                <DeleteButton
+                  label={lift.name}
+                  detail={uses.length ? `Also deleted: ${uses.join(', ')}. What you logged for it stays.` : 'What you logged for it stays.'}
+                  onDelete={() => {
+                    setOpenId(null);
+                    onChange(withoutLift(spec, lift.id));
+                  }}
+                />
+              </div>
             </EditCard>
           );
         })}

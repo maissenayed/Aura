@@ -219,12 +219,14 @@ export const MoveButtons: React.FC<{ label: string; index: number; count: number
 );
 
 /** Delete in two steps, saying first what else in the plan uses the thing. */
-export const DeleteButton: React.FC<{ label: string; uses?: string[]; onDelete: () => void; compact?: boolean }> = ({
-  label,
-  uses = [],
-  onDelete,
-  compact,
-}) => {
+export const DeleteButton: React.FC<{
+  label: string;
+  uses?: string[];
+  /** Replaces the sentence after "Delete …?" when what goes with it needs other words. */
+  detail?: string;
+  onDelete: () => void;
+  compact?: boolean;
+}> = ({ label, uses = [], detail, onDelete, compact }) => {
   const [confirming, setConfirming] = useState(false);
 
   if (!confirming) {
@@ -248,7 +250,7 @@ export const DeleteButton: React.FC<{ label: string; uses?: string[]; onDelete: 
   return (
     <span className="flex flex-wrap items-center gap-2 p-2 rounded-card bg-ink-850">
       <span className="text-[12.5px] text-boss">
-        Delete {label}?{uses.length > 0 && ` It is also removed from ${uses.join(', ')}.`}
+        Delete {label}?{detail ? ` ${detail}` : uses.length > 0 && ` It is also removed from ${uses.join(', ')}.`}
       </span>
       <button
         type="button"
