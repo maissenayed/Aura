@@ -12,7 +12,6 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "dev:web": "turbo dev --filter=@aura/web",
-    "dev:admin": "turbo dev --filter=@aura/admin",
     "dev:backend": "turbo dev --filter=@aura/backend"
   },
   "dependencies": {

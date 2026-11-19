@@ -1,6 +1,6 @@
 import { BOULDERING_SKILLS } from '../../data/boulderingTree';
-import { EXERCISE_CATALOG } from '../../data/campaignCatalog';
-import { EXERCISES } from '../../data/exercisesData';
+import { exerciseCatalog } from '../../data/campaignCatalog';
+import { currentExercises } from '../../data/exercisesData';
 import snapshot from '../../data/figureSources.json';
 import { BOULDERING_FIGURE_IDS, boulderingFigureAsBuilt } from '../skilltree/boulderingFigures';
 import { CALISTHENICS_FIGURE_IDS, calisthenicsFigureAsBuilt } from '../skilltree/calisthenicsFigures';
@@ -24,8 +24,8 @@ export interface Entry {
 }
 
 const names = new Map<string, { name: string; level?: number }>();
-EXERCISE_CATALOG.forEach((exercise) => names.set(exercise.id, { name: exercise.name }));
-EXERCISES.forEach((exercise) => names.set(exercise.id, { name: exercise.name, level: exercise.level }));
+exerciseCatalog().forEach((exercise) => names.set(exercise.id, { name: exercise.name }));
+currentExercises().forEach((exercise) => names.set(exercise.id, { name: exercise.name, level: exercise.level }));
 BOULDERING_SKILLS.forEach((skill) => names.set(skill.id, { name: skill.name, level: skill.level }));
 
 const built = new Map<string, FigureSpec>();

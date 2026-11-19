@@ -1,24 +1,22 @@
 import { BOULDERING_SKILLS } from '../data/boulderingTree';
 import { resolveExerciseId } from '../data/exerciseAliases';
-import { EXERCISES } from '../data/exercisesData';
+import { currentExercises, fromExerciseList } from '../data/exercisesData';
 import type { SkillTreeRef } from './campaignV3';
 import { SkillGraph, TreeSkill, ancestorsOf, buildGraph } from './skillTree';
 
 /**
- * The built-in skill trees as the campaign reads them: for skill bosses (a
+ * The skill trees as the campaign reads them: for skill bosses (a
  * skill and what leads to it) and towers (a summit and everything below it).
- * Built once from the app's own datasets, never from a device's edited copy.
+ * Built from the exercise list in use (rebuilt when it changes) and the
+ * bouldering dataset.
  */
 
-const graphs = new Map<SkillTreeRef, SkillGraph>();
+const calisthenicsGraph = fromExerciseList(() => buildGraph(currentExercises() as TreeSkill[]));
+let boulderingGraph: SkillGraph | null = null;
 
 function graphOf(tree: SkillTreeRef): SkillGraph {
-  let graph = graphs.get(tree);
-  if (!graph) {
-    graph = buildGraph((tree === 'calisthenics' ? EXERCISES : BOULDERING_SKILLS) as TreeSkill[]);
-    graphs.set(tree, graph);
-  }
-  return graph;
+  if (tree === 'calisthenics') return calisthenicsGraph();
+  return (boulderingGraph ??= buildGraph(BOULDERING_SKILLS as TreeSkill[]));
 }
 
 /** The id a skill lives under now (calisthenics ids merged in the rebuilds resolve). */

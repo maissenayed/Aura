@@ -1,6 +1,6 @@
 # ⚡ Aura Calisthenics — Monorepo Platform
 
-An enterprise-grade **Turborepo Monorepo** featuring a gamified **RPG Calisthenics Skill Tree**, an **Interactive 2D Human Muscle Anatomy Engine**, a **14kg Weighted Hypertrophy Protocol & Drag-and-Drop Monthly Calendar Schedule**, an **Admin Database Manager**, and a high-performance **NestJS REST API** backend.
+An enterprise-grade **Turborepo Monorepo** featuring a gamified **RPG Calisthenics Skill Tree**, an **Interactive 2D Human Muscle Anatomy Engine**, a **14kg Weighted Hypertrophy Protocol & Drag-and-Drop Monthly Calendar Schedule**, an owner-only **Exercises** page for the exercise list, and a high-performance **NestJS REST API** backend.
 
 ---
 
@@ -9,8 +9,7 @@ An enterprise-grade **Turborepo Monorepo** featuring a gamified **RPG Calistheni
 ```text
 aura-calisthenics-monorepo/
 ├── apps/
-│   ├── web/               # Next.js 16 App Router (Skill Tree, Anatomy Engine, 14kg Protocol & Schedule)
-│   ├── admin/             # Next.js 16 App Router (Exercise Dataset Manager & JSON Import/Export)
+│   ├── web/               # Next.js 16 App Router (Skill Tree, Anatomy Engine, 14kg Protocol & Schedule, owner's Exercises page)
 │   └── backend/           # NestJS REST API Server (Controllers -> Services -> JSON Repository)
 ├── packages/
 │   └── types/             # Shared TypeScript DTOs, entities & interfaces (@aura/types)
@@ -62,7 +61,7 @@ npm install
 ---
 
 ### 4. Start Development Mode
-Launch all three applications (`apps/web`, `apps/admin`, `apps/backend`) concurrently using Turborepo:
+Launch both applications (`apps/web`, `apps/backend`) concurrently using Turborepo:
 
 ```bash
 npm run dev
@@ -82,7 +81,6 @@ Once launched, open your browser to access each application:
 | Application | Description | URL | Port |
 | :--- | :--- | :--- | :--- |
 | 🌐 **Web App** | Skill Tree, Muscle Anatomy Engine, 14kg Tracker & Schedule | [http://localhost:3000](http://localhost:3000) | `3000` |
-| 🛡️ **Admin App** | Exercise Dataset Management & Raw JSON Import/Export | [http://localhost:3001](http://localhost:3001) | `3001` |
 | ⚙️ **NestJS API Server** | REST API Endpoints & Persistent JSON Engine | [http://localhost:3002/api/v1](http://localhost:3002/api/v1) | `3002` |
 
 ---
@@ -110,13 +108,11 @@ Once launched, open your browser to access each application:
 
 ---
 
-### 2. 🛡️ Admin App (`apps/admin` — Port 3001)
+### 2. 🛡️ Exercises (`apps/web` — `/admin/exercises`, owner only)
 
-- **Exercise Dataset Manager (`/`)**:
-  - Search, filter, edit, and create raw exercise definitions.
-  - Configure levels, swimlanes, video links, prerequisites, and step-by-step form cues.
-  - Import and export raw dataset JSON files.
-  - Persist dataset edits directly to NestJS JSON backend.
+- **One exercise list for everything**: the backend's `exercise` table (Postgres; a JSON file in `.data/` without a database). The web app, the crew and the server's engine all read it.
+- **Seeded automatically**: an empty table is filled from the built-in list (`apps/web/src/data/rawExercisesData.ts`), and the owner can restore that list at any time.
+- **Edit in place**: search and filter every exercise, add, edit or delete one (prerequisites are checked for loops), download the list as JSON. A change reaches every device on its next load.
 
 ---
 
@@ -126,8 +122,7 @@ Architecture follows **Controller ➔ Service / Action ➔ JSON Repository**:
 
 | Controller | HTTP Method | Endpoint | Description |
 | :--- | :--- | :--- | :--- |
-| **ExercisesController** | `GET` | `/api/v1/exercises` | List exercises with filters (`swimlane`, `minLevel`, `maxLevel`, `search`) |
-| **ExercisesController** | `GET` | `/api/v1/exercises/:id` | Get exercise by ID |
+| **ExercisesController** | `GET` | `/api/v1/exercises?version=` | The exercise list and its version (`exercises: null` when your version is current) |
 | **MuscleAnatomyController**| `GET` | `/api/v1/anatomy/muscles` | Get full muscle anatomy dictionary |
 | **MuscleAnatomyController**| `GET` | `/api/v1/anatomy/muscles/:id` | Get single muscle metadata |
 | **MuscleAnatomyController**| `GET` | `/api/v1/anatomy/muscles/:id/exercises` | Get level-filtered targeted exercises |
@@ -141,8 +136,10 @@ Architecture follows **Controller ➔ Service / Action ➔ JSON Repository**:
 | **TrackerController** | `DELETE` | `/api/v1/tracker/blocks/:id` | Delete Week Plan Block |
 | **TrackerController** | `GET` | `/api/v1/tracker/calendar` | Get monthly training schedule |
 | **TrackerController** | `POST` | `/api/v1/tracker/calendar/schedule` | Schedule Week Block into calendar |
-| **AdminController** | `GET` | `/api/v1/admin/exercises` | Get raw exercise dataset for editing |
-| **AdminController** | `POST` | `/api/v1/admin/save-dataset` | Save full raw dataset to JSON storage |
+| **AdminController** | `POST` | `/api/v1/admin/exercises` | Add an exercise (owner only) |
+| **AdminController** | `PUT` | `/api/v1/admin/exercises/:id` | Edit an exercise (owner only) |
+| **AdminController** | `DELETE` | `/api/v1/admin/exercises/:id` | Delete an exercise and drop it from prerequisites (owner only) |
+| **AdminController** | `POST` | `/api/v1/admin/exercises/restore` | Put the built-in list back (owner only) |
 
 ---
 
@@ -150,9 +147,8 @@ Architecture follows **Controller ➔ Service / Action ➔ JSON Repository**:
 
 | Command | Description |
 | :--- | :--- |
-| `npm run dev` | Start dev servers for **Web**, **Admin**, and **Backend** concurrently |
+| `npm run dev` | Start dev servers for **Web** and **Backend** concurrently |
 | `npm run dev:web` | Start **Web App** only on `http://localhost:3000` |
-| `npm run dev:admin` | Start **Admin App** only on `http://localhost:3001` |
 | `npm run dev:backend` | Start **NestJS Backend** only on `http://localhost:3002` |
 | `npm run build` | Build all applications and shared packages for production |
 | `npm run lint` | Run ESLint checks across all monorepo workspaces |
@@ -169,8 +165,8 @@ npm run build
 
 Expected Output:
 ```text
- Tasks:    3 successful, 3 total
-Cached:    0 cached, 3 total
+ Tasks:    2 successful, 2 total
+Cached:    0 cached, 2 total
   Time:    ~6s
 ```
 
