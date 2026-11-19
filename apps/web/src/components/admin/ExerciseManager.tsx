@@ -6,21 +6,32 @@ import type { RawExercise, Swimlane } from '@aura/types';
 import { DANGER_BUTTON, FormMessage, PRIMARY_BUTTON, SECONDARY_BUTTON } from '../account/ui';
 import { Figure } from '../game/kit';
 import { SKILL_TREES } from '../skilltree/skillTrees';
-import { currentRawExercises, exerciseListSource, getSwimlane, subscribeExerciseList } from '../../data/exercisesData';
+import { currentRawExercises, exerciseListSource, getSwimlane, rawExercises, subscribeExerciseList } from '../../data/exercisesData';
 import { adoptExerciseList, refreshExerciseList } from '../../utils/exerciseListStore';
 import { api } from '../../utils/accountStore';
-import { ExerciseEditor, SavedList } from './ExerciseEditor';
+import { ExerciseEditor, Ownership, SavedList } from './ExerciseEditor';
 
 /**
  * The exercise list as the database holds it: every exercise in one table,
  * to search, add, edit and delete. A change reaches the whole app (and the
  * server's engine) as soon as it is saved.
+ *
+ * The list follows the built-in one the app ships with: a fix there reaches
+ * every exercise the owner has not changed when the app is deployed. The
+ * owner's own rows are marked, and each can be put back to its built-in version.
  */
 
 const LANES: Swimlane[] = ['Push', 'Pull', 'Core', 'Legs'];
 const PAGE = 120;
 
 const laneOf = (exercise: RawExercise) => exercise.swimlane ?? getSwimlane(exercise.category, exercise.subCategory);
+const BUILT_IN = new Map(rawExercises.map((exercise) => [exercise.id, exercise]));
+
+interface Changes {
+  edited: Set<string>;
+  added: Set<string>;
+  deleted: SavedList['deleted'];
+}
 const figureOf = (id: string) => SKILL_TREES.calisthenics.figureFor?.(id);
 
 /** "461.1795083407413" → when the list last changed. */
@@ -51,11 +62,28 @@ export const ExerciseManager: React.FC = () => {
   const [notice, setNotice] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
   const [confirmRestore, setConfirmRestore] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [changes, setChanges] = useState<Changes | null>(null);
+  const [mineOnly, setMineOnly] = useState(false);
+  const [bringing, setBringing] = useState<string | null>(null);
+
+  /** Puts a list from the server in use, with what the owner changed in it. */
+  const take = (list: SavedList) => {
+    adoptExerciseList(list.version, list.exercises);
+    setChanges({ edited: new Set(list.edited), added: new Set(list.added), deleted: list.deleted });
+  };
 
   // The page edits the database, so it starts from the database's latest list.
   useEffect(() => {
-    void refreshExerciseList().finally(() => setLoading(false));
+    void (async () => {
+      const result = await api<SavedList>('GET', '/admin/exercises');
+      if (result.data) take(result.data);
+      else await refreshExerciseList();
+      setLoading(false);
+    })();
   }, []);
+
+  const ownershipOf = (id: string): Ownership => (changes?.edited.has(id) ? 'edited' : changes?.added.has(id) ? 'added' : 'built-in');
+  const mineCount = (changes?.edited.size ?? 0) + (changes?.added.size ?? 0);
 
   const fromDatabase = source !== 'built-in';
   const laneCounts = useMemo(() => {
@@ -71,19 +99,30 @@ export const ExerciseManager: React.FC = () => {
         (exercise) =>
           (lane === 'All' || laneOf(exercise) === lane) &&
           (kind === 'all' || (kind === 'gym') === (exercise.discipline === 'gym')) &&
+          (!mineOnly || Boolean(changes?.edited.has(exercise.id) || changes?.added.has(exercise.id))) &&
           (!needle ||
             exercise.name.toLowerCase().includes(needle) ||
             exercise.id.toLowerCase().includes(needle) ||
             exercise.subCategory.toLowerCase().includes(needle)),
       )
       .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
-  }, [exercises, query, lane, kind]);
+  }, [exercises, query, lane, kind, mineOnly, changes]);
   const byId = useMemo(() => new Map(exercises.map((exercise) => [exercise.id, exercise])), [exercises]);
 
   const saved = (list: SavedList, message: string) => {
-    adoptExerciseList(list.version, list.exercises);
+    take(list);
     setEditing(null);
     setNotice({ tone: 'success', text: message });
+  };
+
+  const bringBack = async (id: string, name: string) => {
+    setBringing(id);
+    const result = await api<SavedList>('POST', `/admin/exercises/${encodeURIComponent(id)}/restore`);
+    setBringing(null);
+    if (result.data) {
+      take(result.data);
+      setNotice({ tone: 'success', text: `${name} is back in the list.` });
+    } else setNotice({ tone: 'error', text: result.error ?? `${name} was not brought back.` });
   };
 
   const restore = async () => {
@@ -92,7 +131,7 @@ export const ExerciseManager: React.FC = () => {
     setRestoring(false);
     setConfirmRestore(false);
     if (result.data) {
-      adoptExerciseList(result.data.version, result.data.exercises);
+      take(result.data);
       setNotice({ tone: 'success', text: `The built-in list is back: ${result.data.exercises.length} exercises.` });
     } else setNotice({ tone: 'error', text: result.error ?? 'The list was not restored.' });
   };
@@ -163,6 +202,14 @@ export const ExerciseManager: React.FC = () => {
               {label}
             </Toggle>
           ))}
+          {changes && (
+            <>
+              <span className="w-px h-6 bg-ink-700 mx-1" aria-hidden="true" />
+              <Toggle on={mineOnly} onClick={() => (setMineOnly(!mineOnly), setLimit(PAGE))}>
+                Yours <span className="num text-fg-4">{mineCount}</span>
+              </Toggle>
+            </>
+          )}
         </div>
       </section>
 
@@ -178,11 +225,20 @@ export const ExerciseManager: React.FC = () => {
           <span />
         </div>
         {shown.length === 0 ? (
-          <p className="px-4 py-10 text-center text-sm text-fg-4">No exercise matches. Try another search or lane.</p>
+          <p className="px-4 py-10 text-center text-sm text-fg-4">
+            {mineOnly && !mineCount ? 'Nothing is yours yet: every exercise is the built-in version.' : 'No exercise matches. Try another search or lane.'}
+          </p>
         ) : (
           <ul>
             {shown.slice(0, limit).map((exercise) => (
-              <Row key={exercise.id} exercise={exercise} byId={byId} disabled={!fromDatabase} onOpen={() => setEditing(exercise)} />
+              <Row
+                key={exercise.id}
+                exercise={exercise}
+                byId={byId}
+                ownership={ownershipOf(exercise.id)}
+                disabled={!fromDatabase}
+                onOpen={() => setEditing(exercise)}
+              />
             ))}
           </ul>
         )}
@@ -198,12 +254,55 @@ export const ExerciseManager: React.FC = () => {
       <section className="flex flex-col gap-3 p-4 rounded-card bg-ink-900" aria-label="The whole list">
         <h2 className="font-display font-extrabold uppercase text-lg leading-none text-fg-2">The whole list</h2>
         <p className="text-sm text-fg-3">
+          The list follows the built-in one the app ships with: when the app is deployed with a fix to it, every exercise you have not changed takes the fix.
+          What you edited, added or deleted here stays as you made it.
+          {changes && (
+            <>
+              {' '}
+              Yours now: <b className="num text-fg">{changes.edited.size}</b> edited, <b className="num text-fg">{changes.added.size}</b> added,{' '}
+              <b className="num text-fg">{changes.deleted.length}</b> deleted.
+            </>
+          )}
+        </p>
+        {changes && changes.deleted.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <h3 className="eyebrow text-fg-4">Built-in exercises you deleted</h3>
+            <ul className="rounded-card border border-ink-800 overflow-hidden">
+              {[...changes.deleted]
+                .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
+                .map((entry) => (
+                  <li key={entry.id} className="list-none flex items-center gap-3 px-3 py-2 border-b border-ink-800 last:border-b-0">
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-sm font-semibold text-fg-2 truncate">{entry.name}</span>
+                      <span className="block font-mono text-[11px] text-fg-4">
+                        {entry.id} · <span className="num">L{entry.level}</span>
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      disabled={bringing !== null}
+                      onClick={() => bringBack(entry.id, entry.name)}
+                      className={`${SECONDARY_BUTTON} h-10 px-3 text-sm shrink-0`}
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      {bringing === entry.id ? 'Bringing back…' : 'Bring back'}
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        )}
+        <p className="text-sm text-fg-3">
           A copy as JSON keeps a backup. Restoring the built-in list puts back the exercises the app ships with, and is also what fills an empty database.
         </p>
         {confirmRestore ? (
           <div className="flex flex-col gap-3 p-3 rounded-card border border-boss/40">
             <p className="text-sm text-fg-2">
-              Replace all {exercises.length} exercises with the built-in list? Every exercise added, edited or deleted here since goes back to how the app ships it.
+              Replace all {exercises.length} exercises with the built-in list? Every exercise added, edited or deleted here goes back to how the app ships it
+              {changes && mineCount + changes.deleted.length > 0
+                ? `: your ${changes.edited.size} edited, ${changes.added.size} added and ${changes.deleted.length} deleted.`
+                : '.'}{' '}
+              To undo just one, open it and use its built-in version instead.
             </p>
             <div className="flex flex-wrap gap-2">
               <button type="button" disabled={restoring} onClick={restore} className={`${DANGER_BUTTON} h-11 px-4 text-sm border border-boss/50`}>
@@ -229,7 +328,14 @@ export const ExerciseManager: React.FC = () => {
       </section>
 
       {editing && (
-        <ExerciseEditor exercise={editing === 'new' ? null : editing} all={exercises} onClose={() => setEditing(null)} onSaved={saved} />
+        <ExerciseEditor
+          exercise={editing === 'new' ? null : editing}
+          builtIn={editing === 'new' ? null : (BUILT_IN.get(editing.id) ?? null)}
+          ownership={editing === 'new' ? 'added' : ownershipOf(editing.id)}
+          all={exercises}
+          onClose={() => setEditing(null)}
+          onSaved={saved}
+        />
       )}
     </div>
   );
@@ -248,7 +354,13 @@ const Toggle: React.FC<{ on: boolean; onClick: () => void; children: React.React
   </button>
 );
 
-const Row: React.FC<{ exercise: RawExercise; byId: Map<string, RawExercise>; disabled: boolean; onOpen: () => void }> = ({ exercise, byId, disabled, onOpen }) => {
+const Row: React.FC<{ exercise: RawExercise; byId: Map<string, RawExercise>; ownership: Ownership; disabled: boolean; onOpen: () => void }> = ({
+  exercise,
+  byId,
+  ownership,
+  disabled,
+  onOpen,
+}) => {
   const figure = figureOf(exercise.id);
   const needs = exercise.prerequisites ?? [];
   const video = exercise.videoSearchUrl ? 'Video' : exercise.youtubeQuery ? 'Search' : '—';
@@ -265,7 +377,17 @@ const Row: React.FC<{ exercise: RawExercise; byId: Map<string, RawExercise>; dis
           {figure ? <Figure spec={figure} className="w-11 h-11" /> : <span className="text-[10px] font-semibold text-fg-5 text-center leading-tight">No drawing</span>}
         </span>
         <span className="min-w-0">
-          <span className="block text-sm font-semibold text-fg truncate">{exercise.name}</span>
+          <span className="flex items-center gap-2 min-w-0">
+            <span className="text-sm font-semibold text-fg truncate">{exercise.name}</span>
+            {ownership !== 'built-in' && (
+              <span
+                className="shrink-0 px-1.5 rounded-tag border border-ink-600 text-[10px] leading-[16px] font-bold uppercase tracking-wide text-fg-2"
+                title={ownership === 'edited' ? 'You edited this built-in exercise; fixes to the built-in list do not reach it.' : 'You added this exercise.'}
+              >
+                {ownership === 'edited' ? 'Edited' : 'Yours'}
+              </span>
+            )}
+          </span>
           <span className="block font-mono text-[11px] text-fg-4 truncate">
             {exercise.id}
             {exercise.discipline === 'gym' ? ' · gym' : ''}
