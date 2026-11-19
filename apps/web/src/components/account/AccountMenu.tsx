@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ListTree, LogIn, LogOut, Users } from 'lucide-react';
+import { ListTree, LogIn, LogOut, PenTool, Users } from 'lucide-react';
 import { useAccount } from '../../utils/accountStore';
 import { signOutOfCampaign } from '../../utils/protocolStore';
 
@@ -108,6 +108,17 @@ export const AccountMenu: React.FC<{ large?: boolean }> = ({ large = false }) =>
             >
               <ListTree className="w-4 h-4 text-fg-4" />
               Exercises
+            </Link>
+          )}
+          {account.role === 'admin' && (
+            <Link
+              href="/studio"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 h-10 px-3 rounded-card text-sm font-semibold text-fg-2 hover:bg-ink-800 hover:text-fg"
+            >
+              <PenTool className="w-4 h-4 text-fg-4" />
+              Figure studio
             </Link>
           )}
           <button

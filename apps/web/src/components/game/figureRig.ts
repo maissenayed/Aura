@@ -1,6 +1,7 @@
 import { barArmSide } from '../skilltree/SkillFigure';
 import type { Disc, FigureSpec, Pt, Stroke } from '../skilltree/SkillFigure';
 import { FLOOR, LOW_FLOOR } from '../skilltree/calisthenicsFamilies';
+import { PROP_TUNING, PropTuning } from './propTuning';
 
 /**
  * The joints of a figure, and which stages fit the move it does.
@@ -125,13 +126,13 @@ export function bonesAt(rig: Rig, strokes: Stroke[], discs: Disc[]): Bones {
 const BAR_WALL = /^M8,(-?[\d.]+) L92,\1 L92,(-?[\d.]+) L8,\2 Z$/;
 
 /** The height of a bar drawn across the scene, if the scenery is only that bar. */
-const barAcross = (wall?: string): number | null => {
+export const barAcross = (wall?: string): number | null => {
   const match = wall ? BAR_WALL.exec(wall.trim()) : null;
   return match ? (Number(match[1]) + Number(match[2])) / 2 : null;
 };
 
 /** Where the floor is, for a scene that is only a floor. */
-const floorLine = (spec: FigureSpec): number | null => {
+export const floorLine = (spec: FigureSpec): number | null => {
   const wall = spec.wall?.trim();
   if (wall === FLOOR) return 86;
   if (wall === LOW_FLOOR) return 91;
@@ -179,6 +180,27 @@ export function parallettesFit(spec: FigureSpec): boolean {
   if (!rig) return false;
   const all = posesOf(spec, rig);
   return all.every(({ bones }) => handsDown(bones)) && all.some(({ strokes, bones }) => onHandsAlone(strokes, bones));
+}
+
+/**
+ * Why a move is done on what it is done on, in words: the rule `apparatusOf`
+ * applied, for the figure studio.
+ */
+export function apparatusWhy(spec: FigureSpec): string {
+  const holds = spec.holds ?? [];
+  if (spec.scene === 'rings') return 'Its scene is the rings.';
+  if (spec.scene === 'bar') {
+    if (barAcross(spec.wall) !== null && holds.length === 0) return 'Its only scenery is a bar across the scene, seen from the front.';
+    if (!spec.wall?.trim() && holds.length > 0 && holds.every((hold) => hold.shape === 'bar')) return 'Its only scenery is a bar seen end-on.';
+    return 'It hangs from more than a plain bar (a rope, a wall, other holds), so it keeps that equipment.';
+  }
+  if (spec.scene !== 'floor' && spec.scene !== 'ground') return `Its scene (${spec.scene}) is its own equipment.`;
+  if (holds.length > 0) return 'It has holds on the scene, so it keeps them.';
+  if (spec.strokes.some((stroke) => stroke.tone === 'gear')) return 'It has gear lines (a machine, cable or band), so it stays off a stage.';
+  if (floorLine(spec) === null) return 'Its scenery is more than the plain floor (a box, a bench, a wall), so it keeps it.';
+  return parallettesFit(spec)
+    ? 'A plain floor, and the hands stay down and carry the whole body at some point, so parallettes suit it too.'
+    : 'A plain floor. Parallettes need the hands down throughout and carrying the body at some point.';
 }
 
 /** Which stages suit a move. The plain floor (no stage) always does: it is the move's own setting. */
@@ -282,7 +304,7 @@ export interface Upright {
  * put the hands on two handles. A plinth, the podium and a summit are drawn
  * under or behind the athlete, so the move itself is unchanged.
  */
-export function stageMove(spec: FigureSpec, stage: StageKind | undefined): Staged {
+export function stageMove(spec: FigureSpec, stage: StageKind | undefined, t: PropTuning = PROP_TUNING): Staged {
   const fits = stage && stageFits(spec, stage) ? stage : undefined;
   const rig = rigOf(spec);
   const lowest = rig ? Math.max(...posesOf(spec, rig).map(({ bones }) => bones.floor)) : 84;
@@ -294,12 +316,13 @@ export function stageMove(spec: FigureSpec, stage: StageKind | undefined): Stage
     const y = barAcross(spec.wall);
     if (y !== null) {
       // Seen from the front: the bar on two uprights, at its ends.
+      const { frontInset: inset, frontPost, frontBar } = t.station;
       const frame: FrameLine[] = [
-        { from: [9.5, y], to: [9.5, RIG_FLOOR], width: 2.4, tone: 'iron' },
-        { from: [90.5, y], to: [90.5, RIG_FLOOR], width: 2.4, tone: 'iron' },
-        { from: [8, y], to: [92, y], width: 3, tone: 'iron' },
+        { from: [inset, y], to: [inset, RIG_FLOOR], width: frontPost, tone: 'iron' },
+        { from: [100 - inset, y], to: [100 - inset, RIG_FLOOR], width: frontPost, tone: 'iron' },
+        { from: [8, y], to: [92, y], width: frontBar, tone: 'iron' },
       ];
-      return { spec: { ...spec, wall: floor }, stage: fits, ground: RIG_FLOOR, frame, uprights: { left: { x: 9.5, top: y }, right: { x: 90.5, top: y } } };
+      return { spec: { ...spec, wall: floor }, stage: fits, ground: RIG_FLOOR, frame, uprights: { left: { x: inset, top: y }, right: { x: 100 - inset, top: y } } };
     }
     /**
      * Seen from the side the bar is end-on, and uprights at its ends would run
@@ -310,12 +333,13 @@ export function stageMove(spec: FigureSpec, stage: StageKind | undefined): Stage
     const uprights: NonNullable<Staged['uprights']> = {};
     const frame = (spec.holds ?? []).flatMap(({ at: [x, barY] }): FrameLine[] => {
       const right = barArmSide(spec, x) === 'right';
-      const post = right ? 91 : 9;
-      uprights[right ? 'right' : 'left'] = { x: post, top: barY - 5 };
+      const s = t.station;
+      const post = right ? 100 - s.inset : s.inset;
+      uprights[right ? 'right' : 'left'] = { x: post, top: barY - s.above };
       return [
-        { from: [post, barY - 5], to: [post, RIG_FLOOR], width: 2.6, tone: 'iron' },
-        { from: [x, barY], to: [post, barY], width: 2.2, tone: 'iron' },
-        { from: [x + (post - x) * 0.45, barY], to: [post, barY + 13], width: 1.6, tone: 'iron' },
+        { from: [post, barY - s.above], to: [post, RIG_FLOOR], width: s.post, tone: 'iron' },
+        { from: [x, barY], to: [post, barY], width: s.arm, tone: 'iron' },
+        { from: [x + (post - x) * s.braceAt, barY], to: [post, barY + s.braceDrop], width: s.brace, tone: 'iron' },
       ];
     });
     return { spec: { ...spec, wall: floor }, stage: fits, ground: RIG_FLOOR, frame, uprights };
@@ -326,8 +350,8 @@ export function stageMove(spec: FigureSpec, stage: StageKind | undefined): Stage
     const moved = after?.bones;
     const keep = apart(base.arms.map((arm) => arm.end));
     const index = keep.map((hand) => base.arms.findIndex((arm) => arm.end === hand));
-    const ringAt = (hand: Pt): Disc => ({ at: [hand[0], hand[1] - 1], r: 3.4, tone: 'body', kind: 'ring' });
-    const strapTo = (anchor: number, hand: Pt): Stroke => ({ pts: [[anchor, -2], [hand[0], hand[1] - 4.4]], width: 1, tone: 'gear' });
+    const ringAt = (hand: Pt): Disc => ({ at: [hand[0], hand[1] - t.rings.drop], r: t.rings.r, tone: 'body', kind: 'ring' });
+    const strapTo = (anchor: number, hand: Pt): Stroke => ({ pts: [[anchor, -2], [hand[0], hand[1] - t.rings.gap]], width: t.rings.strap, tone: 'gear' });
     const handsIn = (bones: Bones) => index.map((i) => bones.arms[i].end);
     const anchors = keep.map(([x]) => x);
     return {
@@ -350,7 +374,8 @@ export function stageMove(spec: FigureSpec, stage: StageKind | undefined): Stage
   }
 
   if (fits === 'parallettes') {
-    const lift = 7;
+    const p = t.parallettes;
+    const lift = p.lift;
     const up = shift(-lift);
     const [base, moved] = posesOf(spec, rig);
     /**
@@ -380,11 +405,11 @@ export function stageMove(spec: FigureSpec, stage: StageKind | undefined): Stage
     const second = moved && onHandles(moved);
     // A handle under each hand (one for both, seen from the side), on two splayed legs.
     const frame = apart(base.bones.arms.map((arm) => arm.end)).flatMap(([x, y]): FrameLine[] => {
-      const grip = y - lift + 2.4;
+      const grip = y - lift + p.grip;
       return [
-        { from: [x - 5.4, grip], to: [x - 7.4, ground], width: 1.8, tone: 'steel' },
-        { from: [x + 5.4, grip], to: [x + 7.4, ground], width: 1.8, tone: 'steel' },
-        { from: [x - 7, grip], to: [x + 7, grip], width: 2.4, tone: 'steel' },
+        { from: [x - p.half, grip], to: [x - p.half - p.splay, ground], width: p.leg, tone: 'steel' },
+        { from: [x + p.half, grip], to: [x + p.half + p.splay, ground], width: p.leg, tone: 'steel' },
+        { from: [x - p.half - 1.6, grip], to: [x + p.half + 1.6, grip], width: p.handle, tone: 'steel' },
       ];
     });
     const marks = first.lifted ? up.pt : (p: Pt) => p;

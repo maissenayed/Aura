@@ -1,0 +1,3422 @@
+{
+  "ab_crunch_machine": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 982,
+    "call": "cableCrunch()",
+    "family": "cableCrunch"
+  },
+  "back_extension": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 964,
+    "call": "backExtension()",
+    "family": "backExtension"
+  },
+  "back_squat": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 946,
+    "call": "squat({ kind: 'back', r: LOAD.working })",
+    "family": "squat"
+  },
+  "barbell_curl": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 938,
+    "call": "curl('barbell')",
+    "family": "curl"
+  },
+  "barbell_row": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 924,
+    "call": "barbellRow(LOAD.working)",
+    "family": "barbellRow"
+  },
+  "bench_press": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 899,
+    "call": "benchPress(LOAD.working)",
+    "family": "benchPress"
+  },
+  "bld_alpine_knee": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 484,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_arm_flag": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 870,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_arm_swing": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1311,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_back_flag": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 846,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_backstep": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 625,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_barrel_roll": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1612,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_bat_hang": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 460,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_beached_whale": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1566,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_bicycle": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 244,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_body_tension": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 689,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_campus_ladder": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1847,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_campus_move": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1834,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_campus_skip": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1873,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_chin": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1589,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_closed_mono": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 2017,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_compression": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 718,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_cut_loose": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1181,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_deadpoint": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1105,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_double_clutch": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1256,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_double_dyno": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1134,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_drop_knee": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 647,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_dyno": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1119,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_edging": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 97,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_elevator_door": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 980,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_falling": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 297,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_figure_nine": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1081,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_flagging": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 543,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_foot_cross": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1491,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_foot_match": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1415,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_frog_pinch": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 444,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_frogging": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 809,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_front_back_three": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1988,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_full_crimp": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1753,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_gaston": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 669,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_gastondercling": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 995,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_good_samaritan": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 398,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_half_crimp": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1703,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_hand_cross": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1509,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_hand_foot_match": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1452,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_hand_match": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1401,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_hangboard": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1821,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_headbutt": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1329,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_heel_hook": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 198,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_heel_toe_cam": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 421,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_high_step": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 133,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_hip_swing": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1272,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_hip_turn": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 603,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_hips_over_feet": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 530,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_houdini": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1475,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_inside_figure_four": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1036,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_inside_flag": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 858,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_inverted": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1007,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_iron_cross": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 770,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_janja": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 894,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_knee_bar": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 272,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_knee_press": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 505,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_lay_back": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 957,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_lock_off": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1788,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_mantle": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 580,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_meat_hook": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1963,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_midnight_lightning": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1660,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_monos": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1774,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_one_arm_dyno": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1365,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_one_arm_hang": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1895,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_one_arm_lock": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1800,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_open_crimp": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1922,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_open_hand": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1683,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_outside_edge": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 372,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_outside_figure_four": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1058,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_outward_facing": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 821,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_paddle_dyno": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1153,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_palm_down": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1908,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_perching": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 785,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_peter_pan": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 882,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_piano_match": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1428,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_pinches": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1736,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_pogo": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1221,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_projecting": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 351,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_quarter_crimp": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1942,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_rock_over": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 384,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_roof": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 741,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_rose_move": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1527,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_route_reading": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 323,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_run_jump": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1235,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_side_pull": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 917,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_silent_feet": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 84,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_slab_friction": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 145,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_slopers": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1724,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_smearing": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 109,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_soapmaker": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1636,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_stacked_fingers": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 2004,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_stemming": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 555,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_step_up_dyno": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1347,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_straight_arms": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 521,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_swing_catch": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1208,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_swing_jump": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1383,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_thumbercling": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1975,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_toe_hook": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 220,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_toe_in": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 168,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_two_finger_pocket": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 1998,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "bld_undercling": {
+    "file": "apps/web/src/components/skilltree/boulderingFigures.ts",
+    "line": 932,
+    "call": "figure({ … })",
+    "family": null
+  },
+  "box_squat": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 966,
+    "call": "squat({ kind: 'back', r: LOAD.working }, { box: true })",
+    "family": "squat"
+  },
+  "cable_curl": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 923,
+    "call": "curl('cable')",
+    "family": "curl"
+  },
+  "cable_fly": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 910,
+    "call": "cableFly()",
+    "family": "cableFly"
+  },
+  "cable_row": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 920,
+    "call": "cableRow()",
+    "family": "cableRow"
+  },
+  "cable_woodchop": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 985,
+    "call": "woodchop()",
+    "family": "woodchop"
+  },
+  "calf_raises": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 945,
+    "call": "calfRaise()",
+    "family": "calfRaise"
+  },
+  "captains_chair": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 983,
+    "call": "captainsChair()",
+    "family": "captainsChair"
+  },
+  "db_press": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 900,
+    "call": "overheadPress('seated')",
+    "family": "overheadPress"
+  },
+  "db_row": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 933,
+    "call": "dumbbellRow()",
+    "family": "dumbbellRow"
+  },
+  "db_shrug": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 934,
+    "call": "shrug()",
+    "family": "shrug"
+  },
+  "deadlift": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 947,
+    "call": "hinge('deadlift', LOAD.working)",
+    "family": "hinge"
+  },
+  "deficit_deadlift": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 970,
+    "call": "hinge('deadlift', LOAD.heavy)",
+    "family": "hinge"
+  },
+  "ex_1": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 91,
+    "call": "pikePress()",
+    "family": "pikePress"
+  },
+  "ex_2": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 165,
+    "call": "lSit('tuck')",
+    "family": "lSit"
+  },
+  "ex_3": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 132,
+    "call": "rotation('german-hang')",
+    "family": "rotation"
+  },
+  "ex_7": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 82,
+    "call": "pushUp()",
+    "family": "pushUp"
+  },
+  "ex_8": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 102,
+    "call": "dip({ extra: 'floor' })",
+    "family": "dip"
+  },
+  "ex_9": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 109,
+    "call": "support()",
+    "family": "support"
+  },
+  "ex_11": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 145,
+    "call": "squat('parallel')",
+    "family": "squat"
+  },
+  "ex_12": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 153,
+    "call": "gluteBridge('two-legs')",
+    "family": "gluteBridge"
+  },
+  "ex_13": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 156,
+    "call": "hamstringSlide(false)",
+    "family": "hamstringSlide"
+  },
+  "ex_14": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 148,
+    "call": "splitLeg('lunge')",
+    "family": "splitLeg"
+  },
+  "ex_15": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 163,
+    "call": "floorCore('tuck-raise')",
+    "family": "floorCore"
+  },
+  "ex_17": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 95,
+    "call": "wallHandstand(false)",
+    "family": "wallHandstand"
+  },
+  "ex_18": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 90,
+    "call": "pikePress({ box: true, toHead: true })",
+    "family": "pikePress"
+  },
+  "ex_19": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 178,
+    "call": "overheadPress(5)",
+    "family": "overheadPress"
+  },
+  "ex_20": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 166,
+    "call": "lSit('one-leg')",
+    "family": "lSit"
+  },
+  "ex_21": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 133,
+    "call": "rotation('skin-the-cat')",
+    "family": "rotation"
+  },
+  "ex_22": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 140,
+    "call": "row({ rings: true })",
+    "family": "row"
+  },
+  "ex_23": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 114,
+    "call": "pullUp({ tempo: 'slow-return' })",
+    "family": "pullUp"
+  },
+  "ex_24": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 116,
+    "call": "pullUp({ extra: 'band' })",
+    "family": "pullUp"
+  },
+  "ex_25": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 123,
+    "call": "kipPullUp()",
+    "family": "kipPullUp"
+  },
+  "ex_26": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 83,
+    "call": "pushUp({ grip: 'diamond' })",
+    "family": "pushUp"
+  },
+  "ex_27": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 103,
+    "call": "dip({ tempo: 'slow-return' })",
+    "family": "dip"
+  },
+  "ex_28": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 110,
+    "call": "support({ turnedOut: true })",
+    "family": "support"
+  },
+  "ex_30": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 168,
+    "call": "plank('25s')",
+    "family": "plank"
+  },
+  "ex_32": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 146,
+    "call": "squat('full')",
+    "family": "squat"
+  },
+  "ex_33": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 154,
+    "call": "gluteBridge('shoulders-raised')",
+    "family": "gluteBridge"
+  },
+  "ex_34": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 157,
+    "call": "hamstringSlide(true, 'slow-return')",
+    "family": "hamstringSlide"
+  },
+  "ex_35": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 149,
+    "call": "splitLeg('chair')",
+    "family": "splitLeg"
+  },
+  "ex_36": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 159,
+    "call": "reverseHyper('tuck')",
+    "family": "reverseHyper"
+  },
+  "ex_37": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 128,
+    "call": "hangingRaise('straight-raise')",
+    "family": "hangingRaise"
+  },
+  "ex_39": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 96,
+    "call": "wallHandstand(true)",
+    "family": "wallHandstand"
+  },
+  "ex_40": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 94,
+    "call": "wallPress('slow-return')",
+    "family": "wallPress"
+  },
+  "ex_41": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 179,
+    "call": "overheadPress(6.5)",
+    "family": "overheadPress"
+  },
+  "ex_42": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 167,
+    "call": "lSit('straight')",
+    "family": "lSit"
+  },
+  "ex_43": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 137,
+    "call": "backLever('tuck')",
+    "family": "backLever"
+  },
+  "ex_44": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 141,
+    "call": "row()",
+    "family": "row"
+  },
+  "ex_45": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 115,
+    "call": "pullUp()",
+    "family": "pullUp"
+  },
+  "ex_47": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 117,
+    "call": "pullUp({ kind: 'explosive' })",
+    "family": "pullUp"
+  },
+  "ex_48": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 99,
+    "call": "frogStand()",
+    "family": "frogStand"
+  },
+  "ex_49": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 85,
+    "call": "pushUp({ rings: true })",
+    "family": "pushUp"
+  },
+  "ex_50": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 104,
+    "call": "dip()",
+    "family": "dip"
+  },
+  "ex_51": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 106,
+    "call": "dip({ rings: true, tempo: 'slow-return' })",
+    "family": "dip"
+  },
+  "ex_52": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 105,
+    "call": "dip({ extra: 'plate' })",
+    "family": "dip"
+  },
+  "ex_53": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 124,
+    "call": "muscleUp('slow-return')",
+    "family": "muscleUp"
+  },
+  "ex_54": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 169,
+    "call": "plank('60s')",
+    "family": "plank"
+  },
+  "ex_55": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 147,
+    "call": "sideSquat()",
+    "family": "sideSquat"
+  },
+  "ex_56": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 155,
+    "call": "gluteBridge('one-leg')",
+    "family": "gluteBridge"
+  },
+  "ex_57": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 158,
+    "call": "hamstringSlide(true)",
+    "family": "hamstringSlide"
+  },
+  "ex_58": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 150,
+    "call": "shrimp('beginner')",
+    "family": "shrimp"
+  },
+  "ex_59": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 160,
+    "call": "reverseHyper('right-angle')",
+    "family": "reverseHyper"
+  },
+  "ex_60": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 129,
+    "call": "hangingRaise('knees-to-bar')",
+    "family": "hangingRaise"
+  },
+  "ex_61": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 164,
+    "call": "floorCore('tuck-lowering')",
+    "family": "floorCore"
+  },
+  "ex_62": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 261,
+    "call": "handstand('kick')",
+    "family": "handstand"
+  },
+  "ex_63": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 266,
+    "call": "wallPress()",
+    "family": "wallPress"
+  },
+  "ex_64": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 274,
+    "call": "overheadPress(7)",
+    "family": "overheadPress"
+  },
+  "ex_65": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 285,
+    "call": "straddleLSit()",
+    "family": "straddleLSit"
+  },
+  "ex_66": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 247,
+    "call": "backLever('advanced-tuck')",
+    "family": "backLever"
+  },
+  "ex_67": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 242,
+    "call": "frontLever('tuck')",
+    "family": "frontLever"
+  },
+  "ex_68": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 252,
+    "call": "row({ rings: true, arms: 'archer' })",
+    "family": "row"
+  },
+  "ex_69": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 224,
+    "call": "lPullUp()",
+    "family": "lPullUp"
+  },
+  "ex_70": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 225,
+    "call": "lPullUp({ rings: true })",
+    "family": "lPullUp"
+  },
+  "ex_71": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 221,
+    "call": "pullUp({ extra: 'plate', plate: 6 })",
+    "family": "pullUp"
+  },
+  "ex_72": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 228,
+    "call": "kipPullUp({ clap: true })",
+    "family": "kipPullUp"
+  },
+  "ex_73": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 195,
+    "call": "planche({ legs: 'straight-frog' })",
+    "family": "planche"
+  },
+  "ex_74": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 199,
+    "call": "frogStand({ rings: true })",
+    "family": "frogStand"
+  },
+  "ex_75": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 188,
+    "call": "pushUp({ rings: true })",
+    "family": "pushUp"
+  },
+  "ex_76": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 204,
+    "call": "dip({ legs: 'l-sit' })",
+    "family": "dip"
+  },
+  "ex_77": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 208,
+    "call": "dip({ rings: true })",
+    "family": "dip"
+  },
+  "ex_78": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 211,
+    "call": "dip({ extra: 'plate', plate: 6 })",
+    "family": "dip"
+  },
+  "ex_79": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 232,
+    "call": "muscleUp(undefined, true)",
+    "family": "muscleUp"
+  },
+  "ex_80": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 294,
+    "call": "abWheel('one-arm-leg-plank')",
+    "family": "abWheel"
+  },
+  "ex_81": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 301,
+    "call": "pistol()",
+    "family": "pistol"
+  },
+  "ex_82": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 307,
+    "call": "gluteBridge('shoulders-one-leg')",
+    "family": "gluteBridge"
+  },
+  "ex_83": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 309,
+    "call": "nordic('hinge')",
+    "family": "nordic"
+  },
+  "ex_84": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 304,
+    "call": "shrimp('intermediate')",
+    "family": "shrimp"
+  },
+  "ex_85": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 315,
+    "call": "reverseHyper('straight')",
+    "family": "reverseHyper"
+  },
+  "ex_86": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 282,
+    "call": "hangingRaise('straddle-toes')",
+    "family": "hangingRaise"
+  },
+  "ex_87": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 279,
+    "call": "dragonFlag('advanced-tuck')",
+    "family": "dragonFlag"
+  },
+  "ex_88": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 312,
+    "call": "kneelingQuad('leg-extension')",
+    "family": "kneelingQuad"
+  },
+  "ex_89": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 207,
+    "call": "dip({ depth: 'forearms', shoulders: 'front-of-wrist' })",
+    "family": "dip"
+  },
+  "ex_90": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 262,
+    "call": "handstand('hold')",
+    "family": "handstand"
+  },
+  "ex_91": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 264,
+    "call": "ringsHandstand('shoulder-stand')",
+    "family": "ringsHandstand"
+  },
+  "ex_92": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 267,
+    "call": "wallPress()",
+    "family": "wallPress"
+  },
+  "ex_93": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 275,
+    "call": "overheadPress(8)",
+    "family": "overheadPress"
+  },
+  "ex_94": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 269,
+    "call": "pressToHandstand('bent-arm')",
+    "family": "pressToHandstand"
+  },
+  "ex_95": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 271,
+    "call": "pressToHandstand('wall-straddle')",
+    "family": "pressToHandstand"
+  },
+  "ex_96": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 286,
+    "call": "lSit('straight', { rings: true, turnedOut: true })",
+    "family": "lSit"
+  },
+  "ex_97": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 248,
+    "call": "backLever('straddle')",
+    "family": "backLever"
+  },
+  "ex_98": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 243,
+    "call": "frontLever('advanced-tuck')",
+    "family": "frontLever"
+  },
+  "ex_99": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 245,
+    "call": "frontLever('tuck', { rows: true })",
+    "family": "frontLever"
+  },
+  "ex_100": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 253,
+    "call": "row({ angle: 'incline', rings: true, arms: 'archer' })",
+    "family": "row"
+  },
+  "ex_101": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 229,
+    "call": "barPullover()",
+    "family": "barPullover"
+  },
+  "ex_102": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 216,
+    "call": "pullUp({ rings: true, wide: true })",
+    "family": "pullUp"
+  },
+  "ex_103": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 222,
+    "call": "pullUp({ extra: 'plate', plate: 7 })",
+    "family": "pullUp"
+  },
+  "ex_104": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 217,
+    "call": "pullUp({ kind: 'clap' })",
+    "family": "pullUp"
+  },
+  "ex_105": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 196,
+    "call": "planche({ legs: 'tuck' })",
+    "family": "planche"
+  },
+  "ex_106": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 200,
+    "call": "planche({ legs: 'straight-frog', rings: true })",
+    "family": "planche"
+  },
+  "ex_107": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 189,
+    "call": "pushUp({ rings: true, turnedOut: true })",
+    "family": "pushUp"
+  },
+  "ex_108": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 191,
+    "call": "oneArmPushUp('box')",
+    "family": "oneArmPushUp"
+  },
+  "ex_109": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 205,
+    "call": "dip({ lean: 45 })",
+    "family": "dip"
+  },
+  "ex_110": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 209,
+    "call": "dip({ rings: true, legs: 'l-sit' })",
+    "family": "dip"
+  },
+  "ex_111": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 212,
+    "call": "dip({ extra: 'plate', plate: 7 })",
+    "family": "dip"
+  },
+  "ex_112": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 233,
+    "call": "muscleUp()",
+    "family": "muscleUp"
+  },
+  "ex_113": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 289,
+    "call": "elbowLever()",
+    "family": "elbowLever"
+  },
+  "ex_114": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 292,
+    "call": "humanFlag('tuck')",
+    "family": "humanFlag"
+  },
+  "ex_115": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 295,
+    "call": "abWheel('knees')",
+    "family": "abWheel"
+  },
+  "ex_117": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 238,
+    "call": "rotation('felge-tuck')",
+    "family": "rotation"
+  },
+  "ex_118": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 302,
+    "call": "pistol(4)",
+    "family": "pistol"
+  },
+  "ex_119": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 308,
+    "call": "gluteBridge('weighted')",
+    "family": "gluteBridge"
+  },
+  "ex_120": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 310,
+    "call": "nordic('eccentric')",
+    "family": "nordic"
+  },
+  "ex_121": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 305,
+    "call": "shrimp('advanced')",
+    "family": "shrimp"
+  },
+  "ex_122": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 316,
+    "call": "reverseHyper('straight', { weighted: true })",
+    "family": "reverseHyper"
+  },
+  "ex_123": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 283,
+    "call": "hangingRaise('wipers')",
+    "family": "hangingRaise"
+  },
+  "ex_124": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 280,
+    "call": "dragonFlag('one-leg-straddle')",
+    "family": "dragonFlag"
+  },
+  "ex_125": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 257,
+    "call": "pelicanCurl(true)",
+    "family": "pelicanCurl"
+  },
+  "ex_126": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 313,
+    "call": "kneelingQuad('sissy')",
+    "family": "kneelingQuad"
+  },
+  "ex_127": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 263,
+    "call": "handstand('one-arm-prep')",
+    "family": "handstand"
+  },
+  "ex_128": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 265,
+    "call": "ringsHandstand('strap')",
+    "family": "ringsHandstand"
+  },
+  "ex_129": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 268,
+    "call": "freeHeadstandPushUp()",
+    "family": "freeHeadstandPushUp"
+  },
+  "ex_130": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 276,
+    "call": "overheadPress(9)",
+    "family": "overheadPress"
+  },
+  "ex_131": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 270,
+    "call": "pressToHandstand('l-sit')",
+    "family": "pressToHandstand"
+  },
+  "ex_132": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 273,
+    "call": "pressToHandstand('chair', { rings: true })",
+    "family": "pressToHandstand"
+  },
+  "ex_133": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 272,
+    "call": "pressToHandstand('elevated-straddle')",
+    "family": "pressToHandstand"
+  },
+  "ex_134": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 288,
+    "call": "lSit('v-sit')",
+    "family": "lSit"
+  },
+  "ex_135": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 249,
+    "call": "backLever('half-lay')",
+    "family": "backLever"
+  },
+  "ex_136": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 244,
+    "call": "frontLever('straddle')",
+    "family": "frontLever"
+  },
+  "ex_137": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 246,
+    "call": "frontLever('advanced-tuck', { rows: true })",
+    "family": "frontLever"
+  },
+  "ex_138": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 254,
+    "call": "row({ rings: true, arms: 'one' })",
+    "family": "row"
+  },
+  "ex_139": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 226,
+    "call": "lPullUp({ rings: true })",
+    "family": "lPullUp"
+  },
+  "ex_140": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 223,
+    "call": "pullUp({ extra: 'plate', plate: 8 })",
+    "family": "pullUp"
+  },
+  "ex_141": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 227,
+    "call": "lPullUp({ clap: true })",
+    "family": "lPullUp"
+  },
+  "ex_142": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 197,
+    "call": "planche({ legs: 'advanced-tuck' })",
+    "family": "planche"
+  },
+  "ex_143": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 201,
+    "call": "planche({ legs: 'tuck', rings: true })",
+    "family": "planche"
+  },
+  "ex_144": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 198,
+    "call": "planche({ legs: 'tuck', press: true })",
+    "family": "planche"
+  },
+  "ex_145": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 190,
+    "call": "archerPushUp({ rings: true, turnedOut: true })",
+    "family": "archerPushUp"
+  },
+  "ex_146": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 192,
+    "call": "oneArmPushUp('straddle')",
+    "family": "oneArmPushUp"
+  },
+  "ex_147": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 206,
+    "call": "dip({ oneArm: true, legs: 'pike' })",
+    "family": "dip"
+  },
+  "ex_148": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 210,
+    "call": "frontRingDip('wide')",
+    "family": "frontRingDip"
+  },
+  "ex_149": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 213,
+    "call": "dip({ extra: 'plate', plate: 8 })",
+    "family": "dip"
+  },
+  "ex_150": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 234,
+    "call": "muscleUp()",
+    "family": "muscleUp"
+  },
+  "ex_151": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 290,
+    "call": "elbowLever({ rings: true })",
+    "family": "elbowLever"
+  },
+  "ex_152": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 293,
+    "call": "humanFlag('advanced-tuck')",
+    "family": "humanFlag"
+  },
+  "ex_153": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 296,
+    "call": "abWheel('ramp')",
+    "family": "abWheel"
+  },
+  "ex_154": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 287,
+    "call": "straddleLSit({ rings: true })",
+    "family": "straddleLSit"
+  },
+  "ex_155": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 237,
+    "call": "rotation('kip-to-support')",
+    "family": "rotation"
+  },
+  "ex_156": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 239,
+    "call": "rotation('felge-pike')",
+    "family": "rotation"
+  },
+  "ex_157": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 303,
+    "call": "pistol(5)",
+    "family": "pistol"
+  },
+  "ex_158": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 311,
+    "call": "nordic('full')",
+    "family": "nordic"
+  },
+  "ex_159": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 306,
+    "call": "shrimp('two-hands')",
+    "family": "shrimp"
+  },
+  "ex_160": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 284,
+    "call": "hangingRaise('toes-to-bar', { ankleWeights: true })",
+    "family": "hangingRaise"
+  },
+  "ex_161": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 281,
+    "call": "dragonFlag('full')",
+    "family": "dragonFlag"
+  },
+  "ex_162": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 258,
+    "call": "pelicanCurl(false)",
+    "family": "pelicanCurl"
+  },
+  "ex_163": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 314,
+    "call": "kneelingQuad('matrix')",
+    "family": "kneelingQuad"
+  },
+  "ex_164": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 418,
+    "call": "ringsHandstand('hold')",
+    "family": "ringsHandstand"
+  },
+  "ex_165": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 415,
+    "call": "freeHeadstandPushUp({ fromTop: true })",
+    "family": "freeHeadstandPushUp"
+  },
+  "ex_166": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 419,
+    "call": "ringsHandstandPushUp('wide')",
+    "family": "ringsHandstandPushUp"
+  },
+  "ex_167": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 434,
+    "call": "overheadPress(10)",
+    "family": "overheadPress"
+  },
+  "ex_168": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 422,
+    "call": "pressToHandstand('bent-arm')",
+    "family": "pressToHandstand"
+  },
+  "ex_169": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 429,
+    "call": "pressToHandstand('chair', { rings: true })",
+    "family": "pressToHandstand"
+  },
+  "ex_170": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 426,
+    "call": "pressToHandstand('straddle-stand')",
+    "family": "pressToHandstand"
+  },
+  "ex_171": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 449,
+    "call": "vSit(75)",
+    "family": "vSit"
+  },
+  "ex_172": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 401,
+    "call": "backLever('full')",
+    "family": "backLever"
+  },
+  "ex_173": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 392,
+    "call": "frontLever('one-leg')",
+    "family": "frontLever"
+  },
+  "ex_174": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 374,
+    "call": "ropeClimb()",
+    "family": "ropeClimb"
+  },
+  "ex_175": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 373,
+    "call": "row({ rings: true, arms: 'one' })",
+    "family": "row"
+  },
+  "ex_176": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 364,
+    "call": "pullUp({ kind: 'archer', rings: true })",
+    "family": "pullUp"
+  },
+  "ex_177": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 366,
+    "call": "pullUp({ extra: 'plate', plate: 9 })",
+    "family": "pullUp"
+  },
+  "ex_178": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 370,
+    "call": "kipPullUp({ behindBack: true })",
+    "family": "kipPullUp"
+  },
+  "ex_179": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 328,
+    "call": "pushUp({ grip: 'pseudo', lean: 0.4, rings: true, turnedOut: true })",
+    "family": "pushUp"
+  },
+  "ex_180": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 327,
+    "call": "oneArmPushUp('straddle', { rings: true })",
+    "family": "oneArmPushUp"
+  },
+  "ex_181": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 344,
+    "call": "dip({ oneArm: true, legs: 'pike' })",
+    "family": "dip"
+  },
+  "ex_182": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 350,
+    "call": "dip({ rings: true, turnedOut: true, lean: 45 })",
+    "family": "dip"
+  },
+  "ex_183": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 354,
+    "call": "dip({ extra: 'plate', plate: 9 })",
+    "family": "dip"
+  },
+  "ex_184": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 377,
+    "call": "muscleUp()",
+    "family": "muscleUp"
+  },
+  "ex_185": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 445,
+    "call": "elbowLever({ oneArm: true })",
+    "family": "elbowLever"
+  },
+  "ex_186": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 447,
+    "call": "humanFlag('straddle')",
+    "family": "humanFlag"
+  },
+  "ex_187": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 440,
+    "call": "abWheel('standing', { tempo: 'slow-return' })",
+    "family": "abWheel"
+  },
+  "ex_188": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 402,
+    "call": "backLever('full', { rings: true })",
+    "family": "backLever"
+  },
+  "ex_189": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 383,
+    "call": "ringsToSupport({ start: 'german', direction: 'backward' })",
+    "family": "ringsToSupport"
+  },
+  "ex_190": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 381,
+    "call": "ringsToSupport({ start: 'inverted-pike', end: 'l', direction: 'backward' })",
+    "family": "ringsToSupport"
+  },
+  "ex_191": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 459,
+    "call": "pistol(6)",
+    "family": "pistol"
+  },
+  "ex_192": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 466,
+    "call": "nordic('full', { armsOverhead: true })",
+    "family": "nordic"
+  },
+  "ex_193": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 463,
+    "call": "shrimp('advanced', { deficit: true })",
+    "family": "shrimp"
+  },
+  "ex_194": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 444,
+    "call": "dragonFlag('full', { weighted: true })",
+    "family": "dragonFlag"
+  },
+  "ex_195": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 389,
+    "call": "pelicanCurl(false, { feetUp: true })",
+    "family": "pelicanCurl"
+  },
+  "ex_196": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 468,
+    "call": "kneelingQuad('matrix', { elevated: true })",
+    "family": "kneelingQuad"
+  },
+  "ex_197": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 347,
+    "call": "dip({ depth: 'forearms', shoulders: 'behind-wrist' })",
+    "family": "dip"
+  },
+  "ex_198": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 421,
+    "call": "ringsHandstandPushUp('strap')",
+    "family": "ringsHandstandPushUp"
+  },
+  "ex_199": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 435,
+    "call": "overheadPress(10.5)",
+    "family": "overheadPress"
+  },
+  "ex_200": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 423,
+    "call": "pressToHandstand('straight-body')",
+    "family": "pressToHandstand"
+  },
+  "ex_201": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 430,
+    "call": "pressToHandstand('bent-arm', { rings: true })",
+    "family": "pressToHandstand"
+  },
+  "ex_202": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 427,
+    "call": "pressToHandstand('l-sit')",
+    "family": "pressToHandstand"
+  },
+  "ex_203": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 451,
+    "call": "vSit(100)",
+    "family": "vSit"
+  },
+  "ex_204": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 404,
+    "call": "backLever('full', { from: 'pullout' })",
+    "family": "backLever"
+  },
+  "ex_205": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 393,
+    "call": "frontLever('full')",
+    "family": "frontLever"
+  },
+  "ex_206": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 397,
+    "call": "frontLever('straddle', { rows: true })",
+    "family": "frontLever"
+  },
+  "ex_207": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 362,
+    "call": "pullUp({ kind: 'one-arm', tempo: 'slow-return' })",
+    "family": "pullUp"
+  },
+  "ex_208": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 367,
+    "call": "pullUp({ extra: 'plate', plate: 10 })",
+    "family": "pullUp"
+  },
+  "ex_209": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 371,
+    "call": "lPullUp({ slap: 'abs' })",
+    "family": "lPullUp"
+  },
+  "ex_210": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 334,
+    "call": "planche({ legs: 'straddle' })",
+    "family": "planche"
+  },
+  "ex_211": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 338,
+    "call": "planche({ legs: 'advanced-tuck', rings: true })",
+    "family": "planche"
+  },
+  "ex_212": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 336,
+    "call": "planche({ legs: 'advanced-tuck', press: true })",
+    "family": "planche"
+  },
+  "ex_213": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 340,
+    "call": "planche({ legs: 'tuck', rings: true, press: true })",
+    "family": "planche"
+  },
+  "ex_214": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 329,
+    "call": "pushUp({ grip: 'pseudo', lean: 0.65, rings: true, turnedOut: true })",
+    "family": "pushUp"
+  },
+  "ex_215": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 325,
+    "call": "oneArmPushUp('floor')",
+    "family": "oneArmPushUp"
+  },
+  "ex_216": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 345,
+    "call": "dip({ oneArm: true, legs: 'straight' })",
+    "family": "dip"
+  },
+  "ex_217": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 351,
+    "call": "dip({ rings: true, turnedOut: true, lean: 75 })",
+    "family": "dip"
+  },
+  "ex_218": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 355,
+    "call": "dip({ extra: 'plate', plate: 10 })",
+    "family": "dip"
+  },
+  "ex_219": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 379,
+    "call": "leverToPlanche()",
+    "family": "leverToPlanche"
+  },
+  "ex_220": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 446,
+    "call": "elbowLever({ oneArm: true })",
+    "family": "elbowLever"
+  },
+  "ex_221": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 448,
+    "call": "humanFlag('full')",
+    "family": "humanFlag"
+  },
+  "ex_222": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 441,
+    "call": "abWheel('standing')",
+    "family": "abWheel"
+  },
+  "ex_223": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 394,
+    "call": "frontLever('full', { rings: true })",
+    "family": "frontLever"
+  },
+  "ex_224": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 460,
+    "call": "pistol(7)",
+    "family": "pistol"
+  },
+  "ex_225": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 467,
+    "call": "nordic('full', { weighted: true })",
+    "family": "nordic"
+  },
+  "ex_226": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 464,
+    "call": "shrimp('two-hands', { deficit: true })",
+    "family": "shrimp"
+  },
+  "ex_227": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 386,
+    "call": "hefesto({ tempo: 'slow-return' })",
+    "family": "hefesto"
+  },
+  "ex_228": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 469,
+    "call": "kneelingQuad('matrix', { oneLeg: true })",
+    "family": "kneelingQuad"
+  },
+  "ex_229": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 403,
+    "call": "backLever('full', { oneArm: true })",
+    "family": "backLever"
+  },
+  "ex_230": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 348,
+    "call": "dip({ depth: 'forearms', shoulders: 'above-elbow' })",
+    "family": "dip"
+  },
+  "ex_231": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 420,
+    "call": "ringsHandstandPushUp('wide')",
+    "family": "ringsHandstandPushUp"
+  },
+  "ex_232": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 436,
+    "call": "overheadPress(11)",
+    "family": "overheadPress"
+  },
+  "ex_233": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 424,
+    "call": "pressToHandstand('elbow-lever')",
+    "family": "pressToHandstand"
+  },
+  "ex_234": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 431,
+    "call": "pressToHandstand('bars-dip', { rings: true })",
+    "family": "pressToHandstand"
+  },
+  "ex_235": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 428,
+    "call": "pressToHandstand('l-sit')",
+    "family": "pressToHandstand"
+  },
+  "ex_236": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 452,
+    "call": "vSit(120)",
+    "family": "vSit"
+  },
+  "ex_237": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 405,
+    "call": "backLever('full', { from: 'german-pullout' })",
+    "family": "backLever"
+  },
+  "ex_238": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 395,
+    "call": "frontLever('full', { toInverted: 'from-lever' })",
+    "family": "frontLever"
+  },
+  "ex_239": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 398,
+    "call": "frontLever('straddle', { rows: true })",
+    "family": "frontLever"
+  },
+  "ex_240": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 361,
+    "call": "pullUp({ kind: 'one-arm' })",
+    "family": "pullUp"
+  },
+  "ex_241": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 368,
+    "call": "pullUp({ extra: 'plate', plate: 11 })",
+    "family": "pullUp"
+  },
+  "ex_242": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 372,
+    "call": "lPullUp({ slap: 'thighs' })",
+    "family": "lPullUp"
+  },
+  "ex_243": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 409,
+    "call": "ironCross({ partial: true })",
+    "family": "ironCross"
+  },
+  "ex_244": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 335,
+    "call": "planche({ legs: 'half-lay' })",
+    "family": "planche"
+  },
+  "ex_245": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 330,
+    "call": "pushUp({ grip: 'pseudo', lean: 1, rings: true, turnedOut: true })",
+    "family": "pushUp"
+  },
+  "ex_246": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 326,
+    "call": "oneArmPushUp('floor', { rings: true })",
+    "family": "oneArmPushUp"
+  },
+  "ex_247": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 346,
+    "call": "dip({ oneArm: true, legs: 'straight' })",
+    "family": "dip"
+  },
+  "ex_248": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 352,
+    "call": "dip({ rings: true, turnedOut: true, lean: 90 })",
+    "family": "dip"
+  },
+  "ex_249": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 356,
+    "call": "dip({ extra: 'plate', plate: 11 })",
+    "family": "dip"
+  },
+  "ex_250": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 378,
+    "call": "muscleUp(undefined, false, true)",
+    "family": "muscleUp"
+  },
+  "ex_251": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 442,
+    "call": "abWheel('standing', { weighted: true })",
+    "family": "abWheel"
+  },
+  "ex_252": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 450,
+    "call": "vSit(90, { rings: true })",
+    "family": "vSit"
+  },
+  "ex_253": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 385,
+    "call": "ringsToSupport({ start: 'inverted-pike', end: 'l' })",
+    "family": "ringsToSupport"
+  },
+  "ex_254": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 461,
+    "call": "pistol(8)",
+    "family": "pistol"
+  },
+  "ex_255": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 465,
+    "call": "shrimp('advanced', { deficit: true, load: 5 })",
+    "family": "shrimp"
+  },
+  "ex_256": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 387,
+    "call": "hefesto()",
+    "family": "hefesto"
+  },
+  "ex_257": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 411,
+    "call": "victorian('hold')",
+    "family": "victorian"
+  },
+  "ex_258": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 470,
+    "call": "kneelingQuad('leg-extension', { oneLeg: true })",
+    "family": "kneelingQuad"
+  },
+  "ex_259": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 416,
+    "call": "handstand('one-arm')",
+    "family": "handstand"
+  },
+  "ex_260": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 437,
+    "call": "overheadPress(11.5)",
+    "family": "overheadPress"
+  },
+  "ex_261": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 425,
+    "call": "pressToHandstand('bars-dip')",
+    "family": "pressToHandstand"
+  },
+  "ex_262": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 432,
+    "call": "pressToHandstand('straight-body', { rings: true })",
+    "family": "pressToHandstand"
+  },
+  "ex_263": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 433,
+    "call": "pressToHandstand('l-sit', { rings: true })",
+    "family": "pressToHandstand"
+  },
+  "ex_264": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 453,
+    "call": "vSit(140)",
+    "family": "vSit"
+  },
+  "ex_265": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 406,
+    "call": "backLever('full', { from: 'pull-up' })",
+    "family": "backLever"
+  },
+  "ex_266": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 396,
+    "call": "frontLever('full', { toInverted: 'from-hang' })",
+    "family": "frontLever"
+  },
+  "ex_267": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 399,
+    "call": "frontLever('full', { rows: true })",
+    "family": "frontLever"
+  },
+  "ex_268": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 363,
+    "call": "pullUp({ kind: 'one-arm', extra: 'plate', plate: 4.5 })",
+    "family": "pullUp"
+  },
+  "ex_269": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 369,
+    "call": "pullUp({ extra: 'plate', plate: 12 })",
+    "family": "pullUp"
+  },
+  "ex_270": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 365,
+    "call": "pullUp({ kind: 'slap' })",
+    "family": "pullUp"
+  },
+  "ex_271": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 410,
+    "call": "ironCross()",
+    "family": "ironCross"
+  },
+  "ex_272": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 339,
+    "call": "planche({ legs: 'straddle', rings: true })",
+    "family": "planche"
+  },
+  "ex_273": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 337,
+    "call": "planche({ legs: 'straddle', press: true })",
+    "family": "planche"
+  },
+  "ex_274": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 341,
+    "call": "planche({ legs: 'advanced-tuck', rings: true, press: true })",
+    "family": "planche"
+  },
+  "ex_275": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 331,
+    "call": "pushUp({ grip: 'pseudo', lean: 0.5, feetUp: true })",
+    "family": "pushUp"
+  },
+  "ex_276": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 353,
+    "call": "dip({ rings: true, turnedOut: true, lean: 120 })",
+    "family": "dip"
+  },
+  "ex_277": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 357,
+    "call": "dip({ extra: 'plate', plate: 12 })",
+    "family": "dip"
+  },
+  "ex_278": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 380,
+    "call": "ringsToSupport({ start: 'inverted-straight', direction: 'backward' })",
+    "family": "ringsToSupport"
+  },
+  "ex_279": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 443,
+    "call": "abWheel('standing', { oneArm: true })",
+    "family": "abWheel"
+  },
+  "ex_281": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 384,
+    "call": "ringsToSupport({ start: 'german', end: 'l', direction: 'backward' })",
+    "family": "ringsToSupport"
+  },
+  "ex_282": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 382,
+    "call": "ringsToSupport({ start: 'inverted-straight' })",
+    "family": "ringsToSupport"
+  },
+  "ex_283": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 462,
+    "call": "pistol(9)",
+    "family": "pistol"
+  },
+  "ex_284": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 388,
+    "call": "hefesto({ from: 'back-lever' })",
+    "family": "hefesto"
+  },
+  "ex_285": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 412,
+    "call": "victorian('press')",
+    "family": "victorian"
+  },
+  "ex_286": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 471,
+    "call": "kneelingQuad('sissy', { oneLeg: true })",
+    "family": "kneelingQuad"
+  },
+  "ex_287": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 349,
+    "call": "dip({ depth: 'forearms', shoulders: 'behind-elbow' })",
+    "family": "dip"
+  },
+  "ex_288": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 554,
+    "call": "overheadPress(12)",
+    "family": "overheadPress"
+  },
+  "ex_289": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 550,
+    "call": "pressToHandstand('elbow-lever', { rings: true })",
+    "family": "pressToHandstand"
+  },
+  "ex_290": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 552,
+    "call": "pressToHandstand('l-sit', { rings: true })",
+    "family": "pressToHandstand"
+  },
+  "ex_291": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 557,
+    "call": "vSit(155)",
+    "family": "vSit"
+  },
+  "ex_292": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 527,
+    "call": "ringsFlow('handstand', 'back-lever', { direction: 'none' })",
+    "family": "ringsFlow"
+  },
+  "ex_293": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 532,
+    "call": "frontLever('full', { toInverted: 'from-lever' })",
+    "family": "frontLever"
+  },
+  "ex_294": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 533,
+    "call": "frontLever('full', { rope: true })",
+    "family": "frontLever"
+  },
+  "ex_295": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 509,
+    "call": "pullUp({ kind: 'one-arm', extra: 'plate', plate: 5.5 })",
+    "family": "pullUp"
+  },
+  "ex_296": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 508,
+    "call": "pullUp({ extra: 'plate', plate: 12.5 })",
+    "family": "pullUp"
+  },
+  "ex_297": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 510,
+    "call": "pullUp({ kind: 'clap-behind' })",
+    "family": "pullUp"
+  },
+  "ex_298": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 526,
+    "call": "ringsFlow('cross', 'back-lever', { direction: 'none' })",
+    "family": "ringsFlow"
+  },
+  "ex_299": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 485,
+    "call": "planche({ legs: 'full' })",
+    "family": "planche"
+  },
+  "ex_300": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 480,
+    "call": "pushUp({ grip: 'pseudo', lean: 0.5, feetUp: true, rings: true })",
+    "family": "pushUp"
+  },
+  "ex_301": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 500,
+    "call": "dip({ rings: true, turnedOut: true, lean: 140 })",
+    "family": "dip"
+  },
+  "ex_302": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 505,
+    "call": "dip({ extra: 'plate', plate: 12.5 })",
+    "family": "dip"
+  },
+  "ex_303": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 515,
+    "call": "leverToPlanche('straddle')",
+    "family": "leverToPlanche"
+  },
+  "ex_304": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 518,
+    "call": "ringsFlow('inverted-pike', 'handstand', { direction: 'backward' })",
+    "family": "ringsFlow"
+  },
+  "ex_305": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 521,
+    "call": "ringsFlow('inverted-pike', 'straddle-l', { direction: 'backward' })",
+    "family": "ringsFlow"
+  },
+  "ex_306": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 562,
+    "call": "pistol(10)",
+    "family": "pistol"
+  },
+  "ex_307": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 528,
+    "call": "hefesto({ from: 'back-lever' })",
+    "family": "hefesto"
+  },
+  "ex_308": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 541,
+    "call": "victorian('hold')",
+    "family": "victorian"
+  },
+  "ex_309": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 563,
+    "call": "kneelingQuad('matrix', { oneLeg: true })",
+    "family": "kneelingQuad"
+  },
+  "ex_310": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 551,
+    "call": "pressToHandstand('bars-dip', { rings: true })",
+    "family": "pressToHandstand"
+  },
+  "ex_311": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 553,
+    "call": "pressToHandstand('straddle-stand', { rings: true })",
+    "family": "pressToHandstand"
+  },
+  "ex_312": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 558,
+    "call": "vSit(170)",
+    "family": "vSit"
+  },
+  "ex_313": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 494,
+    "call": "pressToHandstand('straddle-planche')",
+    "family": "pressToHandstand"
+  },
+  "ex_314": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 486,
+    "call": "planche({ legs: 'half-lay', rings: true })",
+    "family": "planche"
+  },
+  "ex_315": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 489,
+    "call": "planche({ legs: 'half-lay', press: true })",
+    "family": "planche"
+  },
+  "ex_316": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 491,
+    "call": "planche({ legs: 'straddle', rings: true, press: true })",
+    "family": "planche"
+  },
+  "ex_317": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 481,
+    "call": "pushUp({ grip: 'pseudo', lean: 1, feetUp: true })",
+    "family": "pushUp"
+  },
+  "ex_318": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 501,
+    "call": "dip({ rings: true, turnedOut: true, lean: 155 })",
+    "family": "dip"
+  },
+  "ex_319": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 516,
+    "call": "ringsFlow('inverted-straight', 'handstand', { direction: 'backward' })",
+    "family": "ringsFlow"
+  },
+  "ex_320": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 519,
+    "call": "ringsFlow('inverted-pike', 'handstand', { direction: 'backward' })",
+    "family": "ringsFlow"
+  },
+  "ex_321": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 529,
+    "call": "hefesto()",
+    "family": "hefesto"
+  },
+  "ex_322": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 534,
+    "call": "frontLever('full', { oneArm: true })",
+    "family": "frontLever"
+  },
+  "ex_323": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 559,
+    "call": "vSit(178)",
+    "family": "vSit"
+  },
+  "ex_324": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 538,
+    "call": "ironCross({ pullout: true })",
+    "family": "ironCross"
+  },
+  "ex_325": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 482,
+    "call": "pushUp({ grip: 'pseudo', lean: 1, feetUp: true, rings: true })",
+    "family": "pushUp"
+  },
+  "ex_326": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 502,
+    "call": "dip({ rings: true, turnedOut: true, lean: 165 })",
+    "family": "dip"
+  },
+  "ex_327": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 523,
+    "call": "ringsFlow('inverted-pike', 'cross')",
+    "family": "ringsFlow"
+  },
+  "ex_328": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 524,
+    "call": "ringsFlow('inverted-straight', 'cross')",
+    "family": "ringsFlow"
+  },
+  "ex_329": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 542,
+    "call": "victorian('hold')",
+    "family": "victorian"
+  },
+  "ex_330": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 546,
+    "call": "victorian('press', { oneArm: true })",
+    "family": "victorian"
+  },
+  "ex_331": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 535,
+    "call": "backLever('full', { from: 'pull-up', rings: true })",
+    "family": "backLever"
+  },
+  "ex_332": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 495,
+    "call": "pressToHandstand('straddle-planche', { rings: true })",
+    "family": "pressToHandstand"
+  },
+  "ex_333": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 487,
+    "call": "planche({ legs: 'full', rings: true })",
+    "family": "planche"
+  },
+  "ex_334": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 490,
+    "call": "planche({ legs: 'full', press: true })",
+    "family": "planche"
+  },
+  "ex_335": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 492,
+    "call": "planche({ legs: 'half-lay', rings: true, press: true })",
+    "family": "planche"
+  },
+  "ex_336": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 503,
+    "call": "dip({ rings: true, turnedOut: true, lean: 172 })",
+    "family": "dip"
+  },
+  "ex_337": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 517,
+    "call": "ringsFlow('inverted-straight', 'handstand')",
+    "family": "ringsFlow"
+  },
+  "ex_339": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 525,
+    "call": "ringsFlow('inverted-pike', 'cross', { direction: 'backward' })",
+    "family": "ringsFlow"
+  },
+  "ex_345": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 514,
+    "call": "barPullover()",
+    "family": "barPullover"
+  },
+  "ex_346": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 522,
+    "call": "ringsFlow('inverted-pike', 'planche', { direction: 'backward' })",
+    "family": "ringsFlow"
+  },
+  "ex_347": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 520,
+    "call": "ringsFlow('inverted-straight', 'handstand')",
+    "family": "ringsFlow"
+  },
+  "ex_348": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 543,
+    "call": "victorian('hold', { rings: true })",
+    "family": "victorian"
+  },
+  "ex_349": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 545,
+    "call": "victorian('press')",
+    "family": "victorian"
+  },
+  "ex_350": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 539,
+    "call": "ironCross({ from: 'hang' })",
+    "family": "ironCross"
+  },
+  "ex_351": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 496,
+    "call": "pressToHandstand('full-planche', { rings: true })",
+    "family": "pressToHandstand"
+  },
+  "ex_352": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 493,
+    "call": "planche({ legs: 'full', rings: true, press: true })",
+    "family": "planche"
+  },
+  "ex_353": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 504,
+    "call": "dip({ rings: true, turnedOut: true, lean: 178 })",
+    "family": "dip"
+  },
+  "ex_354": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 497,
+    "call": "maltese()",
+    "family": "maltese"
+  },
+  "ex_355": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 513,
+    "call": "muscleUp()",
+    "family": "muscleUp"
+  },
+  "ex_356": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 540,
+    "call": "ironCross({ inverted: true })",
+    "family": "ironCross"
+  },
+  "ex_357": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 544,
+    "call": "victorian('floor')",
+    "family": "victorian"
+  },
+  "ex_358": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 488,
+    "call": "planche({ legs: 'full', oneArm: true })",
+    "family": "planche"
+  },
+  "ex_366": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 134,
+    "call": "rotation('full-turn')",
+    "family": "rotation"
+  },
+  "ex_367": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 127,
+    "call": "hangingRaise('l-hang')",
+    "family": "hangingRaise"
+  },
+  "ex_368": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 142,
+    "call": "row({ angle: 'upright', rings: true })",
+    "family": "row"
+  },
+  "ex_372": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 400,
+    "call": "frontLever('tuck', { rows: true, rings: true })",
+    "family": "frontLever"
+  },
+  "ex_376": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 218,
+    "call": "pullUp({ kind: 'typewriter' })",
+    "family": "pullUp"
+  },
+  "ex_377": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 219,
+    "call": "pullUp({ kind: 'archer' })",
+    "family": "pullUp"
+  },
+  "ex_378": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 220,
+    "call": "pullUp({ kind: 'one-arm', tempo: 'slow-return' })",
+    "family": "pullUp"
+  },
+  "ex_379": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 360,
+    "call": "pullUp({ kind: 'one-arm' })",
+    "family": "pullUp"
+  },
+  "ex_380": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 118,
+    "call": "pullUp({ kind: 'scapular' })",
+    "family": "pullUp"
+  },
+  "ex_383": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 121,
+    "call": "archHang()",
+    "family": "archHang"
+  },
+  "ex_384": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 122,
+    "call": "chestToBar()",
+    "family": "chestToBar"
+  },
+  "ex_385": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 111,
+    "call": "support({ rings: false, press: true })",
+    "family": "support"
+  },
+  "ex_386": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 170,
+    "call": "sidePlank()",
+    "family": "sidePlank"
+  },
+  "ex_387": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 175,
+    "call": "verticalFlag()",
+    "family": "verticalFlag"
+  },
+  "ex_388": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 291,
+    "call": "elbowLever({ oneArmToHandstand: true })",
+    "family": "elbowLever"
+  },
+  "ex_404": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 173,
+    "call": "backBridge('head')",
+    "family": "backBridge"
+  },
+  "ex_405": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 174,
+    "call": "backBridge('one-arm')",
+    "family": "backBridge"
+  },
+  "ex_406": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 171,
+    "call": "reversePlank('reverse-plank')",
+    "family": "reversePlank"
+  },
+  "ex_408": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 172,
+    "call": "reversePlank('table')",
+    "family": "reversePlank"
+  },
+  "ex_409": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 297,
+    "call": "backBridge('angled')",
+    "family": "backBridge"
+  },
+  "ex_410": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 298,
+    "call": "backBridge('wheel')",
+    "family": "backBridge"
+  },
+  "ex_411": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 454,
+    "call": "backBridge('decline')",
+    "family": "backBridge"
+  },
+  "ex_412": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 455,
+    "call": "backBridge('one-leg')",
+    "family": "backBridge"
+  },
+  "ex_413": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 456,
+    "call": "backBridge('decline-one-leg')",
+    "family": "backBridge"
+  },
+  "ex_414": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 417,
+    "call": "handstand('tuck')",
+    "family": "handstand"
+  },
+  "ex_416": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 549,
+    "call": "handstand('one-arm')",
+    "family": "handstand"
+  },
+  "ex_419": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 98,
+    "call": "wallPlank()",
+    "family": "wallPlank"
+  },
+  "ex_420": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 97,
+    "call": "wallHeadstand()",
+    "family": "wallHeadstand"
+  },
+  "ex_428": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 89,
+    "call": "pikePress({ box: true })",
+    "family": "pikePress"
+  },
+  "ex_430": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 84,
+    "call": "pushUp({ grip: 'pseudo' })",
+    "family": "pushUp"
+  },
+  "ex_431": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 86,
+    "call": "archerPushUp()",
+    "family": "archerPushUp"
+  },
+  "ex_437": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 568,
+    "call": "pushUp()",
+    "family": "pushUp"
+  },
+  "ex_438": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 569,
+    "call": "pushUp({ grip: 'pseudo', lean: 0.5 })",
+    "family": "pushUp"
+  },
+  "ex_439": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 570,
+    "call": "pullUp({ kind: 'scapular' })",
+    "family": "pullUp"
+  },
+  "ex_440": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 571,
+    "call": "pelicanCurl(true)",
+    "family": "pelicanCurl"
+  },
+  "ex_441": {
+    "file": "apps/web/src/components/skilltree/calisthenicsFigures.ts",
+    "line": 572,
+    "call": "floorCore('post-tuck')",
+    "family": "floorCore"
+  },
+  "face_pulls": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 922,
+    "call": "facePull()",
+    "family": "facePull"
+  },
+  "farmers_carry": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 977,
+    "call": "farmersCarry(4.2)",
+    "family": "farmersCarry"
+  },
+  "glute_kickback": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 963,
+    "call": "gluteKickback()",
+    "family": "gluteKickback"
+  },
+  "gym_ab_wheel": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 980,
+    "call": "abWheel()",
+    "family": "abWheel"
+  },
+  "gym_assisted_pullup": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 990,
+    "call": "latPulldown()",
+    "family": "latPulldown",
+    "sameAs": "lat_pulldown"
+  },
+  "gym_bench_1_5x": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 906,
+    "call": "benchPress(LOAD.elite)",
+    "family": "benchPress"
+  },
+  "gym_bench_2x": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 989,
+    "call": "benchPress(LOAD.elite)",
+    "family": "benchPress",
+    "sameAs": "gym_bench_1_5x"
+  },
+  "gym_bench_bodyweight": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 903,
+    "call": "benchPress(LOAD.heavy)",
+    "family": "benchPress"
+  },
+  "gym_cable_crunch": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 978,
+    "call": "cableCrunch()",
+    "family": "cableCrunch"
+  },
+  "gym_close_grip_bench": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 905,
+    "call": "benchPress(LOAD.heavy, ['lArm', 'rArm'])",
+    "family": "benchPress"
+  },
+  "gym_db_bench": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 896,
+    "call": "benchPress('dumbbells')",
+    "family": "benchPress"
+  },
+  "gym_deadlift_2_5x": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 954,
+    "call": "hinge('deadlift', LOAD.elite)",
+    "family": "hinge"
+  },
+  "gym_deadlift_2x": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 952,
+    "call": "hinge('deadlift', LOAD.heavy)",
+    "family": "hinge"
+  },
+  "gym_deadlift_3x": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 992,
+    "call": "hinge('deadlift', LOAD.elite)",
+    "family": "hinge",
+    "sameAs": "gym_deadlift_2_5x"
+  },
+  "gym_farmers_bodyweight": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 981,
+    "call": "farmersCarry(6)",
+    "family": "farmersCarry"
+  },
+  "gym_front_squat": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 949,
+    "call": "squat({ kind: 'front', r: LOAD.working })",
+    "family": "squat"
+  },
+  "gym_goblet_squat": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 941,
+    "call": "squat({ kind: 'goblet' })",
+    "family": "squat"
+  },
+  "gym_hanging_leg_raise": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 979,
+    "call": "hangingLegRaise()",
+    "family": "hangingLegRaise"
+  },
+  "gym_kb_deadlift": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 942,
+    "call": "hinge('kettlebell')",
+    "family": "hinge"
+  },
+  "gym_ohp_bodyweight": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 907,
+    "call": "overheadPress('standing', LOAD.heavy)",
+    "family": "overheadPress"
+  },
+  "gym_pendlay_row": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 928,
+    "call": "barbellRow(LOAD.working, true)",
+    "family": "barbellRow"
+  },
+  "gym_plank": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 975,
+    "call": "plank()",
+    "family": "plank"
+  },
+  "gym_pullup": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 925,
+    "call": "pullUp()",
+    "family": "pullUp"
+  },
+  "gym_pullup_half_bw": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 931,
+    "call": "pullUp(LOAD.heavy)",
+    "family": "pullUp"
+  },
+  "gym_pushup": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 895,
+    "call": "pushUp()",
+    "family": "pushUp"
+  },
+  "gym_rdl": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 950,
+    "call": "hinge('romanian', LOAD.working)",
+    "family": "hinge"
+  },
+  "gym_row_bodyweight": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 930,
+    "call": "barbellRow(LOAD.heavy)",
+    "family": "barbellRow"
+  },
+  "gym_squat_1_5x": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 951,
+    "call": "squat({ kind: 'back', r: LOAD.heavy })",
+    "family": "squat"
+  },
+  "gym_squat_2_5x": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 991,
+    "call": "squat({ kind: 'back', r: LOAD.elite })",
+    "family": "squat",
+    "sameAs": "gym_squat_2x"
+  },
+  "gym_squat_2x": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 953,
+    "call": "squat({ kind: 'back', r: LOAD.elite })",
+    "family": "squat"
+  },
+  "gym_weighted_pullup": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 929,
+    "call": "pullUp(LOAD.light)",
+    "family": "pullUp"
+  },
+  "hack_squat": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 959,
+    "call": "hackSquat()",
+    "family": "hackSquat"
+  },
+  "hammer_curl": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 927,
+    "call": "curl('dumbbell')",
+    "family": "curl"
+  },
+  "hip_abduction": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 960,
+    "call": "hipMachine(true)",
+    "family": "hipMachine"
+  },
+  "hip_adduction": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 961,
+    "call": "hipMachine(false)",
+    "family": "hipMachine"
+  },
+  "incline_bench": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 902,
+    "call": "inclinePress(LOAD.working)",
+    "family": "inclinePress"
+  },
+  "incline_db_press": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 913,
+    "call": "inclinePress('dumbbells')",
+    "family": "inclinePress"
+  },
+  "larsen_press": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 916,
+    "call": "benchPress(LOAD.working, ['torso', 'lArm', 'rArm'])",
+    "family": "benchPress"
+  },
+  "lat_pulldown": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 921,
+    "call": "latPulldown()",
+    "family": "latPulldown"
+  },
+  "lateral_raise": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 897,
+    "call": "lateralRaise()",
+    "family": "lateralRaise"
+  },
+  "leg_curl": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 943,
+    "call": "legCurl()",
+    "family": "legCurl"
+  },
+  "leg_extension": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 958,
+    "call": "legExtension()",
+    "family": "legExtension"
+  },
+  "leg_press": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 955,
+    "call": "legPress(LOAD.working)",
+    "family": "legPress"
+  },
+  "leg_press_2x": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 956,
+    "call": "legPress(LOAD.heavy)",
+    "family": "legPress"
+  },
+  "leg_press_3x": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 957,
+    "call": "legPress(LOAD.elite)",
+    "family": "legPress"
+  },
+  "machine_chest_press": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 908,
+    "call": "chestPress()",
+    "family": "chestPress"
+  },
+  "machine_chest_press_bw": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 993,
+    "call": "chestPress()",
+    "family": "chestPress",
+    "sameAs": "machine_chest_press"
+  },
+  "machine_dip": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 912,
+    "call": "seatedDip()",
+    "family": "seatedDip"
+  },
+  "machine_preacher_curl": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 937,
+    "call": "preacherCurl()",
+    "family": "preacherCurl"
+  },
+  "machine_row": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 932,
+    "call": "cableRow()",
+    "family": "cableRow"
+  },
+  "machine_shoulder_press": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 911,
+    "call": "overheadPress('seated')",
+    "family": "overheadPress"
+  },
+  "overhead_extension": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 901,
+    "call": "overheadExtension()",
+    "family": "overheadExtension"
+  },
+  "overhead_press": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 904,
+    "call": "overheadPress('standing')",
+    "family": "overheadPress"
+  },
+  "pallof_press": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 984,
+    "call": "pallofPress()",
+    "family": "pallofPress"
+  },
+  "pause_squat": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 967,
+    "call": "squat({ kind: 'back', r: LOAD.heavy })",
+    "family": "squat"
+  },
+  "pec_deck": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 909,
+    "call": "reversePecDeck(true)",
+    "family": "reversePecDeck"
+  },
+  "push_press": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 917,
+    "call": "overheadPress('standing', LOAD.heavy)",
+    "family": "overheadPress"
+  },
+  "reverse_pec_deck": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 926,
+    "call": "reversePecDeck()",
+    "family": "reversePecDeck"
+  },
+  "seated_calf_raise": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 962,
+    "call": "seatedCalfRaise()",
+    "family": "seatedCalfRaise"
+  },
+  "skull_crusher": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 914,
+    "call": "skullCrusher()",
+    "family": "skullCrusher"
+  },
+  "split_squat": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 948,
+    "call": "splitSquat()",
+    "family": "splitSquat"
+  },
+  "spoto_press": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 915,
+    "call": "benchPress(LOAD.working)",
+    "family": "benchPress"
+  },
+  "straight_arm_pulldown": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 936,
+    "call": "straightArmPulldown()",
+    "family": "straightArmPulldown"
+  },
+  "sumo_deadlift": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 969,
+    "call": "hinge('deadlift', LOAD.heavy)",
+    "family": "hinge"
+  },
+  "t_bar_row": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 935,
+    "call": "barbellRow(LOAD.heavy)",
+    "family": "barbellRow"
+  },
+  "total_4x": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 971,
+    "call": "hinge('deadlift', LOAD.heavy)",
+    "family": "hinge"
+  },
+  "total_5x": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 972,
+    "call": "hinge('deadlift', LOAD.elite)",
+    "family": "hinge"
+  },
+  "total_6x": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 994,
+    "call": "hinge('deadlift', LOAD.elite)",
+    "family": "hinge",
+    "sameAs": "total_5x"
+  },
+  "trap_bar_deadlift": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 968,
+    "call": "hinge('deadlift', LOAD.working)",
+    "family": "hinge"
+  },
+  "tricep_pushdown": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 898,
+    "call": "tricepPushdown()",
+    "family": "tricepPushdown"
+  },
+  "walking_lunges": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 944,
+    "call": "lunge()",
+    "family": "lunge"
+  },
+  "weighted_back_extension": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 965,
+    "call": "backExtension(LOAD.light)",
+    "family": "backExtension"
+  },
+  "wrist_curls": {
+    "file": "apps/web/src/components/skilltree/gymFigures.ts",
+    "line": 976,
+    "call": "wristCurl()",
+    "family": "wristCurl"
+  }
+}

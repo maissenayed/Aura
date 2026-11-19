@@ -1,4 +1,6 @@
 import React, { useId, useSyncExternalStore } from 'react';
+import type { PropTuning } from '../game/propTuning';
+import { usePropTuning } from '../game/propTuningContext';
 
 /**
  * Draws one skill illustration in chalk on iron: a figure on a wall,
@@ -188,6 +190,8 @@ interface SkillFigureProps {
   underlay?: React.ReactNode;
   /** Drawn in front of the athlete, given the motion's timing (null when still) so it can move with them. */
   overlay?: (play: MotionPlay | null) => React.ReactNode;
+  /** Plays even when the visitor asked for less motion: the figure studio's timeline drives it by hand. */
+  alwaysAnimate?: boolean;
 }
 
 export const SkillFigure: React.FC<SkillFigureProps> = ({
@@ -201,10 +205,12 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
   tint,
   underlay,
   overlay,
+  alwaysAnimate = false,
 }) => {
   // Marker ids must be unique per drawing, and safe inside url(#…).
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
-  const reducedMotion = useReducedMotion();
+  const reducedMotion = useReducedMotion() && !alwaysAnimate;
+  const t = usePropTuning();
   const arrowHead = `${uid}-arrow`;
   const clip = `${uid}-clip`;
   const body = tint?.body ?? INK.body;
@@ -302,7 +308,7 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
 
         {shadow && <ellipse cx={shadow.cx} cy={shadow.cy} rx={shadow.rx} ry="1.8" opacity="0.85" style={{ fill: INK.shadow }} />}
 
-        {spec.holds?.map((hold, index) => hold.shape !== 'bar' && <HoldMark key={index} hold={hold} accent={accent} />)}
+        {spec.holds?.map((hold, index) => hold.shape !== 'bar' && <HoldMark key={index} hold={hold} accent={accent} t={t} />)}
 
         {layers.map((layer) => (
           <g key={layer.key} opacity={layer.key === 'ghost' ? 0.55 : undefined}>
@@ -347,8 +353,8 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
                 key={`bar${index}`}
                 cx={hold.at[0]}
                 cy={hold.at[1]}
-                r={2.6 * (hold.size ?? 1)}
-                strokeWidth={compact ? 1.8 : 1.4}
+                r={t.bar.r * (hold.size ?? 1)}
+                strokeWidth={t.bar.stroke + (compact ? 0.4 : 0)}
                 style={{ fill: hold.key ? accent : INK.wall, stroke: hold.key ? accent : INK.plate }}
               />
             ),
@@ -356,15 +362,15 @@ export const SkillFigure: React.FC<SkillFigureProps> = ({
 
         {equipment.map(({ disc, target }, index) =>
           disc.kind === 'ring' ? (
-            <circle key={index} cx={at2(disc.at[0])} cy={at2(disc.at[1])} r={disc.r} strokeWidth={compact ? 2 : 1.6} style={{ fill: 'none', stroke: INK.plate }}>
+            <circle key={index} cx={at2(disc.at[0])} cy={at2(disc.at[1])} r={disc.r} strokeWidth={t.rings.stroke + (compact ? 0.4 : 0)} style={{ fill: 'none', stroke: INK.plate }}>
               {follow(disc, target)}
             </circle>
           ) : (
             <g key={index}>
-              <circle cx={at2(disc.at[0])} cy={at2(disc.at[1])} r={disc.r} strokeWidth={compact ? 1.8 : 1.4} style={{ fill: INK.wall, stroke: INK.plate }}>
+              <circle cx={at2(disc.at[0])} cy={at2(disc.at[1])} r={disc.r} strokeWidth={t.plate.stroke + (compact ? 0.4 : 0)} style={{ fill: INK.wall, stroke: INK.plate }}>
                 {follow(disc, target)}
               </circle>
-              <circle cx={at2(disc.at[0])} cy={at2(disc.at[1])} r={Math.max(0.9, disc.r * 0.22)} style={{ fill: INK.plate }}>
+              <circle cx={at2(disc.at[0])} cy={at2(disc.at[1])} r={Math.max(t.plate.hubMin, disc.r * t.plate.hub)} style={{ fill: INK.plate }}>
                 {follow(disc, target)}
               </circle>
             </g>
@@ -422,44 +428,54 @@ const at2 = (value: number) => Math.round(value * 100) / 100;
 const toPath = (pts: Pt[], closed?: boolean) =>
   pts.map(([x, y], index) => `${index === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`).join(' ') + (closed ? ' Z' : '');
 
-const HoldMark: React.FC<{ hold: Hold; accent: string }> = ({ hold, accent }) => {
+const HoldMark: React.FC<{ hold: Hold; accent: string; t: PropTuning }> = ({ hold, accent, t }) => {
   const [x, y] = hold.at;
   const fill = hold.key ? accent : INK.hold;
   const fillOpacity = hold.key ? 0.28 : 1;
   const stroke = hold.key ? accent : INK.holdEdge;
   const common = { fillOpacity, strokeWidth: 0.9, vectorEffect: 'non-scaling-stroke' as const, style: { fill, stroke } };
   const transform = `translate(${x} ${y}) rotate(${hold.rotate ?? 0}) scale(${hold.size ?? 1})`;
+  const h = t.holds;
 
   switch (hold.shape) {
-    case 'jug':
+    case 'jug': {
+      const lip = h.jug.rx * 0.64;
       return (
         <g transform={transform}>
-          <ellipse rx="5" ry="3" {...common} />
-          <path d="M-3.2,-0.4 Q0,1.8 3.2,-0.4" strokeWidth="1.1" style={{ fill: 'none', stroke: INK.panel }} />
+          <ellipse rx={h.jug.rx} ry={h.jug.ry} {...common} />
+          <path d={`M${-lip},-0.4 Q0,${h.jug.ry * 0.6} ${lip},-0.4`} strokeWidth="1.1" style={{ fill: 'none', stroke: INK.panel }} />
         </g>
       );
+    }
     case 'edge':
-      return <rect transform={transform} x="-4.5" y="-1.2" width="9" height="2.4" rx="1" {...common} />;
-    case 'sloper':
-      return <path transform={transform} d="M-6.5,2.2 Q-6.5,-4.2 0,-4.2 Q6.5,-4.2 6.5,2.2 Z" {...common} />;
+      return <rect transform={transform} x={-h.edge.w / 2} y={-h.edge.h / 2} width={h.edge.w} height={h.edge.h} rx="1" {...common} />;
+    case 'sloper': {
+      const half = h.sloper.w / 2;
+      const top = -h.sloper.h * (4.2 / 6.4);
+      const foot = h.sloper.h + top;
+      return <path transform={transform} d={`M${-half},${foot} Q${-half},${top} 0,${top} Q${half},${top} ${half},${foot} Z`} {...common} />;
+    }
     case 'pinch':
-      return <rect transform={transform} x="-1.9" y="-4.8" width="3.8" height="9.6" rx="1.6" {...common} />;
+      return <rect transform={transform} x={-h.pinch.w / 2} y={-h.pinch.h / 2} width={h.pinch.w} height={h.pinch.h} rx={h.pinch.w * 0.42} {...common} />;
     case 'pocket':
       return (
         <g transform={transform}>
-          <circle r="3.2" {...common} />
-          <circle r="1.4" style={{ fill: INK.panel }} />
+          <circle r={h.pocket.r} {...common} />
+          <circle r={h.pocket.hole} style={{ fill: INK.panel }} />
         </g>
       );
     case 'foot':
-      return <circle transform={transform} r="1.8" {...common} />;
-    case 'volume':
-      return <path transform={transform} d="M-10,6 L0,-7 L10,6 Z" strokeLinejoin="round" {...common} />;
+      return <circle transform={transform} r={h.foot.r} {...common} />;
+    case 'volume': {
+      const half = h.volume.w / 2;
+      const top = -h.volume.h * (7 / 13);
+      return <path transform={transform} d={`M${-half},${h.volume.h + top} L0,${top} L${half},${h.volume.h + top} Z`} strokeLinejoin="round" {...common} />;
+    }
     case 'rung':
-      return <rect transform={transform} x="-12" y="-1.3" width="24" height="2.6" rx="0.9" {...common} />;
+      return <rect transform={transform} x={-h.rung.w / 2} y={-h.rung.h / 2} width={h.rung.w} height={h.rung.h} rx="0.9" {...common} />;
     case 'bar':
       // A bar seen end-on.
-      return <circle transform={transform} r="2.4" {...common} />;
+      return <circle transform={transform} r={h.end.r} {...common} />;
   }
 };
 
