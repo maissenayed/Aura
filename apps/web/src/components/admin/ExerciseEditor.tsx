@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, RotateCcw, X } from 'lucide-react';
 import type { RawExercise, Swimlane } from '@aura/types';
 import { DANGER_BUTTON, FormMessage, PRIMARY_BUTTON, SECONDARY_BUTTON } from '../account/ui';
 import { getSwimlane } from '../../data/exercisesData';
@@ -11,12 +11,26 @@ import { api } from '../../utils/accountStore';
  * One exercise, opened from the Exercises page: every field the skill tree
  * reads. Saving sends it to the database; the answer is the whole list, which
  * the page puts in use for the entire app.
+ *
+ * A built-in exercise follows fixes to the app's own list until the owner
+ * saves a change to it; from then on it is theirs, and stays as they made it
+ * until they put it back to the built-in version.
  */
 
+/** What every change answers with: the list, and which parts of it are the owner's own. */
 export interface SavedList {
   version: string;
   exercises: RawExercise[];
+  /** Built-in exercises the owner edited. */
+  edited: string[];
+  /** Exercises the owner added; the built-in list has no version of them. */
+  added: string[];
+  /** Built-in exercises the owner deleted. */
+  deleted: { id: string; name: string; level: number }[];
 }
+
+/** Whose version a row is: the app's (built-in), or the owner's edit of it, or one the owner added. */
+export type Ownership = 'built-in' | 'edited' | 'added';
 
 const INPUT =
   'w-full h-11 px-3 rounded-card bg-ink-950 border border-ink-700 text-fg placeholder:text-fg-5 focus:border-act outline-none transition-colors';
@@ -91,18 +105,49 @@ const payloadOf = (draft: Draft) => ({
 
 const unique = (values: string[]) => [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
+/** The fields as the editor names them, in its order. */
+const FIELDS: [keyof RawExercise, string][] = [
+  ['name', 'Name'],
+  ['level', 'Level'],
+  ['discipline', 'Kind'],
+  ['category', 'Category'],
+  ['subCategory', 'Branch'],
+  ['swimlane', 'Lane'],
+  ['prerequisites', 'Needs first'],
+  ['standard', 'Standard'],
+  ['summary', 'Summary'],
+  ['focus', 'Focus'],
+  ['steps', 'Steps'],
+  ['expertTip', 'Tip'],
+  ['muscles', 'Muscles'],
+  ['videoSearchUrl', 'Video link'],
+  ['youtubeQuery', 'Video search'],
+];
+
+/** Where the owner's version differs from the built-in one (which needs only exercises still in the list). */
+function differences(mine: RawExercise, builtIn: RawExercise, all: RawExercise[]): string[] {
+  const present = new Set(all.map((entry) => entry.id));
+  const base = { ...builtIn, prerequisites: builtIn.prerequisites?.filter((id) => present.has(id)) };
+  return FIELDS.filter(([key]) => JSON.stringify(mine[key] ?? null) !== JSON.stringify(base[key] ?? null)).map(([, label]) => label);
+}
+
 export const ExerciseEditor: React.FC<{
   /** Null for a new exercise. */
   exercise: RawExercise | null;
+  /** The version the app ships with, if it has one. */
+  builtIn: RawExercise | null;
+  ownership: Ownership;
   all: RawExercise[];
   onClose: () => void;
   onSaved: (list: SavedList, message: string) => void;
-}> = ({ exercise, all, onClose, onSaved }) => {
+}> = ({ exercise, builtIn, ownership, all, onClose, onSaved }) => {
   const isNew = exercise === null;
   const [draft, setDraft] = useState<Draft>(() => draftOf(exercise, all));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmBuiltIn, setConfirmBuiltIn] = useState(false);
+  const differs = useMemo(() => (exercise && builtIn && ownership === 'edited' ? differences(exercise, builtIn, all) : []), [exercise, builtIn, ownership, all]);
   const titleId = useId();
   const firstField = useRef<HTMLInputElement>(null);
 
@@ -133,6 +178,16 @@ export const ExerciseEditor: React.FC<{
     else setError(result.error ?? 'The exercise was not saved.');
   };
 
+  const putBackBuiltIn = async () => {
+    if (!exercise) return;
+    setBusy(true);
+    setError(null);
+    const result = await api<SavedList>('POST', `/admin/exercises/${encodeURIComponent(exercise.id)}/restore`);
+    setBusy(false);
+    if (result.data) onSaved(result.data, `${builtIn?.name ?? exercise.name} is back to its built-in version.`);
+    else setError(result.error ?? 'The built-in version was not put back.');
+  };
+
   const remove = async () => {
     if (!exercise) return;
     setBusy(true);
@@ -154,7 +209,9 @@ export const ExerciseEditor: React.FC<{
       >
         <header className="flex items-start gap-3 px-5 pt-5 pb-4 border-b border-ink-800">
           <div className="flex-1 min-w-0">
-            <span className="eyebrow text-fg-4">{isNew ? 'New exercise' : `Edit · ${exercise.id}`}</span>
+            <span className="eyebrow text-fg-4">
+              {isNew ? 'New exercise' : `Edit · ${exercise.id} · ${ownership === 'built-in' ? 'built-in' : ownership === 'edited' ? 'your edit' : 'yours'}`}
+            </span>
             <h2 id={titleId} className="font-display font-extrabold uppercase text-[26px] leading-[0.95] truncate mt-1">
               {draft.name.trim() || 'Untitled'}
             </h2>
@@ -165,6 +222,17 @@ export const ExerciseEditor: React.FC<{
         </header>
 
         <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-6">
+          {!isNew && (
+            <Provenance
+              ownership={ownership}
+              differs={differs}
+              confirming={confirmBuiltIn}
+              busy={busy}
+              onAsk={() => setConfirmBuiltIn(true)}
+              onCancel={() => setConfirmBuiltIn(false)}
+              onConfirm={putBackBuiltIn}
+            />
+          )}
           <Group title="The exercise">
             {isNew && (
               <Text label="Id" hint="Permanent: saves and plans point at it. Lowercase letters, digits, - or _." value={draft.id} onChange={(value) => set('id', value)} mono />
@@ -233,7 +301,10 @@ export const ExerciseEditor: React.FC<{
             <div className="flex flex-col gap-3">
               <p className="text-sm text-fg-2">
                 Delete <b className="text-fg">{exercise.name}</b>? It leaves the tree for everyone
-                {dependents.length ? `, and ${dependents.length} ${dependents.length === 1 ? 'exercise stops' : 'exercises stop'} needing it` : ''}. Restoring the built-in list is the only way back.
+                {dependents.length ? `, and ${dependents.length} ${dependents.length === 1 ? 'exercise stops' : 'exercises stop'} needing it` : ''}.{' '}
+                {builtIn
+                  ? 'Fixes to the built-in list will not bring it back; you can, from the deleted exercises at the bottom of the page.'
+                  : 'The built-in list has no version of it, so it is gone for good.'}
               </p>
               <div className="flex gap-2">
                 <button type="button" disabled={busy} onClick={remove} className={`${DANGER_BUTTON} h-11 px-4 text-sm flex-1 border border-boss/50`}>
@@ -264,6 +335,51 @@ export const ExerciseEditor: React.FC<{
     </div>
   );
 };
+
+/** Whose version this is, and for the owner's edit of a built-in exercise, the way back. */
+const Provenance: React.FC<{
+  ownership: Ownership;
+  differs: string[];
+  confirming: boolean;
+  busy: boolean;
+  onAsk: () => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}> = ({ ownership, differs, confirming, busy, onAsk, onCancel, onConfirm }) => {
+  if (ownership === 'built-in') {
+    return <p className="text-[12.5px] text-fg-4">Built-in: it takes fixes to the app&rsquo;s own list when the app is deployed, until you save a change to it.</p>;
+  }
+  if (ownership === 'added') {
+    return <p className="text-[12.5px] text-fg-4">You added this one. The built-in list has no version of it.</p>;
+  }
+  return (
+    <section className="flex flex-col gap-2.5 p-3 rounded-card border border-ink-600" aria-label="Your edit">
+      <p className="text-[13px] text-fg-2">
+        <b className="text-fg">Your edit.</b> Fixes to the built-in list do not reach it.
+        {differs.length > 0 && <> It differs from the built-in version in {listOf(differs)}.</>}
+      </p>
+      {confirming ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] text-fg-2 w-full">Replace your version with the built-in one?</span>
+          <button type="button" disabled={busy} onClick={onConfirm} className={`${SECONDARY_BUTTON} h-10 px-3 text-sm`}>
+            <RotateCcw className="w-4 h-4" />
+            {busy ? 'Putting it back…' : 'Use the built-in version'}
+          </button>
+          <button type="button" onClick={onCancel} className="h-10 px-3 text-sm font-semibold text-fg-3 hover:text-fg cursor-pointer">
+            Keep mine
+          </button>
+        </div>
+      ) : (
+        <button type="button" onClick={onAsk} className={`${SECONDARY_BUTTON} h-10 px-3 text-sm self-start`}>
+          <RotateCcw className="w-4 h-4" />
+          Use the built-in version
+        </button>
+      )}
+    </section>
+  );
+};
+
+const listOf = (words: string[]) => (words.length < 2 ? words.join('') : `${words.slice(0, -1).join(', ')} and ${words.at(-1)}`);
 
 /* ---------------- fields ---------------- */
 

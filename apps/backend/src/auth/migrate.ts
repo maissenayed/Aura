@@ -1,7 +1,7 @@
 /**
  * Creates or updates every table the app needs: Better Auth's, plus the
- * campaign's own and the exercise list (filled from the built-in list on the
- * server's first read). Safe to run repeatedly. Run with `npm run db:migrate`,
+ * campaign's own and the exercise list's (filled from the built-in list on the
+ * server's first read, and brought up to it whenever a deploy changes it). Safe to run repeatedly. Run with `npm run db:migrate`,
  * pointing DATABASE_URL at the database to update.
  */
 import '../env.js';
@@ -23,6 +23,6 @@ console.log(
 await runMigrations();
 await pool.query(CAMPAIGN_KV_DDL);
 await pool.query(CAMPAIGN_INVITE_DDL);
-await pool.query(EXERCISE_DDL);
+for (const statement of EXERCISE_DDL) await pool.query(statement);
 console.log('Campaign tables ready.');
 await pool.end();

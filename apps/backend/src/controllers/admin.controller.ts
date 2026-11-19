@@ -1,15 +1,22 @@
-import { Body, Controller, Delete, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { AdminGuard } from '../auth/account.js';
 import { ExercisesService } from '../services/exercises.service.js';
 
 /**
  * Editing the exercise list is the owner's alone. Every change answers with
- * the whole list and its new version, so the page that made it is current at once.
+ * the whole list, its new version and what the owner changed in it, so the
+ * page that made it is current at once.
  */
 @Controller('api/v1/admin/exercises')
 @UseGuards(AdminGuard)
 export class AdminController {
   constructor(private readonly exercisesService: ExercisesService) {}
+
+  /** The list with the owner's changes marked: what they edited, added and deleted. */
+  @Get()
+  async view() {
+    return { success: true, data: await this.exercisesService.adminView() };
+  }
 
   @Post()
   async create(@Body() body: unknown) {
@@ -20,6 +27,12 @@ export class AdminController {
   @Post('restore')
   async restore() {
     return { success: true, data: await this.exercisesService.restoreBuiltIn() };
+  }
+
+  /** Puts one exercise back to its built-in version, or brings back a deleted built-in one. */
+  @Post(':id/restore')
+  async restoreOne(@Param('id') id: string) {
+    return { success: true, data: await this.exercisesService.restoreOne(id) };
   }
 
   @Put(':id')
