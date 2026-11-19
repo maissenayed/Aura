@@ -48,7 +48,7 @@ export interface SpecDayV3 {
 export type ArmorSlot = 'elbows' | 'wrists' | 'shoulders' | 'fingers' | 'knees' | 'ankles';
 export const ARMOR_SLOTS: ArmorSlot[] = ['elbows', 'wrists', 'shoulders', 'fingers', 'knees', 'ankles'];
 
-export type SkillTreeRef = 'calisthenics' | 'bouldering';
+export type SkillTreeRef = 'calisthenics' | 'bouldering' | 'yoga';
 
 interface BossBase {
   id: string;

@@ -10,7 +10,7 @@ import type { TreeSkill } from '../../utils/skillTree';
 import { allSkills, floorsOf, masteredIn, skillOf } from '../../utils/treeIndex';
 import { figureForBoss, figureForExercise, figureForLift, heldPose } from '../game/figures';
 import { useGame } from '../game/GameProvider';
-import { BOULDERING_LANE_THEME, LANE_THEME } from '../skilltree/laneTheme';
+import { BOULDERING_LANE_THEME, LANE_THEME, YOGA_LANE_THEME } from '../skilltree/laneTheme';
 import { SKILL_TREES } from '../skilltree/skillTrees';
 import { CardField, PickOption, PickerSheet, ScopeRow } from './CardPicker';
 
@@ -45,6 +45,7 @@ function trainsOf(id: string, line?: string): string | undefined {
 export const LANES: Record<SkillTreeRef, string[]> = {
   calisthenics: BRANCHES.map((branch) => branch.label).filter((lane) => lane in LANE_THEME),
   bouldering: Object.keys(BOULDERING_LANE_THEME),
+  yoga: Object.keys(YOGA_LANE_THEME),
 };
 
 const floorCount = new Map<string, number>();
@@ -111,20 +112,22 @@ export const SkillSheet: React.FC<SkillSheetProps> = ({ tree: initialTree, lane:
   const everything = useMemo(() => allSkills(tree).map((skill) => skillOption(tree, skill, mastered, aside, tags)), [tree, mastered, aside, tags]);
   const laneOfId = useMemo(() => new Map(allSkills(tree).map((skill) => [skill.id, skill.swimlane])), [tree]);
   const options = useMemo(() => everything.filter((option) => laneOfId.get(option.id) === lane), [everything, laneOfId, lane]);
+  // A fixed lane belongs to the tree it was set on: another tree opens all its lanes.
+  const laneLocked = Boolean(lockLane) && tree === initialTree;
 
   const scopes: ScopeRow[] = [];
   if (!lockTree) {
     scopes.push({
       label: 'Tree',
       value: tree,
-      options: (['calisthenics', 'bouldering'] as const).map((id) => ({ id, label: SKILL_TREES[id].label, count: allSkills(id).length })),
+      options: (['calisthenics', 'bouldering', 'yoga'] as const).map((id) => ({ id, label: SKILL_TREES[id].label, count: allSkills(id).length })),
       onChange: (next) => {
         setTree(next as SkillTreeRef);
-        setLane(LANES[next as SkillTreeRef][0]);
+        setLane(next === initialTree && lockLane && initialLane ? initialLane : LANES[next as SkillTreeRef][0]);
       },
     });
   }
-  if (!lockLane) {
+  if (!laneLocked) {
     const counts = new Map<string, number>();
     for (const skill of allSkills(tree)) counts.set(skill.swimlane, (counts.get(skill.swimlane) ?? 0) + 1);
     scopes.push({ label: 'Lane', value: lane, options: LANES[tree].map((id) => ({ id, label: id, count: counts.get(id) ?? 0 })), onChange: setLane });
@@ -137,8 +140,8 @@ export const SkillSheet: React.FC<SkillSheetProps> = ({ tree: initialTree, lane:
       title={title}
       note={note}
       options={options}
-      searchPool={lockLane ? undefined : everything}
-      searchScope={lockLane ? undefined : 'across the whole tree'}
+      searchPool={laneLocked ? undefined : everything}
+      searchScope={laneLocked ? undefined : 'across the whole tree'}
       poolNoun={SKILL_TREES[tree].noun.one === 'exercise' ? 'skills' : SKILL_TREES[tree].noun.many}
       noun={{ one: word, many: `${word}s` }}
       value={value}
@@ -196,10 +199,11 @@ const SHORT_CATEGORY: Record<ExerciseCategory, string> = {
   core: 'Core',
   skill: 'Skills',
   climb: 'Climbing',
+  yoga: 'Yoga',
   recovery: 'Recovery',
   warmup: 'Warm-up',
 };
-const DISCIPLINE_LABEL = { calisthenics: 'Calisthenics', gym: 'Gym', bouldering: 'Bouldering', prep: 'Warm-up & recovery' } as const;
+const DISCIPLINE_LABEL = { calisthenics: 'Calisthenics', gym: 'Gym', bouldering: 'Bouldering', yoga: 'Yoga', prep: 'Warm-up & recovery' } as const;
 const UNIT_TAG: Record<Metric, string> = { kg: 'kg', 'added-kg': '+kg', reps: 'reps', seconds: 'secs' };
 
 type CatalogueOption = PickOption & { category: ExerciseCategory; metric: Metric };
@@ -208,9 +212,9 @@ type CatalogueOption = PickOption & { category: ExerciseCategory; metric: Metric
 function catalogueOption(key: string): CatalogueOption | undefined {
   const exercise = EXERCISE_BY_ID.get(key) ?? exerciseCatalog().find((entry) => recordKeyOf(entry.id) === key);
   if (!exercise) return undefined;
-  const treeSkill = skillOf('calisthenics', key) ?? skillOf('bouldering', key);
-  const climbing = exercise.discipline === 'bouldering';
-  const def = SKILL_TREES[climbing ? 'bouldering' : 'calisthenics'];
+  const treeSkill = skillOf('calisthenics', key) ?? skillOf('bouldering', key) ?? skillOf('yoga', key);
+  const tree = exercise.discipline === 'bouldering' || exercise.discipline === 'yoga' ? exercise.discipline : 'calisthenics';
+  const def = SKILL_TREES[tree];
   const line = treeSkill?.subCategory ?? exercise.group ?? 'Campaign lifts';
   const metric = metricOf(key);
   return {
@@ -220,7 +224,8 @@ function catalogueOption(key: string): CatalogueOption | undefined {
     lead: exercise.level !== undefined ? def.levelTag(exercise.level) : undefined,
     meta: DISCIPLINE_LABEL[exercise.discipline],
     line,
-    level: exercise.level !== undefined ? { label: def.levelName(exercise.level), rank: exercise.level + (climbing ? 100 : 0) } : undefined,
+    // Each tree's levels sort apart: bouldering grades after calisthenics levels, yoga levels after both.
+    level: exercise.level !== undefined ? { label: def.levelName(exercise.level), rank: exercise.level + (tree === 'bouldering' ? 100 : tree === 'yoga' ? 200 : 0) } : undefined,
     sub: trainsOf(exercise.id, line),
     unit: UNIT_TAG[metric],
     keywords: `${exercise.name} ${exercise.focus} ${SHORT_CATEGORY[exercise.category]}`,

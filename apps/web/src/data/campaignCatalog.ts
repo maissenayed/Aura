@@ -7,8 +7,8 @@
  * item *is* — its name, what it logs, what it builds, what it requires — lives
  * here, so a correction made here reaches every plan.
  *
- * Exercises come from three skill sets — calisthenics, gym and bouldering —
- * plus warm-up and recovery work. Every skill on the Skill Tree page's three
+ * Exercises come from four skill sets — calisthenics, gym, bouldering and
+ * yoga — plus warm-up and recovery work. Every skill on the Skill Tree page's
  * trees is here under the same id, so a mission and its skill-tree node are
  * the same exercise.
  *
@@ -17,6 +17,7 @@
 
 import type { Branch, StatUnit, TrainableAttribute } from '../utils/campaignPlan';
 import { BOULDERING_SKILLS } from './boulderingTree';
+import { YOGA_POSES, YogaPose } from './yogaTree';
 import type { Exercise } from '@aura/types';
 import { currentExercises, fromExerciseList } from './exercisesData';
 
@@ -111,7 +112,7 @@ export const LIFT_CATALOG: CatalogLift[] = [
 /* Exercises                                                           */
 /* ------------------------------------------------------------------ */
 
-export type ExerciseCategory = 'push' | 'pull' | 'legs' | 'core' | 'skill' | 'climb' | 'recovery' | 'warmup';
+export type ExerciseCategory = 'push' | 'pull' | 'legs' | 'core' | 'skill' | 'climb' | 'yoga' | 'recovery' | 'warmup';
 
 export const EXERCISE_CATEGORIES: { id: ExerciseCategory; label: string }[] = [
   { id: 'push', label: 'Push' },
@@ -120,17 +121,19 @@ export const EXERCISE_CATEGORIES: { id: ExerciseCategory; label: string }[] = [
   { id: 'core', label: 'Core & compression' },
   { id: 'skill', label: 'Skills & holds' },
   { id: 'climb', label: 'Climbing' },
+  { id: 'yoga', label: 'Yoga poses' },
   { id: 'recovery', label: 'Grip, tendons & recovery' },
   { id: 'warmup', label: 'Warm-up & prep' },
 ];
 
 /** The skill set an exercise belongs to — the tabs of the exercise picker. */
-export type Discipline = 'calisthenics' | 'gym' | 'bouldering' | 'prep';
+export type Discipline = 'calisthenics' | 'gym' | 'bouldering' | 'yoga' | 'prep';
 
 export const DISCIPLINES: { id: Discipline; label: string }[] = [
   { id: 'calisthenics', label: 'Calisthenics' },
   { id: 'gym', label: 'Gym' },
   { id: 'bouldering', label: 'Bouldering' },
+  { id: 'yoga', label: 'Yoga' },
   { id: 'prep', label: 'Warm-up & recovery' },
 ];
 
@@ -387,12 +390,33 @@ function fromBoulderingTree(skill: (typeof BOULDERING_SKILLS)[number]): CatalogE
   };
 }
 
+/* Yoga poses: held for time, each side in turn where the pose has two; a hold as long as the pose's standard, or the nearest the dropdown offers. */
+function fromYogaTree(pose: YogaPose): CatalogExercise {
+  const holds = DOSE_OPTIONS.seconds.filter((option) => /^\d+$/.test(option) && Number(option) <= pose.seconds);
+  return {
+    id: pose.id,
+    name: pose.name,
+    discipline: 'yoga',
+    category: 'yoga',
+    level: pose.level,
+    levelLabel: pose.levelLabel,
+    group: pose.lane,
+    focus: pose.focus,
+    dose: 'seconds',
+    ...(pose.sides ? { side: 'side' as const } : {}),
+    note: pose.subCategory,
+    trains: [...pose.builds],
+    sets: pose.level <= 3 ? 2 : 3,
+    reps: holds[holds.length - 1] ?? '5',
+  };
+}
+
 const curatedIds = new Set(CURATED.map((exercise) => exercise.id));
 
 /**
  * Every exercise a plan can schedule: the curated cards, then the skill tree's
- * (the exercise list in use, so it follows the database) and the bouldering
- * tree's. Rebuilt when the exercise list changes.
+ * (the exercise list in use, so it follows the database), the bouldering
+ * tree's and the yoga tree's. Rebuilt when the exercise list changes.
  */
 export const exerciseCatalog = fromExerciseList((): CatalogExercise[] => {
   const tree = currentExercises();
@@ -412,6 +436,7 @@ export const exerciseCatalog = fromExerciseList((): CatalogExercise[] => {
       exercise.discipline === 'gym' ? fromGymLift(exercise) : fromSkillTree(exercise),
     ),
     ...BOULDERING_SKILLS.map(fromBoulderingTree),
+    ...YOGA_POSES.map(fromYogaTree),
   ];
 });
 

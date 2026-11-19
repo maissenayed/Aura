@@ -11,6 +11,7 @@ import { CheckIcon } from '../game/icons';
 import { Figure } from '../game/kit';
 import { DeleteButton, EditCard, Group, MoveButtons, TextField, moveBy, removeAt, setAt } from './fields';
 import { SkillField, laneOf } from './pickers';
+import { SKILL_TREES } from '../skilltree/skillTrees';
 
 interface Props {
   spec: PlanSpec;
@@ -81,7 +82,7 @@ export const TowersEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
                             done ? 'bg-earned-deep text-earned-soft' : 'bg-ink-850 text-fg-3 hover:bg-ink-800 hover:text-fg'
                           }`}
                         >
-                          <span className={`num font-bold w-8 shrink-0 ${done ? 'text-earned' : 'text-fg-4'}`}>{tower.tree === 'calisthenics' ? `L${floor.level}` : `V${floor.level}`}</span>
+                          <span className={`num font-bold w-8 shrink-0 ${done ? 'text-earned' : 'text-fg-4'}`}>{SKILL_TREES[tower.tree].levelTag(floor.level)}</span>
                           <span className="flex-1 truncate font-semibold">{floor.name}</span>
                           {done && <CheckIcon className="w-3.5 h-3.5 text-earned" strokeWidth={3} />}
                         </Link>
@@ -114,7 +115,7 @@ export const TowersEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
             aside="floors"
             tags={summits}
             placeholder="Pick the summit"
-            placeholderNote="From the calisthenics or bouldering tree"
+            placeholderNote="From the calisthenics, bouldering or yoga tree"
             sheetEyebrow="Raise a tower"
             sheetTitle="Pick the summit"
             onPick={(tree, summit) => {

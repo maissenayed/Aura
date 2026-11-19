@@ -238,14 +238,13 @@ export const BossesEditor: React.FC<Props> = ({ spec, plan, onChange }) => {
           <SkillSheet
             tree="calisthenics"
             lane={laneLabel(category)}
-            lockTree
             lockLane
             aside="hits"
             tags={bossSkills}
             eyebrow={`New ${category} boss · Tree skill`}
             title="Pick the skill to beat"
             note="Every skill below it is a weak point: each one you master is a hit."
-            onPick={(_tree, skill) => create({ ...base(), kind: 'skill', tree: 'calisthenics', skill })}
+            onPick={(tree, skill) => create({ ...base(), kind: 'skill', tree, skill })}
             onClose={() => setAdding(null)}
           />
         )}

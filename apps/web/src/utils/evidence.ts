@@ -13,7 +13,7 @@
 import type { CampaignPlan, Lift, PlanDay, PlanExercise, StatUnit } from './campaignPlan';
 import type { HistoryPoint, SkillTreeRef } from './campaignV3';
 import type { ProtocolSave } from './protocolEngine';
-import { skillOf } from './treeIndex';
+import { skillOf, treeRefOf } from './treeIndex';
 
 /* ------------------------------------------------------------------ */
 /* Dates                                                               */
@@ -436,7 +436,7 @@ export function masterySlots(save: ProtocolSave): SkillXp[] {
     .map(([key, date]) => {
       const [tree, ...rest] = key.split(':');
       const id = rest.join(':');
-      const ref = (tree === 'bouldering' ? 'bouldering' : 'calisthenics') as SkillTreeRef;
+      const ref = treeRefOf(tree);
       const skill = skillOf(ref, id);
       return { key, tree: ref, id, date, level: skillXpLevel(ref, id), line: `${ref}:${skill?.subCategory ?? id}` };
     })
@@ -467,7 +467,7 @@ export function landedSkills(save: ProtocolSave, logDaysOf: (key: string) => str
     const passes = passDatesOf(save, key, logDaysOf(key));
     if (!passes.length) continue;
     const [tree, ...rest] = key.split(':');
-    const ref = (tree === 'bouldering' ? 'bouldering' : 'calisthenics') as SkillTreeRef;
+    const ref = treeRefOf(tree);
     const level = skillXpLevel(ref, rest.join(':'));
     if (level > 0) out.push({ key, date: passes[0], xp: landedXp(level) });
   }

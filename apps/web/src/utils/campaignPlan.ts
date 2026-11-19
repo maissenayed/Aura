@@ -846,7 +846,7 @@ export function withoutLift(spec: PlanSpec, liftId: string): PlanSpec {
 /* ------------------------------------------------------------------ */
 
 const METRICS: { id: Metric }[] = [{ id: 'kg' }, { id: 'added-kg' }, { id: 'reps' }, { id: 'seconds' }];
-const TREES: { id: SkillTreeRef }[] = [{ id: 'calisthenics' }, { id: 'bouldering' }];
+const TREES: { id: SkillTreeRef }[] = [{ id: 'calisthenics' }, { id: 'bouldering' }, { id: 'yoga' }];
 const SAFE_ID = /^[A-Za-z0-9_:-]{1,60}$/;
 
 /** An exercise the campaign can track: in the catalogue or the skill tree. */

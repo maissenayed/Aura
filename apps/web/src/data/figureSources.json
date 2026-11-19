@@ -3418,5 +3418,485 @@
     "line": 976,
     "call": "wristCurl()",
     "family": "wristCurl"
+  },
+  "yoga_bird_of_paradise": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 341,
+    "call": "birdOfParadise()",
+    "family": null
+  },
+  "yoga_boat": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 474,
+    "call": "boat()",
+    "family": null
+  },
+  "yoga_bound_angle": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 552,
+    "call": "boundAngle()",
+    "family": null
+  },
+  "yoga_bow": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1033,
+    "call": "bow()",
+    "family": null
+  },
+  "yoga_bridge": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1413,
+    "call": "bridge()",
+    "family": null
+  },
+  "yoga_camel": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 919,
+    "call": "camel()",
+    "family": null
+  },
+  "yoga_cat_cow": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 899,
+    "call": "catCow()",
+    "family": null
+  },
+  "yoga_chair": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 98,
+    "call": "chair()",
+    "family": null
+  },
+  "yoga_chaturanga": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1070,
+    "call": "chaturanga()",
+    "family": null
+  },
+  "yoga_child": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 400,
+    "call": "child()",
+    "family": null
+  },
+  "yoga_cobra": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 992,
+    "call": "cobra()",
+    "family": null
+  },
+  "yoga_crow": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1082,
+    "call": "crow()",
+    "family": null
+  },
+  "yoga_dancer": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 321,
+    "call": "dancer()",
+    "family": null
+  },
+  "yoga_dolphin": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1199,
+    "call": "dolphin()",
+    "family": null
+  },
+  "yoga_down_dog": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1182,
+    "call": "downDog()",
+    "family": null
+  },
+  "yoga_eagle": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 224,
+    "call": "eagle()",
+    "family": null
+  },
+  "yoga_eight_angle": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1147,
+    "call": "eightAngle()",
+    "family": null
+  },
+  "yoga_fire_log": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 616,
+    "call": "fireLog()",
+    "family": null
+  },
+  "yoga_firefly": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1134,
+    "call": "firefly()",
+    "family": null
+  },
+  "yoga_fish": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 908,
+    "call": "fish()",
+    "family": null
+  },
+  "yoga_flying_pigeon": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1165,
+    "call": "flyingPigeon()",
+    "family": null
+  },
+  "yoga_forearm_stand": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1213,
+    "call": "forearmStand()",
+    "family": null
+  },
+  "yoga_front_splits": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 535,
+    "call": "frontSplits()",
+    "family": null
+  },
+  "yoga_garland": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 593,
+    "call": "garland()",
+    "family": null
+  },
+  "yoga_goddess": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 109,
+    "call": "goddess()",
+    "family": null
+  },
+  "yoga_half_lord": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 767,
+    "call": "halfLord()",
+    "family": null
+  },
+  "yoga_half_lotus": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 651,
+    "call": "halfLotus()",
+    "family": null
+  },
+  "yoga_half_moon": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 273,
+    "call": "halfMoon()",
+    "family": null
+  },
+  "yoga_half_splits": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 511,
+    "call": "halfSplits()",
+    "family": null
+  },
+  "yoga_hand_to_toe": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 297,
+    "call": "handToToe()",
+    "family": null
+  },
+  "yoga_handstand": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1267,
+    "call": "handstandFigure()",
+    "family": null
+  },
+  "yoga_happy_baby": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 574,
+    "call": "happyBaby()",
+    "family": null
+  },
+  "yoga_head_to_knee": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 431,
+    "call": "headToKnee()",
+    "family": null
+  },
+  "yoga_headstand": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1239,
+    "call": "headstand()",
+    "family": null
+  },
+  "yoga_heron": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 483,
+    "call": "heron()",
+    "family": null
+  },
+  "yoga_king_pigeon": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1435,
+    "call": "kingPigeon()",
+    "family": null
+  },
+  "yoga_legs_up_wall": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1283,
+    "call": "legsUpWall()",
+    "family": null
+  },
+  "yoga_lizard": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 524,
+    "call": "lizard()",
+    "family": null
+  },
+  "yoga_locust": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1004,
+    "call": "locust()",
+    "family": null
+  },
+  "yoga_lotus": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 664,
+    "call": "lotus()",
+    "family": null
+  },
+  "yoga_low_lunge": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 498,
+    "call": "lowLunge()",
+    "family": null
+  },
+  "yoga_marichi": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 791,
+    "call": "marichi()",
+    "family": null
+  },
+  "yoga_middle_splits": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 691,
+    "call": "middleSplits()",
+    "family": null
+  },
+  "yoga_mountain": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 84,
+    "call": "mountain()",
+    "family": null
+  },
+  "yoga_pigeon": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 604,
+    "call": "pigeon()",
+    "family": null
+  },
+  "yoga_plank": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1065,
+    "call": "plank()",
+    "family": null
+  },
+  "yoga_plow": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1307,
+    "call": "plow()",
+    "family": null
+  },
+  "yoga_pyramid": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 366,
+    "call": "pyramid()",
+    "family": null
+  },
+  "yoga_reverse_warrior": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 163,
+    "call": "reverseWarrior()",
+    "family": null
+  },
+  "yoga_revolved_chair": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 816,
+    "call": "revolvedChair()",
+    "family": null
+  },
+  "yoga_revolved_half_moon": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 881,
+    "call": "revolvedHalfMoon()",
+    "family": null
+  },
+  "yoga_revolved_lunge": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 830,
+    "call": "revolvedLunge()",
+    "family": null
+  },
+  "yoga_revolved_side_angle": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 868,
+    "call": "revolvedSideAngle()",
+    "family": null
+  },
+  "yoga_revolved_triangle": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 844,
+    "call": "revolvedTriangle()",
+    "family": null
+  },
+  "yoga_scorpion": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1224,
+    "call": "scorpion()",
+    "family": null
+  },
+  "yoga_seated_fold": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 419,
+    "call": "seatedFold()",
+    "family": null
+  },
+  "yoga_seated_twist": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 754,
+    "call": "seatedTwist()",
+    "family": null
+  },
+  "yoga_shoulder_press": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1129,
+    "call": "shoulderPress()",
+    "family": null
+  },
+  "yoga_shoulder_stand": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1293,
+    "call": "shoulderStand()",
+    "family": null
+  },
+  "yoga_side_angle": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 197,
+    "call": "sideAngle()",
+    "family": null
+  },
+  "yoga_side_crow": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1100,
+    "call": "sideCrow()",
+    "family": null
+  },
+  "yoga_side_lunge": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 677,
+    "call": "sideLunge()",
+    "family": null
+  },
+  "yoga_side_plank": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 963,
+    "call": "sidePlank()",
+    "family": null
+  },
+  "yoga_sphinx": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 981,
+    "call": "sphinx()",
+    "family": null
+  },
+  "yoga_staff": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 392,
+    "call": "staff()",
+    "family": null
+  },
+  "yoga_standing_fold": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 355,
+    "call": "standingFold()",
+    "family": null
+  },
+  "yoga_standing_split": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 307,
+    "call": "standingSplit()",
+    "family": null
+  },
+  "yoga_supine_twist": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 731,
+    "call": "supineTwist()",
+    "family": null
+  },
+  "yoga_tortoise": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 460,
+    "call": "tortoise()",
+    "family": null
+  },
+  "yoga_tree": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 206,
+    "call": "tree()",
+    "family": null
+  },
+  "yoga_triangle": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 171,
+    "call": "triangle()",
+    "family": null
+  },
+  "yoga_tripod_headstand": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1254,
+    "call": "tripodHeadstand()",
+    "family": null
+  },
+  "yoga_upward_dog": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1016,
+    "call": "upwardDog()",
+    "family": null
+  },
+  "yoga_warrior_1": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 127,
+    "call": "warrior1()",
+    "family": null
+  },
+  "yoga_warrior_2": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 157,
+    "call": "warrior2()",
+    "family": null
+  },
+  "yoga_warrior_3": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 255,
+    "call": "warrior3()",
+    "family": null
+  },
+  "yoga_wheel": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 1424,
+    "call": "wheel()",
+    "family": null
+  },
+  "yoga_wide_angle": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 446,
+    "call": "wideAngle()",
+    "family": null
+  },
+  "yoga_wide_fold": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 378,
+    "call": "wideFold()",
+    "family": null
+  },
+  "yoga_wild_thing": {
+    "file": "apps/web/src/components/skilltree/yogaFigures.ts",
+    "line": 972,
+    "call": "wildThing()",
+    "family": null
   }
 }

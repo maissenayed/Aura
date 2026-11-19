@@ -17,7 +17,7 @@ import {
 } from '../../utils/campaignPlan';
 import { ArmorSlot, SpecDayV3 as SpecDay, WarmUp } from '../../utils/campaignV3';
 import { figureForExercise } from '../game/figures';
-import { ArrowRightIcon, FlameIcon, HoldIcon, MoonIcon, PlateIcon, RingsIcon, ShieldIcon } from '../game/icons';
+import { ArrowRightIcon, FlameIcon, HoldIcon, LotusIcon, MoonIcon, PlateIcon, RingsIcon, ShieldIcon } from '../game/icons';
 import { Chip, Figure } from '../game/kit';
 import { repsChoices } from './catalogOptions';
 import { removeAt, setAt } from './fields';
@@ -52,6 +52,7 @@ const SHELF_ICON: Partial<Record<Discipline, React.ComponentType<{ className?: s
   calisthenics: RingsIcon,
   gym: PlateIcon,
   bouldering: HoldIcon,
+  yoga: LotusIcon,
   prep: FlameIcon,
 };
 
@@ -211,7 +212,7 @@ export const ForgeWeek: React.FC<Props> = ({ spec, onChange, initialDay = 'mon' 
 function kindFor(exerciseId: string): DayKind {
   const category = EXERCISE_BY_ID.get(exerciseId)?.category;
   if (category === 'push' || category === 'pull' || category === 'legs' || category === 'core') return category;
-  if (category === 'recovery' || category === 'warmup') return 'recovery';
+  if (category === 'recovery' || category === 'warmup' || category === 'yoga') return 'recovery';
   return 'pull';
 }
 

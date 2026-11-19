@@ -97,7 +97,8 @@ export const TreeBar: React.FC<{
         </button>
       </div>
     ) : (
-      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${summary.lanes.length}, minmax(0, 1fr))` }}>
+      // Up to four lanes to a row on a phone, all in one row on a wide screen; a short last row stretches to fill it.
+      <div className="flex flex-wrap gap-1.5">
         {summary.lanes.map((entry) => {
           const on = entry.lane === lane;
           const theme = tree.lanes[entry.lane];
@@ -107,14 +108,14 @@ export const TreeBar: React.FC<{
               type="button"
               aria-pressed={on}
               onClick={() => onLaneChange(entry.lane)}
-              className={`relative h-12 px-2 rounded-card flex flex-col items-center justify-center gap-1.5 transition active:scale-[.97] cursor-pointer ${
+              className={`relative flex-1 basis-[calc(25%_-_0.375rem)] lg:basis-0 min-w-0 h-12 px-2 rounded-card flex flex-col items-center justify-center gap-1.5 transition active:scale-[.97] cursor-pointer ${
                 on ? 'bg-ink-800 text-fg' : 'bg-ink-900 text-fg-4 hover:bg-ink-850 hover:text-fg'
               }`}
             >
               {on && <Tally />}
-              <span className="flex items-center gap-1 text-xs font-bold">
-                {theme?.icon}
-                {theme?.label ?? entry.lane}
+              <span className="flex items-center gap-1 max-w-full text-xs font-bold">
+                <span className="shrink-0">{theme?.icon}</span>
+                <span className="truncate">{theme?.label ?? entry.lane}</span>
               </span>
               <span className="w-full h-[3px] rounded-[1px] bg-ink-700 overflow-hidden">
                 <span className="block h-full bg-earned" style={{ width: `${entry.total ? (entry.mastered / entry.total) * 100 : 0}%` }} />

@@ -927,7 +927,7 @@ export const XP_RULES = {
 };
 
 /** The sport a plan is mostly about, for rank titles. */
-export type Sport = 'calisthenics' | 'gym' | 'bouldering';
+export type Sport = 'calisthenics' | 'gym' | 'bouldering' | 'yoga';
 
 export interface LevelStatus {
   level: number;
@@ -947,6 +947,7 @@ const RANKS: Record<Sport, [number, string][]> = {
   calisthenics: [[1, 'Novice Athlete'], [6, 'Iron Initiate'], [12, 'Tension Adept'], [20, 'Lever Knight'], [30, 'Planche Squire'], [42, 'Static Hold Master'], [56, 'Calisthenics Titan'], [72, 'Bar Legend'], [90, 'Aura Ascendant']],
   gym: [[1, 'Novice Lifter'], [6, 'Iron Initiate'], [12, 'Plate Adept'], [20, 'Barbell Knight'], [30, 'Steel Champion'], [42, 'Iron Master'], [56, 'Iron Titan'], [72, 'Platform Legend'], [90, 'Aura Ascendant']],
   bouldering: [[1, 'Novice Climber'], [6, 'Chalk Initiate'], [12, 'Crimp Adept'], [20, 'Send Knight'], [30, 'Overhang Champion'], [42, 'Boulder Master'], [56, 'Stone Titan'], [72, 'Crag Legend'], [90, 'Aura Ascendant']],
+  yoga: [[1, 'Novice Yogi'], [6, 'Mat Initiate'], [12, 'Flow Adept'], [20, 'Balance Knight'], [30, 'Inversion Champion'], [42, 'Asana Master'], [56, 'Supple Titan'], [72, 'Mat Legend'], [90, 'Aura Ascendant']],
 };
 
 export function rankForLevel(level: number, sport: Sport = 'calisthenics'): string {
@@ -957,7 +958,7 @@ export function rankForLevel(level: number, sport: Sport = 'calisthenics'): stri
 
 /**
  * What the plan is mostly about: bouldering when climbing is at least 40% of
- * its exercises, the gym when calisthenics is under a fifth of them, otherwise
+ * its exercises, yoga when poses are, the gym when calisthenics is under a fifth of them, otherwise
  * calisthenics (hybrid plans keep the calisthenics titles).
  */
 export function planSport(plan: CampaignPlan): Sport {
@@ -965,6 +966,7 @@ export function planSport(plan: CampaignPlan): Sport {
   if (counted.length === 0) return 'calisthenics';
   const share = (discipline: string) => counted.filter((entry) => entry === discipline).length / counted.length;
   if (share('bouldering') >= 0.4) return 'bouldering';
+  if (share('yoga') >= 0.4) return 'yoga';
   if (share('calisthenics') < 0.2) return 'gym';
   return 'calisthenics';
 }

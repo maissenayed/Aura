@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dumbbell, Flame, Footprints, Hand, PersonStanding, ShieldHalf, Target, Zap } from 'lucide-react';
+import { Dumbbell, Flame, Flower2, FoldVertical, Footprints, Hand, MoveVertical, PersonStanding, Rainbow, RefreshCw, ShieldHalf, Target, Zap } from 'lucide-react';
 import { Swimlane } from '@aura/types';
 
 export interface LaneTheme {
@@ -43,6 +43,17 @@ export const BOULDERING_LANE_THEME: Record<string, LaneTheme> = {
   Body: { label: 'Body', icon: <PersonStanding className={ICON} />, ...NEUTRAL },
   Movement: { label: 'Movement', icon: <Zap className={ICON} />, ...NEUTRAL },
   Strength: { label: 'Strength', icon: <Hand className={ICON} />, ...NEUTRAL },
+};
+
+/** Short labels: the phone's lane bar fits four to a row. */
+export const YOGA_LANE_THEME: Record<string, LaneTheme> = {
+  Standing: { label: 'Standing', icon: <PersonStanding className={ICON} />, ...NEUTRAL },
+  Folds: { label: 'Folds', icon: <FoldVertical className={ICON} />, ...NEUTRAL },
+  Hips: { label: 'Hips', icon: <Flower2 className={ICON} />, ...NEUTRAL },
+  Twists: { label: 'Twists', icon: <RefreshCw className={ICON} />, ...NEUTRAL },
+  Backbends: { label: 'Backbends', icon: <Rainbow className={ICON} />, ...NEUTRAL },
+  'Arm Balances': { label: 'Arm balances', icon: <Hand className={ICON} />, ...NEUTRAL },
+  Inversions: { label: 'Inversions', icon: <MoveVertical className={ICON} />, ...NEUTRAL },
 };
 
 /** For a branch a tree does not describe — say, from an edited dataset — rather than failing. */
