@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { SignedInGuard } from '../auth/account.js';
 import { ExercisesService } from '../services/exercises.service.js';
 
@@ -8,25 +8,12 @@ import { ExercisesService } from '../services/exercises.service.js';
 export class ExercisesController {
   constructor(private readonly exercisesService: ExercisesService) {}
 
+  /**
+   * The exercise list. Send the version you already have as `version`: if it
+   * is still current, `exercises` comes back null and nothing is downloaded.
+   */
   @Get()
-  async getExercises(
-    @Query('swimlane') swimlane?: string,
-    @Query('minLevel') minLevel?: number,
-    @Query('maxLevel') maxLevel?: number,
-    @Query('search') search?: string
-  ) {
-    const result = await this.exercisesService.getAllExercises({
-      swimlane,
-      minLevel,
-      maxLevel,
-      search,
-    });
-    return { success: true, ...result };
-  }
-
-  @Get(':id')
-  async getExerciseById(@Param('id') id: string) {
-    const data = await this.exercisesService.getExerciseById(id);
-    return { success: true, data };
+  async list(@Query('version') version?: string) {
+    return { success: true, data: await this.exercisesService.since(version) };
   }
 }

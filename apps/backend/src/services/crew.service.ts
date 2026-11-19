@@ -6,6 +6,7 @@ import { LOCAL_ACCOUNT, accountsEnabled } from '../auth/account.js';
 import type { Account } from '../auth/account.js';
 import { pool } from '../auth/auth.js';
 import { CampaignService, serverToday } from './campaign.service.js';
+import { ExercisesService } from './exercises.service.js';
 import {
   addDays,
   cardOf,
@@ -120,6 +121,7 @@ export class CrewService {
   constructor(
     @Inject(KEY_VALUE_STORE) private readonly store: KeyValueStore,
     private readonly campaign: CampaignService,
+    private readonly exercises: ExercisesService,
   ) {}
 
   /* ---------------- storage helpers ---------------- */
@@ -159,6 +161,8 @@ export class CrewService {
   }
 
   private async athlete(account: Pick<Account, 'id' | 'name'>): Promise<Athlete> {
+    // Plans and saves are read against the exercise list in the database.
+    await this.exercises.syncEngine();
     const [saveDoc, planDoc, seen, settings] = await Promise.all([
       this.campaign.load(account.id),
       this.campaign.loadPlan(account.id),

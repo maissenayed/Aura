@@ -101,7 +101,7 @@ export class FileKeyValueStore implements KeyValueStore {
 /* ------------------------------------------------------------------ */
 
 /** Runs one parameterised statement and resolves to its rows. */
-type Query = (text: string, params?: unknown[]) => Promise<unknown[]>;
+export type Query = (text: string, params?: unknown[]) => Promise<unknown[]>;
 
 /** A Postgres running on this machine (a local test database), which Neon's HTTP driver cannot reach. */
 const isLocalDatabase = (connectionString: string) => {
@@ -112,7 +112,7 @@ const isLocalDatabase = (connectionString: string) => {
   }
 };
 
-function queryFor(connectionString: string): Query {
+export function queryFor(connectionString: string): Query {
   if (isLocalDatabase(connectionString)) {
     const pool = new pg.Pool({ connectionString, max: 4, idleTimeoutMillis: 10_000 });
     return async (text, params) => (await pool.query(text, params)).rows;

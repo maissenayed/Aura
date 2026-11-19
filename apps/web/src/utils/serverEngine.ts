@@ -36,6 +36,11 @@ import type { SkillTreeRef } from './campaignV3';
 
 export type Seen = Record<string, string>;
 
+/* The exercise list: the backend reads it from its database and hands it over before the engine runs. */
+export { currentExercises, setExerciseList } from '../data/exercisesData';
+/** The list the app ships with: what an empty database is filled with. */
+export { rawExercises as BUILT_IN_EXERCISES } from '../data/rawExercisesData';
+
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** A stored save with every field the engine reads, whatever version wrote it. */

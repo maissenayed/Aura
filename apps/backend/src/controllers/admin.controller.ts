@@ -1,22 +1,34 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { AdminGuard } from '../auth/account.js';
 import { ExercisesService } from '../services/exercises.service.js';
-import { rawExercises } from '../data/rawExercisesData.js';
 
-/** The dataset tools are the owner's alone. */
-@Controller('api/v1/admin')
+/**
+ * Editing the exercise list is the owner's alone. Every change answers with
+ * the whole list and its new version, so the page that made it is current at once.
+ */
+@Controller('api/v1/admin/exercises')
 @UseGuards(AdminGuard)
 export class AdminController {
   constructor(private readonly exercisesService: ExercisesService) {}
 
-  @Get('exercises')
-  async getRawDataset() {
-    return { success: true, data: rawExercises };
+  @Post()
+  async create(@Body() body: unknown) {
+    return { success: true, data: await this.exercisesService.create(body) };
   }
 
-  @Post('save-dataset')
-  async saveDataset(@Body() body: { rawExercises: any[] }) {
-    const result = await this.exercisesService.saveFullDataset(body.rawExercises || rawExercises);
-    return result;
+  /** Puts the built-in list back. Registered before `:id` so it is never read as an id. */
+  @Post('restore')
+  async restore() {
+    return { success: true, data: await this.exercisesService.restoreBuiltIn() };
+  }
+
+  @Put(':id')
+  async update(@Param('id') id: string, @Body() body: unknown) {
+    return { success: true, data: await this.exercisesService.update(id, body) };
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    return { success: true, data: await this.exercisesService.remove(id) };
   }
 }

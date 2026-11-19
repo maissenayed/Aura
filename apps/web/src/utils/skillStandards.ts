@@ -1,4 +1,5 @@
-import { rawExercises } from '../data/rawExercisesData';
+import type { RawExercise } from '@aura/types';
+import { currentRawExercises, fromExerciseList } from '../data/exercisesData';
 import { EXERCISE_BY_ID } from '../data/campaignCatalog';
 import { metricOf, recordKeyOf } from './records';
 import type { ProtocolSave } from './protocolEngine';
@@ -65,15 +66,17 @@ export type SkillStandard =
       value: number;
     };
 
-const GYM_STANDARDS: SkillStandard[] = rawExercises.flatMap((exercise): SkillStandard[] => {
-  if (exercise.discipline !== 'gym' || NOT_ONE_LIFT.has(exercise.id) || !exercise.standard) return [];
-  // "+0.25x BW" is load on top of bodyweight; only plain multiples of the load are read.
-  const match = /(?:^|[^+\d.])(\d+(?:\.\d+)?)x BW/.exec(exercise.standard);
-  if (!match) return [];
-  const lift = SAME_LIFT_AS[exercise.id] ?? exercise.id;
-  if (metricOf(lift) !== 'kg') return [];
-  return [{ kind: 'multiple', skill: exercise.id, name: exercise.name, records: [recordKeyOf(lift)], multiple: Number(match[1]) }];
-});
+function gymStandards(raw: RawExercise[]): SkillStandard[] {
+  return raw.flatMap((exercise): SkillStandard[] => {
+    if (exercise.discipline !== 'gym' || NOT_ONE_LIFT.has(exercise.id) || !exercise.standard) return [];
+    // "+0.25x BW" is load on top of bodyweight; only plain multiples of the load are read.
+    const match = /(?:^|[^+\d.])(\d+(?:\.\d+)?)x BW/.exec(exercise.standard);
+    if (!match) return [];
+    const lift = SAME_LIFT_AS[exercise.id] ?? exercise.id;
+    if (metricOf(lift) !== 'kg') return [];
+    return [{ kind: 'multiple', skill: exercise.id, name: exercise.name, records: [recordKeyOf(lift)], multiple: Number(match[1]) }];
+  });
+}
 
 /** A count standard as written at the start of the text, or null when it says something else. */
 export function parseCountStandard(text: string): { metric: 'reps' | 'seconds'; value: number } | null {
@@ -98,31 +101,35 @@ const baseName = (name: string) =>
     .map((word) => word.replace(/s$/, ''))
     .join(' ');
 
-const CALISTHENICS = rawExercises.filter((exercise) => exercise.discipline !== 'gym' && exercise.discipline !== 'bouldering');
+/** Every standard the logs can prove, worked out from the exercise list in use. */
+const standards = fromExerciseList(() => {
+  const raw = currentRawExercises();
+  const calisthenics = raw.filter((exercise) => exercise.discipline !== 'gym' && exercise.discipline !== 'bouldering');
 
-/** Record keys that log an exercise, by its base name: the tree's own ids and the campaign cards with the same name. */
-const RECORDS_BY_NAME = (() => {
-  const map = new Map<string, Set<string>>();
+  // Record keys that log an exercise, by its base name: the tree's own ids and the campaign cards with the same name.
+  const recordsByName = new Map<string, Set<string>>();
   const add = (name: string, key: string) => {
     const base = baseName(name);
-    if (!map.has(base)) map.set(base, new Set());
-    map.get(base)!.add(key);
+    if (!recordsByName.has(base)) recordsByName.set(base, new Set());
+    recordsByName.get(base)!.add(key);
   };
-  for (const exercise of CALISTHENICS) add(exercise.name, exercise.id);
+  for (const exercise of calisthenics) add(exercise.name, exercise.id);
   for (const [id, exercise] of EXERCISE_BY_ID) if (!id.startsWith('ex_')) add(exercise.name, recordKeyOf(id));
-  return map;
-})();
 
-const COUNT_STANDARDS: SkillStandard[] = CALISTHENICS.flatMap((exercise): SkillStandard[] => {
-  const count = exercise.standard ? parseCountStandard(exercise.standard.trim()) : null;
-  if (!count) return [];
-  const records = [...(RECORDS_BY_NAME.get(baseName(exercise.name)) ?? [])].filter((key) => metricOf(key) === count.metric);
-  if (!records.length) return [];
-  return [{ kind: 'count', skill: exercise.id, name: exercise.name, records, metric: count.metric, value: count.value }];
+  const counts = calisthenics.flatMap((exercise): SkillStandard[] => {
+    const count = exercise.standard ? parseCountStandard(exercise.standard.trim()) : null;
+    if (!count) return [];
+    const records = [...(recordsByName.get(baseName(exercise.name)) ?? [])].filter((key) => metricOf(key) === count.metric);
+    if (!records.length) return [];
+    return [{ kind: 'count', skill: exercise.id, name: exercise.name, records, metric: count.metric, value: count.value }];
+  });
+
+  const all = [...gymStandards(raw), ...counts];
+  return { all, byId: new Map(all.map((standard) => [standard.skill, standard])) };
 });
 
-export const SKILL_STANDARDS: SkillStandard[] = [...GYM_STANDARDS, ...COUNT_STANDARDS];
-const STANDARD_OF = new Map(SKILL_STANDARDS.map((standard) => [standard.skill, standard]));
+/** Every standard a log can meet. */
+export const skillStandards = (): SkillStandard[] => standards().all;
 
 /** The best a record has been: its last log or any day in its history. */
 function bestRecord(save: ProtocolSave, key: string): number {
@@ -135,7 +142,7 @@ export function skillEvidence(
   save: ProtocolSave,
   skillId: string,
 ): { best: number; target: number; unit: 'kg' | 'reps' | 'seconds'; met: boolean } | null {
-  const standard = STANDARD_OF.get(skillId);
+  const standard = standards().byId.get(skillId);
   if (!standard) return null;
   const best = Math.max(0, ...standard.records.map((key) => bestRecord(save, key)));
   if (standard.kind === 'multiple') {
@@ -157,7 +164,7 @@ export function proofOf(standard: SkillStandard): string {
 export function logPassDates(save: ProtocolSave, key: string): string[] {
   const [tree, ...rest] = key.split(':');
   if (tree !== 'calisthenics') return [];
-  const standard = STANDARD_OF.get(rest.join(':'));
+  const standard = standards().byId.get(rest.join(':'));
   if (!standard) return [];
   const target =
     standard.kind === 'multiple' ? (save.bodyWeightKg > 0 ? Math.round(standard.multiple * save.bodyWeightKg * 2) / 2 : Infinity) : standard.value;
@@ -169,7 +176,7 @@ export function logPassDates(save: ProtocolSave, key: string): string[] {
 }
 
 /** The standard a skill's logs are measured against, if it has one. */
-export const standardOf = (skillId: string): SkillStandard | undefined => STANDARD_OF.get(skillId);
+export const standardOf = (skillId: string): SkillStandard | undefined => standards().byId.get(skillId);
 
 /**
  * Calisthenics-tree skills their passes now prove (logs that met the standard
@@ -177,7 +184,7 @@ export const standardOf = (skillId: string): SkillStandard | undefined => STANDA
  * tree does not show as mastered yet, or shows only as placed.
  */
 export function skillsProvenByLogs(save: ProtocolSave): SkillStandard[] {
-  return SKILL_STANDARDS.filter((standard) => {
+  return standards().all.filter((standard) => {
     const key = `calisthenics:${standard.skill}`;
     if (save.skills?.[key] && !save.vouched?.[key]) return false;
     return provenByPasses(passDatesOf(save, key, logPassDates(save, key)));

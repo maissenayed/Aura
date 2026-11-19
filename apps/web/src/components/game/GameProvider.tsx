@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { PlanSpec, liftOf } from '../../utils/campaignPlan';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { PlanSpec, liftOf, resolvePlan } from '../../utils/campaignPlan';
+import { exerciseListVersion, subscribeExerciseList } from '../../data/exercisesData';
 import {
   BODYWEIGHT_RECORD,
   Derived,
@@ -35,7 +36,7 @@ import {
 import { HISTORY_LIMIT, HistoryPoint } from '../../utils/campaignV3';
 import { V2_LIFT_OF_RECORD } from '../../utils/records';
 import { adoptDeviceProgress } from '../../utils/skillProgressStore';
-import { SKILL_STANDARDS, proofOf, skillsProvenByLogs } from '../../utils/skillStandards';
+import { proofOf, skillStandards, skillsProvenByLogs } from '../../utils/skillStandards';
 import {
   TESTS_PER_DAY,
   addDays,
@@ -164,8 +165,13 @@ function mergeLog(log: LogEntry[], events: GameEvent[], date: string): LogEntry[
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const snapshot = useCampaign();
-  const { save, plan, spec } = snapshot;
+  const { save, spec } = snapshot;
   const todayIso = useTodayIso();
+
+  // A plan carries its exercises' names and levels. Once the database's exercise list is in
+  // (or changes), the plan is read against it, so every screen shows the same list.
+  const exerciseList = useSyncExternalStore(subscribeExerciseList, exerciseListVersion, () => 0);
+  const plan = useMemo(() => (exerciseList === 0 ? snapshot.plan : resolvePlan(spec)), [exerciseList, snapshot.plan, spec]);
 
   const currentWeek = todayIso ? weekOf(save.startedAt, todayIso) : 1;
   const todayDayId = todayIso ? dayIdOf(todayIso) : null;
@@ -322,13 +328,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     // A log that meets a standard for the first time lands the skill: say so, and when to prove it again.
     const landedNow = new Set(
-      SKILL_STANDARDS.filter((standard) => logPassDates(save, `calisthenics:${standard.skill}`).length > 0).map((standard) => standard.skill),
+      skillStandards().filter((standard) => logPassDates(save, `calisthenics:${standard.skill}`).length > 0).map((standard) => standard.skill),
     );
     const known = landedByLogs.current;
     landedByLogs.current = landedNow;
     if (known && !quiet) {
       const date = todayIso ?? toIsoDate(new Date());
-      const fresh = SKILL_STANDARDS.filter(
+      const fresh = skillStandards().filter(
         (standard) =>
           landedNow.has(standard.skill) &&
           !known.has(standard.skill) &&

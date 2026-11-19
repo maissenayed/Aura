@@ -2,8 +2,7 @@
 
 import { useCallback, useSyncExternalStore } from 'react';
 import { Exercise } from '@aura/types';
-import { EXERCISES } from '../data/exercisesData';
-import { getStoredExercises } from './exerciseStorage';
+import { currentExercises, subscribeExerciseList } from '../data/exercisesData';
 import { resolveExerciseId } from '../data/exerciseAliases';
 import { adoptDeviceSkills, campaignUserId, setSyncedSkills, subscribeToCampaign, syncedSkills } from './protocolStore';
 
@@ -170,13 +169,10 @@ export function rememberTree(tree: SkillTreeId): void {
   listeners.forEach((listener) => listener());
 }
 
-/* The exercise list: the built-in dataset, or a custom one saved on this device. */
+/* The exercise list: the database's, once loaded (see `exerciseListStore.ts`); the built-in one until then. */
 
-let exerciseCache: Exercise[] | null = null;
-const subscribeNever = () => () => {};
-const getExercises = () => (exerciseCache ??= getStoredExercises());
-const getServerExercises = () => EXERCISES;
+const builtInExercises = currentExercises();
 
 export function useExercises(): Exercise[] {
-  return useSyncExternalStore(subscribeNever, getExercises, getServerExercises);
+  return useSyncExternalStore(subscribeExerciseList, currentExercises, () => builtInExercises);
 }
