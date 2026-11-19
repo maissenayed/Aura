@@ -4,7 +4,7 @@
  *
  * Pure functions only — no React, no storage — so the page can ask for a fresh
  * answer on every change and the rules stay in one readable place. Every tree
- * (calisthenics, bouldering) runs on the same rules; what differs between them
+ * (calisthenics, bouldering, yoga) runs on the same rules; what differs between them
  * — branches, level ranges, ranks — comes in as a `TreeRules`.
  */
 
@@ -19,6 +19,8 @@ export type SkillStatus = 'mastered' | 'ready' | 'locked';
 export interface TreeSkill {
   id: string;
   name: string;
+  /** A second name it goes by, such as a yoga pose's Sanskrit name. */
+  otherName?: string;
   /** The column it sits in: a calisthenics level, or a V-grade for bouldering. */
   level: number;
   /** The progression (row) it belongs to inside its branch. */
@@ -31,6 +33,8 @@ export interface TreeSkill {
   /** How to do it, one step per entry. */
   description: string[];
   expertTip?: string;
+  /** Who should take care, and how: inversions, deep backbends. */
+  caution?: string;
   youtubeQuery?: string;
   videoSearchUrl?: string;
   /** What it trains, shown as tags. */
@@ -40,7 +44,7 @@ export interface TreeSkill {
 }
 
 /**
- * A skill from one of the built-in trees (bouldering, gym), with the fields
+ * A skill from one of the built-in trees (bouldering, gym, yoga), with the fields
  * other features such as the campaign can rely on.
  */
 export interface CatalogSkill extends TreeSkill {

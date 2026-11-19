@@ -1,13 +1,16 @@
 import React from 'react';
 import { BicepsFlexed, Mountain } from 'lucide-react';
 import { BOULDERING_RULES, BOULDERING_SKILLS, fontGrade, vGrade } from '../../data/boulderingTree';
+import { YOGA_POSES, YOGA_RULES } from '../../data/yogaTree';
+import { LotusIcon } from '../game/icons';
 import { SkillTreeId } from '../../utils/skillProgressStore';
 import { CALISTHENICS_RULES, TreeRules, TreeSkill } from '../../utils/skillTree';
 import { FigureSpec } from './SkillFigure';
-import { BOULDERING_LANE_THEME, FALLBACK_LANE_THEME, LANE_THEME, LaneTheme } from './laneTheme';
+import { BOULDERING_LANE_THEME, FALLBACK_LANE_THEME, LANE_THEME, LaneTheme, YOGA_LANE_THEME } from './laneTheme';
 import { boulderingFigure } from './boulderingFigures';
 import { calisthenicsFigure } from './calisthenicsFigures';
 import { gymFigure } from './gymFigures';
+import { yogaFigure } from './yogaFigures';
 
 /**
  * Everything that makes one skill tree look and read differently from another:
@@ -79,10 +82,30 @@ export const BOULDERING_TREE: SkillTreeDef = {
   figureFor: boulderingFigure,
 };
 
+/** Yoga: poses held for time, from Mountain Pose to Scorpion. */
+export const YOGA_TREE: SkillTreeDef = {
+  id: 'yoga',
+  label: 'Yoga',
+  icon: <LotusIcon className={ICON} />,
+  rules: YOGA_RULES,
+  skills: YOGA_POSES,
+  lanes: YOGA_LANE_THEME,
+  noun: { one: 'pose', many: 'poses' },
+  levelWord: 'level',
+  levelName: (level) => `Level ${level}`,
+  levelTag: (level) => `L${level}`,
+  levelRange: (min, max) => `Levels ${min}–${max}`,
+  basicsMax: 2,
+  searchPlaceholder: 'Find a pose — crow, pigeon, Sirsasana…',
+  tutorialTopic: 'yoga pose tutorial',
+  figureFor: yogaFigure,
+};
+
 /** In the order the dropdown lists them. */
 export const SKILL_TREES: Record<SkillTreeId, SkillTreeDef> = {
   calisthenics: CALISTHENICS_TREE,
   bouldering: BOULDERING_TREE,
+  yoga: YOGA_TREE,
 };
 
 export const laneThemeOf = (tree: SkillTreeDef, lane: string): LaneTheme => tree.lanes[lane] ?? FALLBACK_LANE_THEME;

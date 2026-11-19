@@ -7,8 +7,13 @@ import { DATA, formatJson, isDev, notFound, readRepo, writeRepo } from '../repoF
  */
 export async function GET() {
   if (!isDev) return notFound();
-  const [calisthenics, gym, bouldering] = await Promise.all([readRepo(FIGURE_FILES.calisthenics), readRepo(FIGURE_FILES.gym), readRepo(FIGURE_FILES.bouldering)]);
-  const sources = parseSources({ calisthenics, gym, bouldering });
+  const [calisthenics, gym, bouldering, yoga] = await Promise.all([
+    readRepo(FIGURE_FILES.calisthenics),
+    readRepo(FIGURE_FILES.gym),
+    readRepo(FIGURE_FILES.bouldering),
+    readRepo(FIGURE_FILES.yoga),
+  ]);
+  const sources = parseSources({ calisthenics, gym, bouldering, yoga });
   const sorted = Object.fromEntries(Object.entries(sources).sort(([a], [b]) => a.localeCompare(b, 'en', { numeric: true })));
   await writeRepo(DATA.sources, formatJson(sorted));
   return Response.json({ sources: sorted });

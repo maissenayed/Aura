@@ -520,7 +520,7 @@ const BadgesTab: React.FC = () => {
   }
   for (const [key, date] of Object.entries(save.skills ?? {})) {
     const [tree, ...rest] = key.split(':');
-    if (tree !== 'calisthenics' && tree !== 'bouldering') continue;
+    if (tree !== 'calisthenics' && tree !== 'bouldering' && tree !== 'yoga') continue;
     // Placed skills are credited, not earned: no badge until they are proven.
     if (save.vouched?.[key]) continue;
     const skill = skillOf(tree, rest.join(':'));

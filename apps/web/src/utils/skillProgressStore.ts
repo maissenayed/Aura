@@ -14,14 +14,15 @@ import { adoptDeviceSkills, campaignUserId, setSyncedSkills, subscribeToCampaign
  */
 
 /** Gym lifts are part of the calisthenics tree; there is no separate gym tree any more. */
-export type SkillTreeId = 'calisthenics' | 'bouldering';
+export type SkillTreeId = 'calisthenics' | 'bouldering' | 'yoga';
 
-export const SKILL_TREE_IDS: readonly SkillTreeId[] = ['calisthenics', 'bouldering'];
+export const SKILL_TREE_IDS: readonly SkillTreeId[] = ['calisthenics', 'bouldering', 'yoga'];
 
 /** The calisthenics key predates the other trees and stays as it was, so existing progress keeps loading. */
 const PROGRESS_KEYS: Record<SkillTreeId, string> = {
   calisthenics: 'aura_calisthenics_skill_tree_progress_v1',
   bouldering: 'aura_bouldering_skill_tree_progress_v1',
+  yoga: 'aura_yoga_skill_tree_progress_v1',
 };
 /** Where the separate gym tree kept this device's progress; it now counts in the calisthenics tree. */
 const LEGACY_GYM_KEY = 'aura_gym_skill_tree_progress_v1';

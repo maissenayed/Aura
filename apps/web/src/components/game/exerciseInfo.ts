@@ -1,4 +1,5 @@
 import { BOULDERING_SKILLS } from '../../data/boulderingTree';
+import { YOGA_POSES } from '../../data/yogaTree';
 import { resolveExerciseId } from '../../data/exerciseAliases';
 import { currentExercises, fromExerciseList } from '../../data/exercisesData';
 import type { SkillTreeId } from '../../utils/skillProgressStore';
@@ -30,9 +31,11 @@ interface SkillLike {
 }
 
 const BOULDERING_BY_ID = new Map<string, SkillLike>(BOULDERING_SKILLS.map((skill) => [skill.id, skill]));
+const YOGA_BY_ID = new Map<string, SkillLike>(YOGA_POSES.map((pose) => [pose.id, pose]));
 const sources = fromExerciseList((): { tree: SkillTreeId; byId: Map<string, SkillLike> }[] => [
   { tree: 'calisthenics', byId: new Map(currentExercises().map((skill) => [skill.id, skill])) },
   { tree: 'bouldering', byId: BOULDERING_BY_ID },
+  { tree: 'yoga', byId: YOGA_BY_ID },
 ]);
 
 /** The dataset fills exercises without written steps with the same four generic lines. */

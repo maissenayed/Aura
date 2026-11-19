@@ -134,7 +134,7 @@ export const CrownIcon = icon(() => <path d="M4 19h16M5 16 4 7l5 4 3-6 3 6 5-4-1
 
 export const MoonIcon = icon(() => <path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.4 6.4 0 0 0 10 10z" />);
 
-/** Disciplines: rings for calisthenics, a plate for the gym, a hold for bouldering. */
+/** Disciplines: rings for calisthenics, a plate for the gym, a hold for bouldering, a lotus for yoga. */
 export const RingsIcon = icon(() => (
   <>
     <path d="M8 2v6M16 2v6" />
@@ -155,6 +155,14 @@ export const HoldIcon = icon(() => (
   <>
     <path d="M5 15c0-5 3.5-9 8-9 3.5 0 6 2.4 6 5.6 0 4-3.8 6.9-8.4 6.9C7.4 18.5 5 17.4 5 15z" />
     <circle cx="12.5" cy="12" r="1.6" />
+  </>
+));
+
+export const LotusIcon = icon(() => (
+  <>
+    <path d="M12 18.5c-2.6-2-3.6-4.6-3-7.6.4-1.9 1.5-3.6 3-4.9 1.5 1.3 2.6 3 3 4.9.6 3-.4 5.6-3 7.6z" />
+    <path d="M9.2 17.6C6 17.3 3.6 15.4 3 12.4c2-.4 3.9-.1 5.6.9" />
+    <path d="M14.8 17.6c3.2-.3 5.6-2.2 6.2-5.2-2-.4-3.9-.1-5.6.9" />
   </>
 ));
 

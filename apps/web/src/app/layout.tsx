@@ -17,7 +17,7 @@ const archivo = Archivo({
 
 export const metadata: Metadata = {
   title: "Aura",
-  description: "Earn your aura. Your training as an RPG: daily quests, bosses to beat and a skill tree to climb, for calisthenics, the gym and bouldering.",
+  description: "Earn your aura. Your training as an RPG: daily quests, bosses to beat and a skill tree to climb, for calisthenics, the gym, bouldering and yoga.",
   applicationName: "Aura",
   // iPhone "Add to Home Screen": opens full screen with its own name; the icon is app/apple-icon.png.
   appleWebApp: {

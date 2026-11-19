@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ChevronRight, ExternalLink, Lightbulb, Play, Sparkles, Undo2, X } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ExternalLink, Lightbulb, Play, ShieldAlert, Sparkles, Undo2, X } from 'lucide-react';
 import {
   SkillGraph,
   SkillStatus,
@@ -264,7 +264,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
   const status = statusOf(exercise, mastered);
   const { save } = useGame();
   // What the athlete's logs say about this standard, when a log can prove it.
-  const evidence = tree.id === 'calisthenics' ? skillEvidence(save, exercise.id) : null;
+  const evidence = tree.id === 'bouldering' ? null : skillEvidence(save, exercise.id);
   const theme = laneThemeOf(tree, exercise.swimlane);
   const prerequisites = exercise.prerequisites.map((id) => graph.byId.get(id)).filter((entry): entry is TreeSkill => Boolean(entry));
   const unlocks = (graph.children.get(exercise.id) ?? []).map((id) => graph.byId.get(id)).filter((entry): entry is TreeSkill => Boolean(entry));
@@ -317,6 +317,7 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
         <h2 ref={heading} tabIndex={-1} className="mt-2 font-display font-extrabold uppercase text-[26px] leading-none text-fg outline-none">
           {exercise.name}
         </h2>
+        {exercise.otherName && <p className="mt-1 text-[13px] font-semibold text-fg-4">{exercise.otherName}</p>}
         {summaryLine && <p className="mt-1.5 text-sm text-fg-3 leading-relaxed">{summaryLine}</p>}
       </header>
 
@@ -333,6 +334,13 @@ const DetailView: React.FC<SkillPanelProps & { exercise: TreeSkill }> = ({
             {SCENE_LABEL[figure.scene]}
           </figcaption>
         </figure>
+      )}
+
+      {exercise.caution && (
+        <p className="flex gap-2.5 p-3 rounded-card bg-boss-deep text-sm text-boss-soft leading-relaxed">
+          <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>{exercise.caution}</span>
+        </p>
       )}
 
       {/* Status and the one thing to do about it: test it, prove it again, or place yourself on it */}

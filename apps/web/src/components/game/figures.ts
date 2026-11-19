@@ -3,12 +3,13 @@ import { resolveExerciseId } from '../../data/exerciseAliases';
 import { boulderingFigure } from '../skilltree/boulderingFigures';
 import { calisthenicsFigure } from '../skilltree/calisthenicsFigures';
 import { gymFigure } from '../skilltree/gymFigures';
+import { yogaFigure } from '../skilltree/yogaFigures';
 import type { FigureSpec } from '../skilltree/SkillFigure';
 
 /**
  * Finds a drawing for anything the campaign shows: a catalogue exercise, a
- * tracked lift or a boss. Skill-tree exercises (calisthenics `ex_*`, gym and
- * `bld_*` ids) already have their own figure; the hand-written campaign
+ * tracked lift or a boss. Skill-tree exercises (calisthenics `ex_*`, gym,
+ * `bld_*` and `yoga_*` ids) already have their own figure; the hand-written campaign
  * exercises and the bosses borrow the closest skill's.
  */
 
@@ -138,6 +139,7 @@ function lookup(given: string): FigureSpec | undefined {
     calisthenicsFigure(id) ??
     gymFigure(id) ??
     boulderingFigure(id) ??
+    yogaFigure(id) ??
     (CALISTHENICS_LOOKALIKE[id] ? calisthenicsFigure(CALISTHENICS_LOOKALIKE[id]) : undefined) ??
     (GYM_LOOKALIKE[id] ? gymFigure(GYM_LOOKALIKE[id]) : undefined) ??
     (BOULDERING_LOOKALIKE[id] ? boulderingFigure(BOULDERING_LOOKALIKE[id]) : undefined);
@@ -163,7 +165,7 @@ const held = new WeakMap<FigureSpec, FigureSpec>();
  * lean, so Tuck and Full Planche only look different once they are held.
  */
 export function heldPose(spec: FigureSpec): FigureSpec {
-  if (!spec.motion) return spec;
+  if (!spec.motion || spec.motion.held === 'start') return spec;
   let pose = held.get(spec);
   if (!pose) {
     pose = { ...spec, strokes: spec.motion.strokes, discs: spec.motion.discs ?? spec.discs, motion: undefined };

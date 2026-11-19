@@ -79,6 +79,8 @@ export interface Motion {
   discs: Disc[];
   seconds: number;
   tempo?: 'even' | 'slow-return';
+  /** Which frame is the hold, drawn when the figure stands still: the second (default) or the first, as for a yoga pose. */
+  held?: 'start' | 'end';
 }
 
 export interface FigureSpec {

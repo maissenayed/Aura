@@ -39,7 +39,12 @@ export const GoToSearch: React.FC<GoToSearchProps> = ({ tree, graph, mastered, o
     const needle = query.trim().toLowerCase();
     if (needle.length < 2) return [];
     return graph.exercises
-      .filter((exercise) => exercise.name.toLowerCase().includes(needle) || exercise.subCategory.toLowerCase().includes(needle))
+      .filter(
+        (exercise) =>
+          exercise.name.toLowerCase().includes(needle) ||
+          exercise.subCategory.toLowerCase().includes(needle) ||
+          Boolean(exercise.otherName?.toLowerCase().includes(needle)),
+      )
       .sort((a, b) => {
         const aStarts = a.name.toLowerCase().startsWith(needle) ? 0 : 1;
         const bStarts = b.name.toLowerCase().startsWith(needle) ? 0 : 1;

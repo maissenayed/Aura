@@ -1,6 +1,7 @@
 import type { RawExercise } from '@aura/types';
 import { currentRawExercises, fromExerciseList } from '../data/exercisesData';
 import { EXERCISE_BY_ID } from '../data/campaignCatalog';
+import { YOGA_POSES } from '../data/yogaTree';
 import { metricOf, recordKeyOf } from './records';
 import type { ProtocolSave } from './protocolEngine';
 import { isAssumed, passDatesOf, provenByPasses } from './evidence';
@@ -19,6 +20,9 @@ import { isAssumed, passDatesOf, provenByPasses } from './evidence';
  * same unit. For "3x10" the logged number is one set, so it has to reach 10.
  * Standards written any other way ("4 sets of 8-10 reps with full range of
  * motion") stay on the tree.
+ *
+ * A yoga pose's standard is a hold ("30 s each side…"): a logged hold of the
+ * pose that long is a pass, as it is for a calisthenics hold.
  *
  * A day whose log meets the standard is a pass, like a test passed on the
  * tree. One pass lands the skill; a second on another day, 48 hours to 21 days
@@ -46,9 +50,13 @@ const SAME_LIFT_AS: Record<string, string> = {
 /** Totals add three lifts together; no single log proves them. */
 const NOT_ONE_LIFT = new Set(['total_4x', 'total_5x', 'total_6x']);
 
+/** The trees whose skills a log can prove. */
+export type LoggedTree = 'calisthenics' | 'yoga';
+
 export type SkillStandard =
   | {
       kind: 'multiple';
+      tree: 'calisthenics';
       skill: string;
       name: string;
       /** The record keys whose logs prove it. */
@@ -58,6 +66,7 @@ export type SkillStandard =
     }
   | {
       kind: 'count';
+      tree: LoggedTree;
       skill: string;
       name: string;
       records: string[];
@@ -74,7 +83,7 @@ function gymStandards(raw: RawExercise[]): SkillStandard[] {
     if (!match) return [];
     const lift = SAME_LIFT_AS[exercise.id] ?? exercise.id;
     if (metricOf(lift) !== 'kg') return [];
-    return [{ kind: 'multiple', skill: exercise.id, name: exercise.name, records: [recordKeyOf(lift)], multiple: Number(match[1]) }];
+    return [{ kind: 'multiple', tree: 'calisthenics', skill: exercise.id, name: exercise.name, records: [recordKeyOf(lift)], multiple: Number(match[1]) }];
   });
 }
 
@@ -121,10 +130,15 @@ const standards = fromExerciseList(() => {
     if (!count) return [];
     const records = [...(recordsByName.get(baseName(exercise.name)) ?? [])].filter((key) => metricOf(key) === count.metric);
     if (!records.length) return [];
-    return [{ kind: 'count', skill: exercise.id, name: exercise.name, records, metric: count.metric, value: count.value }];
+    return [{ kind: 'count', tree: 'calisthenics', skill: exercise.id, name: exercise.name, records, metric: count.metric, value: count.value }];
   });
 
-  const all = [...gymStandards(raw), ...counts];
+  // Each yoga pose logs under its own id, in seconds.
+  const holds = YOGA_POSES.flatMap((pose): SkillStandard[] =>
+    metricOf(pose.id) === 'seconds' ? [{ kind: 'count', tree: 'yoga', skill: pose.id, name: pose.name, records: [recordKeyOf(pose.id)], metric: 'seconds', value: pose.seconds }] : [],
+  );
+
+  const all = [...gymStandards(raw), ...counts, ...holds];
   return { all, byId: new Map(all.map((standard) => [standard.skill, standard])) };
 });
 
@@ -160,12 +174,11 @@ export function proofOf(standard: SkillStandard): string {
     : `Your log meets ${standard.value} ${standard.metric === 'seconds' ? 's' : standard.value === 1 ? 'rep' : 'reps'}`;
 }
 
-/** The days a log met a skill's standard, for a key like `calisthenics:ex_7`. Sorted, each day once. */
+/** The days a log met a skill's standard, for a key like `calisthenics:ex_7` or `yoga:yoga_tree`. Sorted, each day once. */
 export function logPassDates(save: ProtocolSave, key: string): string[] {
   const [tree, ...rest] = key.split(':');
-  if (tree !== 'calisthenics') return [];
   const standard = standards().byId.get(rest.join(':'));
-  if (!standard) return [];
+  if (!standard || standard.tree !== tree) return [];
   const target =
     standard.kind === 'multiple' ? (save.bodyWeightKg > 0 ? Math.round(standard.multiple * save.bodyWeightKg * 2) / 2 : Infinity) : standard.value;
   const days = new Set<string>();
@@ -178,14 +191,17 @@ export function logPassDates(save: ProtocolSave, key: string): string[] {
 /** The standard a skill's logs are measured against, if it has one. */
 export const standardOf = (skillId: string): SkillStandard | undefined => standards().byId.get(skillId);
 
+/** A standard's skill as the save keys it: `calisthenics:ex_7`, `yoga:yoga_tree`. */
+export const standardKey = (standard: SkillStandard) => `${standard.tree}:${standard.skill}`;
+
 /**
- * Calisthenics-tree skills their passes now prove (logs that met the standard
- * and tests passed on the tree, two days 48 hours to 21 days apart) but the
- * tree does not show as mastered yet, or shows only as placed.
+ * Calisthenics and yoga skills their passes now prove (logs that met the
+ * standard and tests passed on the tree, two days 48 hours to 21 days apart)
+ * but the tree does not show as mastered yet, or shows only as placed.
  */
 export function skillsProvenByLogs(save: ProtocolSave): SkillStandard[] {
   return standards().all.filter((standard) => {
-    const key = `calisthenics:${standard.skill}`;
+    const key = standardKey(standard);
     if (save.skills?.[key] && !save.vouched?.[key]) return false;
     return provenByPasses(passDatesOf(save, key, logPassDates(save, key)));
   });

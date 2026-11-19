@@ -36,7 +36,7 @@ import {
 import { HISTORY_LIMIT, HistoryPoint } from '../../utils/campaignV3';
 import { V2_LIFT_OF_RECORD } from '../../utils/records';
 import { adoptDeviceProgress } from '../../utils/skillProgressStore';
-import { proofOf, skillStandards, skillsProvenByLogs } from '../../utils/skillStandards';
+import { proofOf, skillStandards, skillsProvenByLogs, standardKey } from '../../utils/skillStandards';
 import {
   TESTS_PER_DAY,
   addDays,
@@ -328,7 +328,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     // A log that meets a standard for the first time lands the skill: say so, and when to prove it again.
     const landedNow = new Set(
-      skillStandards().filter((standard) => logPassDates(save, `calisthenics:${standard.skill}`).length > 0).map((standard) => standard.skill),
+      skillStandards().filter((standard) => logPassDates(save, standardKey(standard)).length > 0).map((standard) => standard.skill),
     );
     const known = landedByLogs.current;
     landedByLogs.current = landedNow;
@@ -339,7 +339,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           landedNow.has(standard.skill) &&
           !known.has(standard.skill) &&
           !proven.includes(standard) &&
-          !(save.skills[`calisthenics:${standard.skill}`] && !save.vouched?.[`calisthenics:${standard.skill}`]),
+          !(save.skills[standardKey(standard)] && !save.vouched?.[standardKey(standard)]),
       );
       if (fresh.length) {
         announce(
@@ -354,7 +354,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
     if (!proven.length) return;
     const date = todayIso ?? toIsoDate(new Date());
-    const keys = proven.map((standard) => `calisthenics:${standard.skill}`);
+    const keys = proven.map(standardKey);
     const master = (current: ProtocolSave): ProtocolSave => ({
       ...current,
       // A placed skill proven now is mastered today, for its XP slot.
@@ -369,7 +369,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     play(
       master,
       proven
-        .filter((standard) => !save.skills[`calisthenics:${standard.skill}`])
+        .filter((standard) => !save.skills[standardKey(standard)])
         .map((standard) => ({
           kind: 'skill',
           key: `skill_${standard.skill}`,
