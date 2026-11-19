@@ -56,6 +56,8 @@ const RECORD_OF: Record<string, string> = {
   lsit_max: 'ex_42',
   lsit_holds: 'ex_42',
   dead_hang: 'ex_439',
+  // The other way round: the tree's first weighted rung is the campaign's Weighted Dips, logged as added load.
+  ex_52: 'weighted_dips',
 };
 
 /** The key an exercise's numbers are kept under. */

@@ -397,11 +397,12 @@ export const rawExercises: RawExercise[] = [
   },
   {
     "id": "ex_52",
-    "name": "Weighted Dip +10 kg",
+    "name": "Weighted Dips",
     "level": 4,
     "category": "Push-ups & Dips",
     "subCategory": "Assisted & Weighted Dips",
     "swimlane": "Push",
+    "standard": "+10 kg",
     "prerequisites": [
       "ex_8",
       "ex_50"
