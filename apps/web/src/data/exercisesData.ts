@@ -151,5 +151,55 @@ export function enrichExercises(rawList: RawExercise[]): Exercise[] {
   });
 }
 
-// Default export of enriched EXERCISES
-export const EXERCISES: Exercise[] = enrichExercises(rawExercises);
+/* ------------------------------------------------------------------ */
+/* The exercise list in use                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The exercises the app runs on. The database holds the real list: the web
+ * app loads it from the backend (`exerciseListStore.ts`) and the backend hands
+ * it to its engine. Until then, and whenever the server can't be reached, the
+ * built-in list in `rawExercisesData.ts` stands in; it is also what seeds an
+ * empty database.
+ */
+let current = { raw: rawExercises, enriched: enrichExercises(rawExercises), source: 'built-in', version: 0 };
+const listeners = new Set<() => void>();
+
+/** Every exercise, enriched for the tree. */
+export const currentExercises = (): Exercise[] => current.enriched;
+
+/** Every exercise as stored. */
+export const currentRawExercises = (): RawExercise[] => current.raw;
+
+/** Where the list came from: the database's version id, or `built-in`. */
+export const exerciseListSource = (): string => current.source;
+
+/** Bumped whenever the list is replaced; 0 is the built-in list. */
+export const exerciseListVersion = (): number => current.version;
+
+/** Replaces the list. A list from the same source is the same list, so it changes nothing. */
+export function setExerciseList(raw: RawExercise[], source: string): void {
+  if (source === current.source) return;
+  current = { raw, enriched: enrichExercises(raw), source, version: current.version + 1 };
+  listeners.forEach((listener) => listener());
+}
+
+export function subscribeExerciseList(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/** A value worked out from the exercise list, rebuilt the first time it is read after the list changes. */
+export function fromExerciseList<T>(build: () => T): () => T {
+  let builtFor = -1;
+  let value: T;
+  return () => {
+    if (builtFor !== current.version) {
+      value = build();
+      builtFor = current.version;
+    }
+    return value;
+  };
+}

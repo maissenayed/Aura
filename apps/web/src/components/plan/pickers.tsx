@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { EXERCISE_BY_ID, EXERCISE_CATALOG, EXERCISE_CATEGORIES, ExerciseCategory } from '../../data/campaignCatalog';
+import { EXERCISE_BY_ID, EXERCISE_CATEGORIES, ExerciseCategory, exerciseCatalog } from '../../data/campaignCatalog';
+import { fromExerciseList } from '../../data/exercisesData';
 import { Branch, BRANCHES, CampaignPlan, PlanSpec, TRAINABLE_ATTRIBUTES, formatStatValue, recordName } from '../../utils/campaignPlan';
 import { Metric, SkillTreeRef } from '../../utils/campaignV3';
 import { metricOf, recordKeyOf } from '../../utils/records';
@@ -205,7 +206,7 @@ type CatalogueOption = PickOption & { category: ExerciseCategory; metric: Metric
 
 /** A record's card: the exercise it logs to, drawn and levelled as that exercise. */
 function catalogueOption(key: string): CatalogueOption | undefined {
-  const exercise = EXERCISE_BY_ID.get(key) ?? EXERCISE_CATALOG.find((entry) => recordKeyOf(entry.id) === key);
+  const exercise = EXERCISE_BY_ID.get(key) ?? exerciseCatalog().find((entry) => recordKeyOf(entry.id) === key);
   if (!exercise) return undefined;
   const treeSkill = skillOf('calisthenics', key) ?? skillOf('bouldering', key);
   const climbing = exercise.discipline === 'bouldering';
@@ -228,23 +229,19 @@ function catalogueOption(key: string): CatalogueOption | undefined {
   };
 }
 
-let catalogue: CatalogueOption[] | null = null;
 /** Every record the catalogue can log to, once, easiest first. */
-function allCatalogue(): CatalogueOption[] {
-  if (!catalogue) {
-    const seen = new Set<string>();
-    catalogue = [...EXERCISE_CATALOG]
-      .sort((a, b) => (a.level ?? 0) - (b.level ?? 0) || a.name.localeCompare(b.name))
-      .flatMap((exercise) => {
-        const key = recordKeyOf(exercise.id);
-        if (seen.has(key)) return [];
-        seen.add(key);
-        const option = catalogueOption(key);
-        return option ? [option] : [];
-      });
-  }
-  return catalogue;
-}
+const allCatalogue = fromExerciseList((): CatalogueOption[] => {
+  const seen = new Set<string>();
+  return [...exerciseCatalog()]
+    .sort((a, b) => (a.level ?? 0) - (b.level ?? 0) || a.name.localeCompare(b.name))
+    .flatMap((exercise) => {
+      const key = recordKeyOf(exercise.id);
+      if (seen.has(key)) return [];
+      seen.add(key);
+      const option = catalogueOption(key);
+      return option ? [option] : [];
+    });
+});
 
 interface CatalogueSheetProps {
   /** Fixed to one category: no category chips. */

@@ -1,5 +1,5 @@
 import { Swimlane, Exercise } from '@aura/types';
-import { EXERCISES } from './exercisesData';
+import { currentExercises } from './exercisesData';
 
 export type MuscleRegion = 'Upper Body' | 'Core & Spine' | 'Lower Body';
 
@@ -921,7 +921,8 @@ export function getExercisesForMuscle(
   const explicitIds = new Set(info.exerciseIds || []);
   const baseGroup = info.baseGroup.toLowerCase();
 
-  const matched = EXERCISES.filter((ex) => {
+  const exercises = currentExercises();
+  const matched = exercises.filter((ex) => {
     // 1. Explicit ID match
     if (explicitIds.has(ex.id)) return true;
 
@@ -948,7 +949,7 @@ export function getExercisesForMuscle(
     return false;
   });
 
-  const pool = matched.length > 0 ? matched : EXERCISES.filter((ex) => ex.swimlane === info.category);
+  const pool = matched.length > 0 ? matched : exercises.filter((ex) => ex.swimlane === info.category);
 
   // Sort by level ascending (easiest/lowest level first!)
   const sorted = [...pool].sort((a, b) => a.level - b.level);

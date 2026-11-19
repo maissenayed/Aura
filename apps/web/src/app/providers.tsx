@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GameProvider } from '../components/game/GameProvider';
 import { SignInWall } from '../components/account/SignInWall';
 import { OfflineStatus } from '../components/pwa/OfflineStatus';
+import { ExerciseListLoader } from '../utils/exerciseListStore';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -21,6 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <ExerciseListLoader />
       <GameProvider>
         <SignInWall>{children}</SignInWall>
         <OfflineStatus />

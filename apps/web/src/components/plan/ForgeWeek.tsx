@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, HeartPulse, Minus, Plus, Search, X } from 'lucide-react';
-import { ARMOR_CATALOG, DISCIPLINES, Discipline, EXERCISE_BY_ID, EXERCISE_CATALOG } from '../../data/campaignCatalog';
+import { ARMOR_CATALOG, DISCIPLINES, Discipline, EXERCISE_BY_ID, exerciseCatalog } from '../../data/campaignCatalog';
 import {
   DAY_IDS,
   DAY_KINDS,
@@ -486,7 +486,7 @@ const Catalogue: React.FC<{
 
   const results = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return EXERCISE_CATALOG.filter(
+    return exerciseCatalog().filter(
       (exercise) =>
         (needle ? exercise.name.toLowerCase().includes(needle) || exercise.focus.toLowerCase().includes(needle) : exercise.discipline === discipline),
     )

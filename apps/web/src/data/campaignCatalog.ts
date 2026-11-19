@@ -17,7 +17,8 @@
 
 import type { Branch, StatUnit, TrainableAttribute } from '../utils/campaignPlan';
 import { BOULDERING_SKILLS } from './boulderingTree';
-import { EXERCISES as SKILL_TREE_EXERCISES } from './exercisesData';
+import type { Exercise } from '@aura/types';
+import { currentExercises, fromExerciseList } from './exercisesData';
 
 /* ------------------------------------------------------------------ */
 /* Sets & reps                                                         */
@@ -279,7 +280,7 @@ function disciplineOf(exercise: Omit<CatalogExercise, 'discipline'>): Discipline
 const MOVING = /push|pull|dip|raise|row|press|squat|curl|muscle|\bmu\b|kip|felge|jump|shrimp|pistol|lunge|thrust|walk|clap|eccentric|neg|rep|swing|roll/i;
 const STATIC = /hold|plank|lever|planche|l-sit|v-sit|manna|flag|hang|handstand|cross|maltese|statics|support|sup\b|headstand|hollow|sit\b/i;
 
-function fromSkillTree(exercise: (typeof SKILL_TREE_EXERCISES)[number]): CatalogExercise {
+function fromSkillTree(exercise: Exercise): CatalogExercise {
   const text = `${exercise.name} ${exercise.subCategory}`;
   const timed = STATIC.test(exercise.name) && !MOVING.test(exercise.name);
   const level = exercise.level;
@@ -329,7 +330,7 @@ const GYM_BODYWEIGHT = new Set(['gym_pushup', 'gym_pullup', 'gym_plank', 'gym_ha
 const laneGroup = (lane: string) => (lane === 'Core' ? 'Core & Grip' : lane);
 
 /** A gym lift from the tree: strength standards on a lift the campaign tracks log that lift, the rest keep a working weight. */
-function fromGymLift(exercise: (typeof SKILL_TREE_EXERCISES)[number]): CatalogExercise {
+function fromGymLift(exercise: Exercise): CatalogExercise {
   const timed = /plank|hold|hang\b|carry/i.test(exercise.name);
   const lift = GYM_LIFTS[exercise.id];
   const lane = exercise.swimlane.toLowerCase() as ExerciseCategory;
@@ -387,24 +388,32 @@ function fromBoulderingTree(skill: (typeof BOULDERING_SKILLS)[number]): CatalogE
 }
 
 const curatedIds = new Set(CURATED.map((exercise) => exercise.id));
-const treeById = new Map(SKILL_TREE_EXERCISES.map((exercise) => [exercise.id, exercise]));
 
-export const EXERCISE_CATALOG: CatalogExercise[] = [
-  ...CURATED.map((exercise) => {
-    // Curated exercises that are also in the skill tree take its level; their lift links stay their own.
-    const tree = treeById.get(exercise.id);
-    return {
-      ...exercise,
-      discipline: disciplineOf(exercise),
-      ...(tree ? { level: tree.level, group: laneGroup(tree.swimlane) } : {}),
-    };
-  }),
-  // Tree rows that share a curated id are skipped, or the later copy would replace the curated one (and its lift).
-  ...SKILL_TREE_EXERCISES.filter((exercise) => !curatedIds.has(exercise.id)).map((exercise) =>
-    exercise.discipline === 'gym' ? fromGymLift(exercise) : fromSkillTree(exercise),
-  ),
-  ...BOULDERING_SKILLS.map(fromBoulderingTree),
-];
+/**
+ * Every exercise a plan can schedule: the curated cards, then the skill tree's
+ * (the exercise list in use, so it follows the database) and the bouldering
+ * tree's. Rebuilt when the exercise list changes.
+ */
+export const exerciseCatalog = fromExerciseList((): CatalogExercise[] => {
+  const tree = currentExercises();
+  const treeById = new Map(tree.map((exercise) => [exercise.id, exercise]));
+  return [
+    ...CURATED.map((exercise) => {
+      // Curated exercises that are also in the skill tree take its level; their lift links stay their own.
+      const twin = treeById.get(exercise.id);
+      return {
+        ...exercise,
+        discipline: disciplineOf(exercise),
+        ...(twin ? { level: twin.level, group: laneGroup(twin.swimlane) } : {}),
+      };
+    }),
+    // Tree rows that share a curated id are skipped, or the later copy would replace the curated one (and its lift).
+    ...tree.filter((exercise) => !curatedIds.has(exercise.id)).map((exercise) =>
+      exercise.discipline === 'gym' ? fromGymLift(exercise) : fromSkillTree(exercise),
+    ),
+    ...BOULDERING_SKILLS.map(fromBoulderingTree),
+  ];
+});
 
 /* ------------------------------------------------------------------ */
 /* Milestones — gates judged by the player, claimed on the Bosses tab  */
@@ -661,7 +670,37 @@ export const ARMOR_CATALOG: CatalogArmor[] = [
 const byId = <T extends { id: string }>(list: T[]) => new Map(list.map((item) => [item.id, item]));
 
 export const LIFT_BY_ID = byId(LIFT_CATALOG);
-export const EXERCISE_BY_ID = byId(EXERCISE_CATALOG);
+/** A map that always reads the latest of a list that can change. */
+class LiveMap<K, V> implements ReadonlyMap<K, V> {
+  constructor(private readonly current: () => ReadonlyMap<K, V>) {}
+  get size() {
+    return this.current().size;
+  }
+  get(key: K) {
+    return this.current().get(key);
+  }
+  has(key: K) {
+    return this.current().has(key);
+  }
+  forEach(callback: (value: V, key: K, map: ReadonlyMap<K, V>) => void, thisArg?: unknown) {
+    this.current().forEach(callback, thisArg);
+  }
+  entries() {
+    return this.current().entries();
+  }
+  keys() {
+    return this.current().keys();
+  }
+  values() {
+    return this.current().values();
+  }
+  [Symbol.iterator]() {
+    return this.current()[Symbol.iterator]();
+  }
+}
+
+/** Follows the exercise list: an exercise added in the admin page is here as soon as the list loads. */
+export const EXERCISE_BY_ID: ReadonlyMap<string, CatalogExercise> = new LiveMap(fromExerciseList(() => byId(exerciseCatalog())));
 export const MILESTONE_BY_ID = byId(MILESTONE_CATALOG);
 export const BOSS_BY_ID = byId(BOSS_CATALOG);
 export const TREE_BY_ID = byId(TREE_CATALOG);

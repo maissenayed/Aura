@@ -1,6 +1,6 @@
 import { BOULDERING_SKILLS } from '../../data/boulderingTree';
 import { resolveExerciseId } from '../../data/exerciseAliases';
-import { EXERCISES } from '../../data/exercisesData';
+import { currentExercises, fromExerciseList } from '../../data/exercisesData';
 import type { SkillTreeId } from '../../utils/skillProgressStore';
 import { SKILL_TREES } from '../skilltree/skillTrees';
 import { lookalikeOf } from './figures';
@@ -29,10 +29,11 @@ interface SkillLike {
   summary?: string;
 }
 
-const SOURCES: { tree: SkillTreeId; byId: Map<string, SkillLike> }[] = [
-  { tree: 'calisthenics', byId: new Map(EXERCISES.map((skill) => [skill.id, skill])) },
-  { tree: 'bouldering', byId: new Map(BOULDERING_SKILLS.map((skill) => [skill.id, skill])) },
-];
+const BOULDERING_BY_ID = new Map<string, SkillLike>(BOULDERING_SKILLS.map((skill) => [skill.id, skill]));
+const sources = fromExerciseList((): { tree: SkillTreeId; byId: Map<string, SkillLike> }[] => [
+  { tree: 'calisthenics', byId: new Map(currentExercises().map((skill) => [skill.id, skill])) },
+  { tree: 'bouldering', byId: BOULDERING_BY_ID },
+]);
 
 /** The dataset fills exercises without written steps with the same four generic lines. */
 const GENERIC_STEPS = /^1\. Position your body in the starting/;
@@ -54,12 +55,12 @@ function infoFrom(tree: SkillTreeId, skill: SkillLike, exact: boolean): Exercise
 
 export function exerciseInfo(exerciseId: string): ExerciseInfo | null {
   const id = resolveExerciseId(exerciseId);
-  for (const source of SOURCES) {
+  for (const source of sources()) {
     const skill = source.byId.get(id);
     if (skill) return infoFrom(source.tree, skill, true);
   }
   const twin = lookalikeOf(id);
-  const skill = twin ? SOURCES.find((source) => source.tree === twin.tree)?.byId.get(twin.id) : undefined;
+  const skill = twin ? sources().find((source) => source.tree === twin.tree)?.byId.get(twin.id) : undefined;
   return twin && skill ? infoFrom(twin.tree, skill, false) : null;
 }
 

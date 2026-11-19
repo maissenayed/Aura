@@ -3,6 +3,15 @@
  * scripts/build-engine.mjs. The source of truth is apps/web/src/utils/serverEngine.ts.
  */
 
+import type { Exercise, RawExercise } from '@aura/types';
+
+/** The list the app ships with; it fills an empty exercise table. */
+export const BUILT_IN_EXERCISES: RawExercise[];
+/** Puts a list in use for every engine call after it. A list with the same source changes nothing. */
+export function setExerciseList(raw: RawExercise[], source: string): void;
+/** The exercise list in use, enriched for the tree. */
+export function currentExercises(): Exercise[];
+
 /** A save or plan as the engine reads it; the backend passes them through untouched. */
 export type EngineSave = { startedAt: string | null; [field: string]: unknown };
 export type EnginePlan = { [field: string]: unknown };
