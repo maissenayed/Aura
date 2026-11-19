@@ -814,6 +814,33 @@ export function usesOf(plan: CampaignPlan, kind: 'lift' | 'boss' | 'tower', id: 
   return uses;
 }
 
+/**
+ * The plan without a lift, and so without everything that logs or reads it:
+ * the player's own numbers for it, the missions that log it, the bosses fought
+ * on its number, and the map goals for it (or for those bosses). What was
+ * logged for it stays in the save.
+ */
+export function withoutLift(spec: PlanSpec, liftId: string): PlanSpec {
+  const bossesGone = new Set(
+    spec.bosses
+      .filter((boss) => (boss.kind === 'reps' || (boss.kind === 'bodyweight' && boss.mode === 'multiple')) && recordKeyOf(boss.exercise) === liftId)
+      .map((boss) => boss.id),
+  );
+  return normalizeSpec(
+    {
+      ...spec,
+      lifts: spec.lifts.filter((entry) => entry.exercise !== liftId),
+      days: spec.days.map((day) => ({ ...day, exercises: day.exercises.filter((entry) => recordKeyOf(entry.exercise) !== liftId) })),
+      bosses: spec.bosses.filter((boss) => !bossesGone.has(boss.id)),
+      acts: spec.acts.map((act) => ({
+        ...act,
+        goals: act.goals.filter((goal) => !(goal.kind === 'record' && recordKeyOf(goal.exercise) === liftId) && !(goal.kind === 'boss' && bossesGone.has(goal.boss))),
+      })),
+    },
+    spec,
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* v3: normalising and resolving                                       */
 /* ------------------------------------------------------------------ */
