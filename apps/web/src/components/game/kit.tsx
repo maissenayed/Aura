@@ -298,12 +298,16 @@ export const Figure: React.FC<{
   title?: string;
   underlay?: React.ReactNode;
   overlay?: (play: MotionPlay | null) => React.ReactNode;
-}> = ({ spec, state = 'ready', accent, animate = false, className = 'w-12 h-12', title, underlay, overlay }) => (
+  /** Thumbnail drawing (heavier lines, no labels); by default, whenever it is still. */
+  compact?: boolean;
+  alwaysAnimate?: boolean;
+}> = ({ spec, state = 'ready', accent, animate = false, className = 'w-12 h-12', title, underlay, overlay, compact, alwaysAnimate }) => (
   <SkillFigure
     spec={spec}
     accent={accent ?? FIGURE_ACCENT[state]}
     tint={FIGURE_TINT[state]}
-    compact={!animate}
+    compact={compact ?? !animate}
+    alwaysAnimate={alwaysAnimate}
     animate={animate}
     className={className}
     title={title}

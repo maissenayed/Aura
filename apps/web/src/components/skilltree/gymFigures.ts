@@ -1,5 +1,6 @@
 import { Disc, FigureSpec, Pt, Scene, Stroke } from './SkillFigure';
 import { Drawn, Part, Pose, climber, figure, hold, pelvisToward } from './figureKit';
+import { patched } from './figureOverrides';
 
 /**
  * One animated drawing per gym skill. Most lifts are seen side-on, facing
@@ -992,7 +993,15 @@ FIGURES['gym_deadlift_3x'] = FIGURES['gym_deadlift_2_5x'];
 FIGURES['machine_chest_press_bw'] = FIGURES['machine_chest_press'];
 FIGURES['total_6x'] = FIGURES['total_5x'];
 
+const fixed = new Map<string, FigureSpec | undefined>();
+
 export function gymFigure(id: string): FigureSpec | undefined {
+  if (!fixed.has(id)) fixed.set(id, FIGURES[id] && patched(id, FIGURES[id]));
+  return fixed.get(id);
+}
+
+/** The figure exactly as drawn here, before any studio fix: for the figure studio. */
+export function gymFigureAsBuilt(id: string): FigureSpec | undefined {
   return FIGURES[id];
 }
 

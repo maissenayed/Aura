@@ -1,4 +1,5 @@
 import { FigureSpec } from './SkillFigure';
+import { patched } from './figureOverrides';
 import {
   abWheel,
   archHang,
@@ -581,10 +582,15 @@ export function calisthenicsFigure(id: string): FigureSpec | undefined {
   if (!make) return undefined;
   let spec = built.get(id);
   if (!spec) {
-    spec = make();
+    spec = patched(id, make());
     built.set(id, spec);
   }
   return spec;
+}
+
+/** The figure exactly as its family draws it, before any studio fix: for the figure studio. */
+export function calisthenicsFigureAsBuilt(id: string): FigureSpec | undefined {
+  return FIGURES[id]?.();
 }
 
 export const CALISTHENICS_FIGURE_IDS = Object.keys(FIGURES);

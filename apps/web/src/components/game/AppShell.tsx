@@ -3,12 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, Cloud, CloudOff, CloudUpload, ExternalLink, Users } from 'lucide-react';
+import { Activity, Cloud, CloudOff, CloudUpload, ExternalLink, PenTool, Users } from 'lucide-react';
 import { AccountMenu } from '../account/AccountMenu';
 import { useGame } from './GameProvider';
 import { HexLevel, Meter } from './kit';
 import { BossIcon, CampIcon, FlameIcon, ForgeIcon, HeroIcon, MapIcon, QuestIcon, RouteIcon, Wordmark } from './icons';
 import { evaluateWeek } from '../../utils/protocolEngine';
+import { useAccount } from '../../utils/accountStore';
 
 /** Missions left today, whatever week the board is showing. */
 function useLeftToday(): number {
@@ -79,6 +80,9 @@ const Sidebar: React.FC = () => {
   const ready = gate === 'ready';
   const left = useLeftToday();
   const SyncIcon = SYNC[sync].icon;
+  const account = useAccount();
+  // The figure studio: on a dev server, and for the owner on the live site.
+  const studio = process.env.NODE_ENV === 'development' || account.account?.role === 'admin';
 
   return (
     <aside className="hidden lg:flex sticky top-0 z-10 h-dvh w-[236px] shrink-0 flex-col gap-5 px-3.5 py-6 border-r border-ink-800 bg-ink-900">
@@ -127,6 +131,15 @@ const Sidebar: React.FC = () => {
             </Link>
           );
         })}
+        {studio && (
+          <Link
+            href="/studio"
+            className={`flex items-center gap-3 h-11 px-3 rounded-card text-sm font-semibold transition ${pathname.startsWith('/studio') ? 'bg-ink-800 text-fg' : 'text-fg-4 hover:bg-ink-850 hover:text-fg'}`}
+          >
+            <PenTool className="w-5 h-5" />
+            <span>Figure studio</span>
+          </Link>
+        )}
         {ADMIN_URL && (
           <a
             href={ADMIN_URL}

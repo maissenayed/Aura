@@ -1,5 +1,6 @@
 import { FigureSpec, Pt, Stroke } from './SkillFigure';
 import { ALL, climber, figure, hold, scaled } from './figureKit';
+import { patched } from './figureOverrides';
 
 /**
  * One illustration per bouldering skill, drawn by `SkillFigure`. Front views
@@ -2026,7 +2027,15 @@ const FIGURES: Record<string, FigureSpec> = {
   }),
 };
 
+const fixed = new Map<string, FigureSpec | undefined>();
+
 export function boulderingFigure(id: string): FigureSpec | undefined {
+  if (!fixed.has(id)) fixed.set(id, FIGURES[id] && patched(id, FIGURES[id]));
+  return fixed.get(id);
+}
+
+/** The figure exactly as drawn here, before any studio fix: for the figure studio. */
+export function boulderingFigureAsBuilt(id: string): FigureSpec | undefined {
   return FIGURES[id];
 }
 
