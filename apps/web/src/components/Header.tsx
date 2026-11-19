@@ -3,13 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, ExternalLink } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import { AccountMenu } from './account/AccountMenu';
 import { CampIcon, RouteIcon, Wordmark } from './game/icons';
-
-// The admin tool is a separate app. It is linked when its address is configured, and during local development.
-const ADMIN_URL =
-  process.env.NEXT_PUBLIC_ADMIN_URL ?? (process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : null);
 
 const LINKS = [
   { href: '/', label: 'Skill Tree', icon: RouteIcon },
@@ -45,13 +41,6 @@ export const Header: React.FC = () => {
               </Link>
             );
           })}
-
-          {ADMIN_URL && (
-            <a href={ADMIN_URL} target="_blank" rel="noopener noreferrer" className={`${LINK} text-fg-4 hover:text-fg hover:bg-ink-850`}>
-              <ExternalLink className="w-4 h-4 shrink-0" />
-              <span className="max-sm:sr-only">Admin</span>
-            </a>
-          )}
         </nav>
 
         <AccountMenu />
