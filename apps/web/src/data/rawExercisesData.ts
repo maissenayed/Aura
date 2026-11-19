@@ -64,7 +64,7 @@ export const rawExercises: RawExercise[] = [
       "ex_26"
     ],
     "youtubeQuery": "Archer Push Up tutorial bodyweight fitness",
-    "videoSearchUrl": "https://youtu.be/dyDBGkJWgZE?list=PLBF8536CA2AB746EC&t=19"
+    "videoSearchUrl": "https://www.youtube.com/watch?v=ZLWko5aP1FM"
   },
   {
     "id": "ex_108",
@@ -308,7 +308,7 @@ export const rawExercises: RawExercise[] = [
       "ex_50"
     ],
     "youtubeQuery": "Straight Bar Dip tutorial bodyweight fitness",
-    "videoSearchUrl": "https://youtu.be/w6uo90PAIfI?t=84"
+    "videoSearchUrl": "https://www.youtube.com/watch?v=6rhowlOcTn0"
   },
   {
     "id": "ex_76",
@@ -823,8 +823,8 @@ export const rawExercises: RawExercise[] = [
     "prerequisites": [
       "ex_414"
     ],
-    "youtubeQuery": "Handstand tutorial bodyweight fitness",
-    "videoSearchUrl": "https://www.youtube.com/watch?v=N3K9SMNKL7Y"
+    "youtubeQuery": "One Arm Handstand progression tutorial",
+    "videoSearchUrl": "https://www.youtube.com/watch?v=eLfnRyL3ZYk"
   },
   {
     "id": "ex_416",
@@ -863,8 +863,7 @@ export const rawExercises: RawExercise[] = [
       "ex_259",
       "ex_220"
     ],
-    "youtubeQuery": "OA Elbow Lever Press to OA HS tutorial bodyweight fitness",
-    "videoSearchUrl": "https://youtu.be/Ly1SSSyns-s?t=144"
+    "youtubeQuery": "one arm elbow lever to one arm handstand"
   },
   {
     "id": "ex_1",
@@ -1945,7 +1944,7 @@ export const rawExercises: RawExercise[] = [
       "ex_22"
     ],
     "youtubeQuery": "Wide Row tutorial bodyweight fitness",
-    "videoSearchUrl": "http://www.youtube.com/watch?v=1yMRvsuk9Xg"
+    "videoSearchUrl": "https://www.youtube.com/watch?v=EjAdoFZy_kk"
   },
   {
     "id": "ex_68",
@@ -2239,7 +2238,7 @@ export const rawExercises: RawExercise[] = [
       "ex_45"
     ],
     "youtubeQuery": "Typewriter Pull Up tutorial bodyweight fitness",
-    "videoSearchUrl": "https://youtu.be/vdjWgw98EeI?t=92"
+    "videoSearchUrl": "https://www.youtube.com/watch?v=PSjeeKy6I2g"
   },
   {
     "id": "ex_377",
@@ -2645,7 +2644,7 @@ export const rawExercises: RawExercise[] = [
     ],
     "standard": "10 s hold",
     "youtubeQuery": "Tuck Front Lever tutorial bodyweight fitness",
-    "videoSearchUrl": "https://www.youtube.com/watch?v=VUe3M0iLPG0&feature=youtu.be"
+    "videoSearchUrl": "https://www.youtube.com/watch?v=lkGhntOoLNk"
   },
   {
     "id": "ex_98",
@@ -2658,7 +2657,7 @@ export const rawExercises: RawExercise[] = [
       "ex_67"
     ],
     "youtubeQuery": "Adv Tuck Front Lever tutorial bodyweight fitness",
-    "videoSearchUrl": "https://www.youtube.com/watch?v=NicnELGtOSE"
+    "videoSearchUrl": "https://www.youtube.com/watch?v=AGhb8V8M758"
   },
   {
     "id": "ex_136",
@@ -2706,7 +2705,7 @@ export const rawExercises: RawExercise[] = [
       "ex_205"
     ],
     "youtubeQuery": "Front Lever tutorial bodyweight fitness",
-    "videoSearchUrl": "https://youtu.be/ZqCLG0hiRco?t=8"
+    "videoSearchUrl": "https://www.youtube.com/watch?v=_qNRNyI3qxM"
   },
   {
     "id": "ex_238",
@@ -3085,7 +3084,7 @@ export const rawExercises: RawExercise[] = [
       "ex_184"
     ],
     "youtubeQuery": "Archer Muscle-up tutorial bodyweight fitness",
-    "videoSearchUrl": "https://www.youtube.com/watch?v=ke1sbJLeshg"
+    "videoSearchUrl": "https://www.youtube.com/watch?v=sePY28lBRfE"
   },
   {
     "id": "ex_219",
@@ -3133,7 +3132,7 @@ export const rawExercises: RawExercise[] = [
       "ex_345"
     ],
     "youtubeQuery": "Elevator Muscle-up tutorial bodyweight fitness",
-    "videoSearchUrl": "https://www.youtube.com/watch?v=2FZ9t2vl1kc"
+    "videoSearchUrl": "https://www.youtube.com/watch?v=QQmM7zdNtYA"
   },
   {
     "id": "ex_155",
@@ -3678,8 +3677,8 @@ export const rawExercises: RawExercise[] = [
       "ex_20"
     ],
     "standard": "10 s hold",
-    "youtubeQuery": "Ring L-Sit Dip tutorial bodyweight fitness",
-    "videoSearchUrl": "https://www.youtube.com/watch?v=zMJpC7y-6SE"
+    "youtubeQuery": "L-sit tutorial bodyweight fitness",
+    "videoSearchUrl": "https://www.youtube.com/watch?v=cu0fHp8HCDo"
   },
   {
     "id": "ex_65",
@@ -3836,7 +3835,7 @@ export const rawExercises: RawExercise[] = [
       "ex_45"
     ],
     "youtubeQuery": "Tuck Flag tutorial bodyweight fitness",
-    "videoSearchUrl": "https://www.youtube.com/watch?v=9458-nNR90M"
+    "videoSearchUrl": "https://www.youtube.com/watch?v=AwXMa49_yoo"
   },
   {
     "id": "ex_152",
@@ -4427,8 +4426,8 @@ export const rawExercises: RawExercise[] = [
       "ex_409"
     ],
     "standard": "10 s hold, arms straight",
-    "youtubeQuery": "Bridge / Wheel tutorial bodyweight fitness",
-    "videoSearchUrl": "https://www.youtube.com/watch?v=m-yYUvddRss"
+    "youtubeQuery": "Back Bridge tutorial bodyweight fitness",
+    "videoSearchUrl": "https://www.youtube.com/watch?v=tSvmWU-0Zo0"
   },
   {
     "id": "ex_411",
