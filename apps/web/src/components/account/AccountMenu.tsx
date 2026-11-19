@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { LogIn, LogOut, Users } from 'lucide-react';
+import { ListTree, LogIn, LogOut, Users } from 'lucide-react';
 import { useAccount } from '../../utils/accountStore';
 import { signOutOfCampaign } from '../../utils/protocolStore';
 
@@ -97,6 +97,17 @@ export const AccountMenu: React.FC<{ large?: boolean }> = ({ large = false }) =>
             >
               <Users className="w-4 h-4 text-fg-4" />
               Team & invitations
+            </Link>
+          )}
+          {account.role === 'admin' && (
+            <Link
+              href="/admin/exercises"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 h-10 px-3 rounded-card text-sm font-semibold text-fg-2 hover:bg-ink-800 hover:text-fg"
+            >
+              <ListTree className="w-4 h-4 text-fg-4" />
+              Exercises
             </Link>
           )}
           <button

@@ -3,8 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, Cloud, CloudOff, CloudUpload, ExternalLink, Users } from 'lucide-react';
+import { Activity, Cloud, CloudOff, CloudUpload, ListTree, Users } from 'lucide-react';
 import { AccountMenu } from '../account/AccountMenu';
+import { useAccount } from '../../utils/accountStore';
 import { useGame } from './GameProvider';
 import { HexLevel, Meter } from './kit';
 import { BossIcon, CampIcon, FlameIcon, ForgeIcon, HeroIcon, MapIcon, QuestIcon, RouteIcon, Wordmark } from './icons';
@@ -49,9 +50,8 @@ const SECONDARY: NavItem[] = [
   { href: '/anatomy', label: 'Anatomy', icon: Activity },
 ];
 
-// The admin tool is a separate app, linked when its address is configured and during local development.
-const ADMIN_URL =
-  process.env.NEXT_PUBLIC_ADMIN_URL ?? (process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : null);
+/** The owner's tools, shown only to the owner. */
+const OWNER: NavItem[] = [{ href: '/admin/exercises', label: 'Exercises', icon: ListTree }];
 
 function isActive(pathname: string, item: NavItem): boolean {
   if (item.href === '/') return pathname === '/';
@@ -76,6 +76,7 @@ const SYNC = {
 const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const { gate, derived, streak, sync } = useGame();
+  const owner = useAccount().account?.role === 'admin';
   const ready = gate === 'ready';
   const left = useLeftToday();
   const SyncIcon = SYNC[sync].icon;
@@ -105,7 +106,7 @@ const Sidebar: React.FC = () => {
       )}
 
       <nav aria-label="Main" className="flex flex-col gap-1">
-        {[...PRIMARY, ...SECONDARY].map((item) => {
+        {[...PRIMARY, ...SECONDARY, ...(owner ? OWNER : [])].map((item) => {
           const active = isActive(pathname, item);
           const Icon = item.icon;
           return (
@@ -127,17 +128,6 @@ const Sidebar: React.FC = () => {
             </Link>
           );
         })}
-        {ADMIN_URL && (
-          <a
-            href={ADMIN_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 h-11 px-3 rounded-card text-sm font-semibold text-fg-4 hover:bg-ink-850 hover:text-fg transition"
-          >
-            <ExternalLink className="w-5 h-5" />
-            <span>Admin</span>
-          </a>
-        )}
       </nav>
 
       <div className="mt-auto flex flex-col gap-3">
