@@ -7,6 +7,7 @@ import { ScreenHeader } from '../../../components/game/AppShell';
 import { useGame } from '../../../components/game/GameProvider';
 import { ArrowRightIcon, BossIcon, CheckIcon, CrownIcon, LockIcon, PlateIcon } from '../../../components/game/icons';
 import { Chip, HexLevel, Meter, Stepper } from '../../../components/game/kit';
+import { TowersPanel } from '../../../components/game/TowersPanel';
 import { ActNode, ActStatus, campaignComplete } from '../../../utils/protocolEngine';
 
 /** Each kind of goal wears its own icon until it is reached. */
@@ -133,6 +134,10 @@ export default function MapPage() {
               <p className="text-[13px] text-fg-3">{current.tagline}</p>
             </section>
           )}
+          {/* Beside the map on a wide screen; under it on a phone, so the climb stays first. */}
+          <div className="hidden lg:block">
+            <TowersPanel ladders={derived.ladders} />
+          </div>
         </div>
 
         <div className="relative mx-auto rounded-card overflow-hidden bg-ink-900" style={{ width: W, height: layout.height }}>
@@ -257,6 +262,9 @@ export default function MapPage() {
               )}
             </div>
           )}
+        </div>
+        <div className="lg:hidden">
+          <TowersPanel ladders={derived.ladders} />
         </div>
       </div>
     </main>
