@@ -143,9 +143,12 @@ const MomentArt: React.FC<{ moment: Moment; plan: CampaignPlan; level: LevelStat
   );
 };
 
-/** A loot chest with its lid swinging open. */
+/**
+ * A loot chest with its lid swinging open. The open lid rises to about y −22,
+ * above the closed chest, so the drawing starts at y −26 to show all of it.
+ */
 const Chest: React.FC = () => (
-  <svg width="170" height="150" viewBox="0 0 150 130" aria-hidden="true">
+  <svg width="170" height="177" viewBox="0 -26 150 156" aria-hidden="true">
     <rect x="18" y="58" width="114" height="62" rx="6" strokeWidth="4" style={{ fill: 'var(--color-earned-deep)', stroke: 'var(--color-earned)' }} />
     <rect x="18" y="76" width="114" height="8" style={{ fill: 'var(--color-earned)' }} />
     <rect x="66" y="70" width="18" height="22" rx="3" strokeWidth="2" style={{ fill: 'var(--color-earned-soft)', stroke: 'var(--color-earned-deep)' }} />
