@@ -47,7 +47,7 @@ export default function CampPage() {
           <FlameIcon className="w-[18px] h-[18px]" lit={streak > 0} />
           <span className="num font-bold text-lg">{streak}</span>
         </span>
-        {/* Sign out and Team live in the desktop sidebar; on a phone they open from here. */}
+        {/* The avatar menu (sign out, and the owner's tools) sits at the foot of the desktop sidebar; on a phone it opens from here. */}
         <AccountMenu large />
       </div>
       <h1 className="hidden lg:block font-display font-extrabold uppercase text-[40px] leading-none">Camp</h1>
@@ -66,6 +66,20 @@ export default function CampPage() {
           <span className="flex-1 min-w-0">
             <span className="block eyebrow text-fg-4">Crew</span>
             <span className="block text-[14px] font-semibold text-fg">Board, duels and this week&apos;s raid</span>
+          </span>
+          <span className="text-fg-4" aria-hidden>
+            →
+          </span>
+        </Link>
+        {/* Anatomy sits in the desktop sidebar; on a phone it opens from here. */}
+        <Link
+          href="/anatomy"
+          className="lg:hidden flex items-center gap-3 p-4 rounded-card bg-ink-900 hover:bg-ink-850 transition"
+          aria-label="Anatomy: the muscles today's quest trains"
+        >
+          <span className="flex-1 min-w-0">
+            <span className="block eyebrow text-fg-4">Anatomy</span>
+            <span className="block text-[14px] font-semibold text-fg">The muscles today&apos;s quest trains</span>
           </span>
           <span className="text-fg-4" aria-hidden>
             →
