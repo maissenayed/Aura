@@ -9,7 +9,10 @@ import { signOutOfCampaign } from '../../utils/protocolStore';
 /** The panel's width (w-64), to keep it on screen. */
 const MENU_WIDTH = 256;
 
-/** The signed-in person, in the header: who you are, the team page (owner), and sign out. */
+/**
+ * The signed-in person, behind the avatar: who you are, sign out, and for the
+ * owner the owner's tools (Team, Exercises, Figure studio), which live only here.
+ */
 /** `large` matches the 44 px buttons of the phone header beside it. */
 export const AccountMenu: React.FC<{ large?: boolean }> = ({ large = false }) => {
   const { status, mode, account, setupRequired } = useAccount();

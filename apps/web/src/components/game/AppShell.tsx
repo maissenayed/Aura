@@ -3,9 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, Cloud, CloudOff, CloudUpload, ListTree, PenTool, Users } from 'lucide-react';
+import { Activity, Cloud, CloudOff, CloudUpload, Users } from 'lucide-react';
 import { AccountMenu } from '../account/AccountMenu';
-import { useAccount } from '../../utils/accountStore';
 import { useGame } from './GameProvider';
 import { HexLevel, Meter } from './kit';
 import { BossIcon, CampIcon, FlameIcon, ForgeIcon, HeroIcon, MapIcon, QuestIcon, RouteIcon, Wordmark } from './icons';
@@ -50,11 +49,6 @@ const SECONDARY: NavItem[] = [
   { href: '/anatomy', label: 'Anatomy', icon: Activity },
 ];
 
-/** The owner's tools, shown only to the owner. */
-const OWNER: NavItem[] = [{ href: '/admin/exercises', label: 'Exercises', icon: ListTree }];
-/** The figure studio: on a dev server, and for the owner on the live site. */
-const STUDIO: NavItem = { href: '/studio', label: 'Figure studio', icon: PenTool };
-
 function isActive(pathname: string, item: NavItem): boolean {
   if (item.href === '/') return pathname === '/';
   return pathname === item.href || pathname.startsWith(`${item.href}/`) || Boolean(item.also?.some((p) => pathname.startsWith(p)));
@@ -78,8 +72,6 @@ const SYNC = {
 const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const { gate, derived, streak, sync } = useGame();
-  const owner = useAccount().account?.role === 'admin';
-  const studio = process.env.NODE_ENV === 'development' || owner;
   const ready = gate === 'ready';
   const left = useLeftToday();
   const SyncIcon = SYNC[sync].icon;
@@ -109,7 +101,7 @@ const Sidebar: React.FC = () => {
       )}
 
       <nav aria-label="Main" className="flex flex-col gap-1">
-        {[...PRIMARY, ...SECONDARY, ...(owner ? OWNER : []), ...(studio ? [STUDIO] : [])].map((item) => {
+        {[...PRIMARY, ...SECONDARY].map((item) => {
           const active = isActive(pathname, item);
           const Icon = item.icon;
           return (
